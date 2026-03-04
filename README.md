@@ -22,7 +22,7 @@ ghfs schema
 ## Config (`ghfs.config.ts`)
 
 ```ts
-import { defineConfig } from 'ghfs'
+import { defineConfig } from '@ghfs/cli'
 
 export default defineConfig({
   repo: 'owner/name',

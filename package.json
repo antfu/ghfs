@@ -1,7 +1,7 @@
 {
-  "name": "ghfs",
+  "name": "@ghfs/cli",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "packageManager": "pnpm@10.30.3",
   "description": "Mirror GitHub issues and PRs to local markdown files and execute batch maintainer actions.",
   "exports": {
@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "dev": "tsx src/cli.ts",
+    "start": "tsx src/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint",
