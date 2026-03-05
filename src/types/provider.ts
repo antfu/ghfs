@@ -32,6 +32,47 @@ export interface ProviderPullMetadata {
   requestedReviewers: string[]
 }
 
+export interface ProviderRepository {
+  name: string
+  full_name: string
+  description: string | null
+  private: boolean
+  archived: boolean
+  default_branch: string
+  html_url: string
+  fork: boolean
+  open_issues_count: number
+  has_issues: boolean
+  has_projects: boolean
+  has_wiki: boolean
+  created_at: string
+  updated_at: string
+  pushed_at: string | null
+  owner: {
+    login: string
+  }
+}
+
+export interface ProviderLabel {
+  name: string
+  color: string
+  description: string | null
+  default: boolean
+}
+
+export interface ProviderMilestone {
+  number: number
+  title: string
+  state: 'open' | 'closed'
+  description: string | null
+  due_on: string | null
+  open_issues: number
+  closed_issues: number
+  created_at: string
+  updated_at: string
+  closed_at: string | null
+}
+
 export interface ProviderItemSnapshot {
   number: number
   kind: IssueKind
@@ -54,6 +95,9 @@ export interface RepositoryProvider {
   fetchPullMetadata: (number: number) => Promise<ProviderPullMetadata>
   fetchPullPatch: (number: number) => Promise<string>
   fetchItemSnapshot: (number: number) => Promise<ProviderItemSnapshot>
+  fetchRepository: () => Promise<ProviderRepository>
+  fetchRepositoryLabels: () => Promise<ProviderLabel[]>
+  fetchRepositoryMilestones: () => Promise<ProviderMilestone[]>
 
   actionClose: (number: number) => Promise<void>
   actionReopen: (number: number) => Promise<void>

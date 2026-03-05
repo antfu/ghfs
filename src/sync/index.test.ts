@@ -55,7 +55,6 @@ describe('syncRepository', () => {
       return []
     })
     const fetchComments = vi.fn(async () => [])
-
     const provider = createMockProvider({
       fetchItems,
       fetchComments,
@@ -78,6 +77,10 @@ describe('syncRepository', () => {
     const syncState = await loadSyncState(storageDir)
     expect(syncState.items['1']?.lastUpdatedAt).toBe('2026-01-10T00:00:00.000Z')
     expect(syncState.items['1']?.lastSyncedAt).toBe(summary.syncedAt)
+
+    await expect(stat(join(storageDir, 'issues.md'))).resolves.toBeDefined()
+    await expect(stat(join(storageDir, 'pulls.md'))).resolves.toBeDefined()
+    await expect(stat(join(storageDir, 'repo.json'))).resolves.toBeDefined()
 
     await rm(cwd, { recursive: true, force: true })
   })
@@ -155,6 +158,9 @@ describe('syncRepository', () => {
 
     await expect(stat(join(cwd, '.ghfs', 'issues', '00001-issue-1.md'))).rejects.toThrow()
     await expect(stat(join(cwd, '.ghfs', 'pulls', '00002-pr-2.md'))).resolves.toBeDefined()
+    await expect(stat(join(cwd, '.ghfs', 'issues.md'))).resolves.toBeDefined()
+    await expect(stat(join(cwd, '.ghfs', 'pulls.md'))).resolves.toBeDefined()
+    await expect(stat(join(cwd, '.ghfs', 'repo.json'))).resolves.toBeDefined()
 
     await rm(cwd, { recursive: true, force: true })
   })
@@ -184,6 +190,9 @@ function createMockProvider(overrides: Partial<RepositoryProvider> = {}): Reposi
       kind: 'issue' as const,
       updatedAt: '2026-01-01T00:00:00.000Z',
     })),
+    fetchRepository: vi.fn(async () => createRepositoryMetadata()),
+    fetchRepositoryLabels: vi.fn(async () => []),
+    fetchRepositoryMilestones: vi.fn(async () => []),
     actionClose: vi.fn(async () => {}),
     actionReopen: vi.fn(async () => {}),
     actionSetTitle: vi.fn(async () => {}),
@@ -220,6 +229,29 @@ function createConfig(cwd: string, sync: Partial<GhfsResolvedConfig['sync']> = {
       pulls: sync.pulls ?? true,
       closed: sync.closed ?? 'existing',
       patches: sync.patches ?? 'open',
+    },
+  }
+}
+
+function createRepositoryMetadata() {
+  return {
+    name: 'repo',
+    full_name: 'owner/repo',
+    description: null,
+    private: false,
+    archived: false,
+    default_branch: 'main',
+    html_url: 'https://github.com/owner/repo',
+    fork: false,
+    open_issues_count: 1,
+    has_issues: true,
+    has_projects: true,
+    has_wiki: false,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-02T00:00:00.000Z',
+    pushed_at: '2026-01-03T00:00:00.000Z',
+    owner: {
+      login: 'owner',
     },
   }
 }

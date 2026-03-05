@@ -4,8 +4,11 @@ import type {
   ProviderComment,
   ProviderItem,
   ProviderItemSnapshot,
+  ProviderLabel,
   ProviderLockReason,
+  ProviderMilestone,
   ProviderPullMetadata,
+  ProviderRepository,
   RepositoryProvider,
 } from '../../types/provider'
 import { collectPages, iteratePages } from '../helpers'
@@ -30,6 +33,9 @@ export function createGitHubProvider(options: CreateGitHubProviderOptions): Repo
     fetchPullMetadata: number => fetchPullMetadata(octokit, owner, repo, number),
     fetchPullPatch: number => fetchPullPatch(octokit, owner, repo, number),
     fetchItemSnapshot: number => fetchItemSnapshot(octokit, owner, repo, number),
+    fetchRepository: () => fetchRepository(octokit, owner, repo),
+    fetchRepositoryLabels: () => fetchRepositoryLabels(octokit, owner, repo),
+    fetchRepositoryMilestones: () => fetchRepositoryMilestones(octokit, owner, repo),
 
     actionClose: number => actionClose(octokit, owner, repo, number),
     actionReopen: number => actionReopen(octokit, owner, repo, number),
@@ -164,6 +170,28 @@ async function fetchItemSnapshot(octokit: Octokit, owner: string, repo: string, 
     kind: issue.pull_request ? 'pull' : 'issue',
     updatedAt: issue.updated_at ?? null,
   }
+}
+
+async function fetchRepository(octokit: Octokit, owner: string, repo: string): Promise<ProviderRepository> {
+  const result = await octokit.rest.repos.get({ owner, repo })
+  return result.data as ProviderRepository
+}
+
+async function fetchRepositoryLabels(octokit: Octokit, owner: string, repo: string): Promise<ProviderLabel[]> {
+  return await octokit.paginate(octokit.rest.issues.listLabelsForRepo, {
+    owner,
+    repo,
+    per_page: 100,
+  }) as ProviderLabel[]
+}
+
+async function fetchRepositoryMilestones(octokit: Octokit, owner: string, repo: string): Promise<ProviderMilestone[]> {
+  return await octokit.paginate(octokit.rest.issues.listMilestones, {
+    owner,
+    repo,
+    state: 'all',
+    per_page: 100,
+  }) as ProviderMilestone[]
 }
 
 async function actionClose(octokit: Octokit, owner: string, repo: string, number: number): Promise<void> {

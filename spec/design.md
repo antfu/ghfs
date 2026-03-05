@@ -67,6 +67,9 @@ Non-TTY with no token is a hard error.
 ```txt
 .ghfs/
   .sync.json
+  issues.md
+  pulls.md
+  repo.json
   execute.yml
   schema/
     execute.schema.json
@@ -84,6 +87,8 @@ Non-TTY with no token is a hard error.
 Notes:
 - Issues and PRs use separate markdown trees (`issues/` and `pulls/`).
 - PR patches are stored under `pulls/`.
+- `issues.md` and `pulls.md` are aggregate tables generated from tracked mirrored items.
+- `repo.json` stores curated repository metadata with labels and milestones.
 - Markdown file names use `<number>-<slug>.md` with 5-digit zero-padding for `number` (example: `00134-some-bug.md`).
 - Slug generation rules: lowercase; replace non-`[a-z0-9]` runs with `-`; trim leading/trailing `-`; max length 48; fallback slug `item`.
 
@@ -133,7 +138,8 @@ High-level flow:
    - otherwise fetch comments (+ PR metadata if pull), render markdown, move paths as needed
    - manage patch write/delete from `sync.patches`
    - update tracked item state
-6. Persist `.sync.json` summary metadata and counters.
+6. Write aggregate snapshots: `.ghfs/issues.md`, `.ghfs/pulls.md`, and `.ghfs/repo.json`.
+7. Persist `.sync.json` summary metadata and counters.
 
 Directory creation behavior:
 - sync does not eagerly create `issues/` or `pulls/` trees at startup.
@@ -200,6 +206,7 @@ Current breakdown:
 - `sync-repository.ts`: top-level sync orchestration
 - `sync-repository-provider.ts`: provider-backed candidate fetching and pagination wiring
 - `sync-repository-item.ts`: per-item sync workflow
+- `sync-repository-snapshot.ts`: writes aggregate indexes and repo metadata snapshot
 - `sync-repository-storage.ts`: path/storage/prune/policy helpers
 - `sync-repository-utils.ts`: pure helpers and decision functions
 - `sync-repository-types.ts`: internal sync types
