@@ -32,6 +32,15 @@ It will sync the open issues and pull requests to the local filesystem under `.g
 
 Where you can view them, or ask your local agent to summarize them for you.
 
+## CLI feedback
+
+`ghfs` now provides stage-based sync feedback.
+
+- In interactive terminals (TTY), `ghfs` uses rich progress indicators.
+- In CI or piped output, `ghfs` prints deterministic plain-text progress lines.
+
+`ghfs status` now also includes diagnostics from the latest sync run (mode, duration, counters, and stage timings) from `.ghfs/.sync.json`.
+
 ## Execute operations
 
 `ghfs` also allows you to take actions on the issues and pull requests in batch.

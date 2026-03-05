@@ -85,6 +85,11 @@ describe('syncRepository', () => {
     })
 
     expect(summary.scanned).toBe(1)
+    expect(summary.selected).toBe(1)
+    expect(summary.processed).toBe(1)
+    expect(summary.skipped).toBe(1)
+    expect(summary.mode).toBe('full')
+    expect(summary.durationMs).toBeGreaterThanOrEqual(0)
     expect(summary.written).toBe(0)
     expect(paginateCalls).toHaveLength(1)
     expect(paginateCalls[0].state).toBe('open')
@@ -93,6 +98,9 @@ describe('syncRepository', () => {
     const syncState = await loadSyncState(storageDir)
     expect(syncState.items['1']?.lastUpdatedAt).toBe('2026-01-10T00:00:00.000Z')
     expect(syncState.items['1']?.lastSyncedAt).toBe(summary.syncedAt)
+    expect(syncState.lastSyncRun?.mode).toBe('full')
+    expect(syncState.lastSyncRun?.counters.skipped).toBe(1)
+    expect(syncState.lastSyncRun?.counters.processed).toBe(1)
 
     await rm(cwd, { recursive: true, force: true })
   })
@@ -176,7 +184,10 @@ describe('syncRepository', () => {
       full: true,
     })
 
-    expect(summary.scanned).toBe(1)
+    expect(summary.scanned).toBe(2)
+    expect(summary.selected).toBe(1)
+    expect(summary.processed).toBe(1)
+    expect(summary.skipped).toBe(0)
     expect(summary.written).toBe(1)
     expect(pullsGet).toHaveBeenCalledTimes(1)
 
@@ -186,6 +197,73 @@ describe('syncRepository', () => {
 
     await expect(stat(join(cwd, '.ghfs', 'issues', '00001-issue-1.md'))).rejects.toThrow()
     await expect(stat(join(cwd, '.ghfs', 'pulls', '00002-pr-2.md'))).resolves.toBeDefined()
+
+    await rm(cwd, { recursive: true, force: true })
+  })
+
+  it('emits reporter lifecycle callbacks for sync progress', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ghfs-sync-index-test-'))
+    const listForRepo = vi.fn()
+    const listComments = vi.fn()
+
+    mockedCreateGitHubClient.mockReturnValue({
+      rest: {
+        issues: {
+          listForRepo,
+          listComments,
+        },
+      },
+      paginate: vi.fn(async (method: unknown) => {
+        if (method === listForRepo) {
+          return [
+            {
+              number: 4,
+              state: 'open',
+              updated_at: '2026-01-12T00:00:00.000Z',
+              created_at: '2026-01-01T00:00:00.000Z',
+              closed_at: null,
+              title: 'Issue 4',
+              body: 'Body',
+              user: { login: 'user4' },
+              labels: [],
+              assignees: [],
+              milestone: null,
+            },
+          ]
+        }
+        if (method === listComments)
+          return []
+        return []
+      }),
+      request: vi.fn(),
+    } as unknown as Octokit)
+
+    const events: string[] = []
+    const summary = await syncRepository({
+      config: createConfig(cwd),
+      repo: 'owner/repo',
+      token: 'test-token',
+      full: true,
+      reporter: {
+        onStart: () => events.push('start'),
+        onStageStart: event => events.push(`stage:start:${event.stage}`),
+        onStageUpdate: (event) => {
+          if (event.stage === 'sync')
+            events.push(`stage:update:${event.stage}`)
+        },
+        onStageEnd: event => events.push(`stage:end:${event.stage}`),
+        onComplete: () => events.push('complete'),
+      },
+    })
+
+    expect(summary.mode).toBe('full')
+    expect(summary.processed).toBe(1)
+    expect(events).toContain('start')
+    expect(events).toContain('stage:start:resolve')
+    expect(events).toContain('stage:start:sync')
+    expect(events).toContain('stage:end:save')
+    expect(events).toContain('stage:update:sync')
+    expect(events).toContain('complete')
 
     await rm(cwd, { recursive: true, force: true })
   })

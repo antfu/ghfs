@@ -40,6 +40,7 @@ export async function syncIssueCandidate(context: SyncContext, issue: GitHubIssu
     await removeStaleMarkdownFiles(paths)
     updateTrackedItem(context, number, kind, state, issue.updated_at, paths.targetPath, patchPlan.shouldWritePatch ? paths.patchPath : undefined)
     return {
+      skipped: 1,
       written: 0,
       moved: 0,
       patchesWritten: 0,
@@ -85,6 +86,7 @@ export async function syncIssueCandidate(context: SyncContext, issue: GitHubIssu
   updateTrackedItem(context, number, kind, state, issue.updated_at, paths.targetPath, patchPlan.shouldWritePatch ? paths.patchPath : undefined)
 
   return {
+    skipped: 0,
     written: 1,
     moved,
     patchesWritten: patchStats.patchesWritten,

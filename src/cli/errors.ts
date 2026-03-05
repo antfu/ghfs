@@ -1,10 +1,11 @@
 import process from 'node:process'
-import { printCommandError } from './output'
+import { createCliPrinter } from './printer'
 
 export function withErrorHandling<TArgs extends unknown[]>(fn: (...args: TArgs) => Promise<void>): (...args: TArgs) => void {
   return (...args: TArgs) => {
     fn(...args).catch((error) => {
-      printCommandError(error)
+      const message = (error as Error).message || String(error)
+      createCliPrinter('error').error(`ghfs error: ${message}`)
       process.exit(1)
     })
   }

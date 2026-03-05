@@ -15,105 +15,177 @@ export interface ExecuteOptions {
   nonInteractive: boolean
   continueOnError: boolean
   onPlan?: (ops: PendingOp[]) => void
+  reporter?: ExecuteReporter
+}
+
+export interface ExecuteReporterStartEvent {
+  repo: string
+  mode: 'dry-run' | 'apply'
+  planned: number
+}
+
+export interface ExecuteReporterProgressEvent {
+  repo: string
+  mode: 'apply'
+  planned: number
+  completed: number
+  applied: number
+  failed: number
+  detail: ExecutionResult['details'][number]
+}
+
+export interface ExecuteReporterCompleteEvent {
+  result: ExecutionResult
+}
+
+export interface ExecuteReporterErrorEvent {
+  error: unknown
+}
+
+export interface ExecuteReporter {
+  onStart?: (event: ExecuteReporterStartEvent) => void
+  onProgress?: (event: ExecuteReporterProgressEvent) => void
+  onComplete?: (event: ExecuteReporterCompleteEvent) => void
+  onError?: (event: ExecuteReporterErrorEvent) => void
 }
 
 export async function executePendingChanges(options: ExecuteOptions): Promise<ExecutionResult> {
-  const allOps = await readAndValidateExecuteFile(options.executeFilePath)
+  try {
+    const allOps = await readAndValidateExecuteFile(options.executeFilePath)
 
-  const interactive = process.stdin.isTTY && !options.nonInteractive
-  const selected = interactive
-    ? await selectOperations(allOps)
-    : allOps.map((op, index) => ({ op, index }))
+    const interactive = process.stdin.isTTY && !options.nonInteractive
+    const selected = interactive
+      ? await selectOperations(allOps)
+      : allOps.map((op, index) => ({ op, index }))
 
-  const runId = createRunId()
-  const createdAt = new Date().toISOString()
+    const runId = createRunId()
+    const createdAt = new Date().toISOString()
+    const mode = options.apply ? 'apply' : 'dry-run'
 
-  if (selected.length === 0) {
-    return {
-      runId,
-      createdAt,
-      mode: options.apply ? 'apply' : 'dry-run',
+    options.reporter?.onStart?.({
       repo: options.repo,
-      planned: 0,
-      applied: 0,
-      failed: 0,
-      details: [],
+      mode,
+      planned: selected.length,
+    })
+
+    if (selected.length === 0) {
+      const result: ExecutionResult = {
+        runId,
+        createdAt,
+        mode,
+        repo: options.repo,
+        planned: 0,
+        applied: 0,
+        failed: 0,
+        details: [],
+      }
+      options.reporter?.onComplete?.({ result })
+      return result
     }
-  }
 
-  options.onPlan?.(selected.map(item => item.op))
+    options.onPlan?.(selected.map(item => item.op))
 
-  if (!options.apply) {
-    return {
+    if (!options.apply) {
+      const result: ExecutionResult = {
+        runId,
+        createdAt,
+        mode: 'dry-run',
+        repo: options.repo,
+        planned: selected.length,
+        applied: 0,
+        failed: 0,
+        details: selected.map(({ op, index }) => ({
+          op: index + 1,
+          action: op.action,
+          number: op.number,
+          status: 'planned',
+          message: describeAction(op),
+        })),
+      }
+      options.reporter?.onComplete?.({ result })
+      return result
+    }
+
+    if (interactive) {
+      const confirmed = await confirmApply(selected.length)
+      if (!confirmed)
+        throw new Error('Execution cancelled')
+    }
+
+    const { owner, repo } = splitRepo(options.repo)
+    const octokit = createGitHubClient(options.token)
+
+    const details: ExecutionResult['details'] = []
+    const appliedIndexes = new Set<number>()
+    let applied = 0
+    let failed = 0
+
+    for (const { op, index } of selected) {
+      try {
+        const target = await applyOperation(octokit, owner, repo, op)
+        appliedIndexes.add(index)
+        await persistRemainingOps(options.executeFilePath, allOps, appliedIndexes)
+        const detail: ExecutionResult['details'][number] = {
+          op: index + 1,
+          action: op.action,
+          number: op.number,
+          target,
+          status: 'applied',
+          message: describeAction(op),
+        }
+        details.push(detail)
+        applied += 1
+        options.reporter?.onProgress?.({
+          repo: options.repo,
+          mode: 'apply',
+          planned: selected.length,
+          completed: details.length,
+          applied,
+          failed,
+          detail,
+        })
+      }
+      catch (error) {
+        failed += 1
+        const detail: ExecutionResult['details'][number] = {
+          op: index + 1,
+          action: op.action,
+          number: op.number,
+          status: 'failed',
+          message: (error as Error).message,
+        }
+        details.push(detail)
+        options.reporter?.onProgress?.({
+          repo: options.repo,
+          mode: 'apply',
+          planned: selected.length,
+          completed: details.length,
+          applied,
+          failed,
+          detail,
+        })
+        if (!options.continueOnError)
+          break
+      }
+    }
+
+    const result: ExecutionResult = {
       runId,
       createdAt,
-      mode: 'dry-run',
+      mode: 'apply',
       repo: options.repo,
       planned: selected.length,
-      applied: 0,
-      failed: 0,
-      details: selected.map(({ op, index }) => ({
-        op: index + 1,
-        action: op.action,
-        number: op.number,
-        status: 'planned',
-        message: describeAction(op),
-      })),
+      applied,
+      failed,
+      details,
     }
+
+    options.reporter?.onComplete?.({ result })
+    return result
   }
-
-  if (interactive) {
-    const confirmed = await confirmApply(selected.length)
-    if (!confirmed)
-      throw new Error('Execution cancelled')
-  }
-
-  const { owner, repo } = splitRepo(options.repo)
-  const octokit = createGitHubClient(options.token)
-
-  const details: ExecutionResult['details'] = []
-  const appliedIndexes = new Set<number>()
-  let applied = 0
-  let failed = 0
-
-  for (const { op, index } of selected) {
-    try {
-      const target = await applyOperation(octokit, owner, repo, op)
-      appliedIndexes.add(index)
-      await persistRemainingOps(options.executeFilePath, allOps, appliedIndexes)
-      details.push({
-        op: index + 1,
-        action: op.action,
-        number: op.number,
-        target,
-        status: 'applied',
-        message: describeAction(op),
-      })
-      applied += 1
-    }
-    catch (error) {
-      failed += 1
-      details.push({
-        op: index + 1,
-        action: op.action,
-        number: op.number,
-        status: 'failed',
-        message: (error as Error).message,
-      })
-      if (!options.continueOnError)
-        break
-    }
-  }
-
-  return {
-    runId,
-    createdAt,
-    mode: 'apply',
-    repo: options.repo,
-    planned: selected.length,
-    applied,
-    failed,
-    details,
+  catch (error) {
+    options.reporter?.onError?.({ error })
+    throw error
   }
 }
 
@@ -326,7 +398,7 @@ async function selectOperations(ops: PendingOp[]): Promise<Array<{ op: PendingOp
 
 async function confirmApply(count: number): Promise<boolean> {
   const result = await confirm({
-    message: `Apply ${count} operation(s) to GitHub?`,
+    message: `Apply ${count} ${count === 1 ? 'operation' : 'operations'} to GitHub?`,
     initialValue: false,
   })
 
