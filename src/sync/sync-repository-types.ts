@@ -1,48 +1,6 @@
-import type { Octokit } from 'octokit'
 import type { GhfsResolvedConfig, IssueKind, IssueState, SyncState } from '../types'
-
-export interface GitHubIssue {
-  number: number
-  state: 'open' | 'closed'
-  html_url?: string
-  updated_at: string
-  created_at: string
-  closed_at: string | null
-  title: string
-  body: string | null
-  user: {
-    login: string
-  } | null
-  labels: Array<string | { name?: string | null }>
-  assignees: Array<{ login: string }> | null
-  milestone: {
-    title?: string | null
-  } | null
-  pull_request?: Record<string, unknown>
-}
-
-export interface GitHubComment {
-  id: number
-  body: string | null
-  created_at: string
-  updated_at: string
-  user: {
-    login: string
-  } | null
-}
-
-export interface GitHubPull {
-  draft: boolean
-  merged: boolean
-  merged_at: string | null
-  base: {
-    ref: string
-  }
-  head: {
-    ref: string
-  }
-  requested_reviewers: Array<{ login: string }>
-}
+import type { ProviderItem, RepositoryProvider } from '../types/provider'
+import type { SyncProgressSnapshot } from './contracts'
 
 export interface GitHubRepository {
   name: string
@@ -86,9 +44,7 @@ export interface GitHubMilestone {
 }
 
 export interface SyncContext {
-  octokit: Octokit
-  owner: string
-  repo: string
+  provider: RepositoryProvider
   repoSlug: string
   storageDirAbsolute: string
   config: GhfsResolvedConfig
@@ -97,7 +53,7 @@ export interface SyncContext {
 }
 
 export interface IssueCandidates {
-  issues: GitHubIssue[]
+  issues: ProviderItem[]
   scanned: number
   allOpenNumbers?: Set<number>
 }
@@ -121,15 +77,14 @@ export interface PatchPlan {
 }
 
 export interface ItemSyncStats {
+  skipped: number
   written: number
   moved: number
   patchesWritten: number
   patchesDeleted: number
 }
 
-export interface SyncCounters extends ItemSyncStats {
-  scanned: number
-}
+export interface SyncCounters extends SyncProgressSnapshot {}
 
 export interface ClosedIssuePolicyInput {
   context: SyncContext

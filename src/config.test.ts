@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { getExecuteFile, getStorageDirAbsolute, resolveConfig } from './config'
+import { getExecuteFile, getStorageDirAbsolute, resolveConfig } from './config/load'
 
 const tempDirs: string[] = []
 

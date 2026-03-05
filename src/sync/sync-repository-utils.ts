@@ -1,14 +1,8 @@
 import type { GhfsResolvedConfig, IssueKind, IssueState, SyncState } from '../types'
+import type { ProviderItem } from '../types/provider'
 import type { SyncOptions } from './contracts'
-import type { GitHubIssue, PatchPlan, SyncCounters } from './sync-repository-types'
+import type { PatchPlan, SyncCounters } from './sync-repository-types'
 import { basename } from 'node:path'
-
-export function splitRepo(repo: string): { owner: string, repo: string } {
-  const [owner, name] = repo.split('/')
-  if (!owner || !name)
-    throw new Error(`Invalid repo slug: ${repo}`)
-  return { owner, repo: name }
-}
 
 export function resolveSince(options: SyncOptions, syncState: SyncState): string | undefined {
   if (options.full)
@@ -24,9 +18,12 @@ export function normalizeIssueNumbers(numbers: number[] | undefined): number[] |
   return [...new Set(numbers.filter(number => Number.isInteger(number) && number > 0))]
 }
 
-export function createCounters(scanned: number): SyncCounters {
+export function createCounters(scanned = 0, selected = 0): SyncCounters {
   return {
     scanned,
+    selected,
+    processed: 0,
+    skipped: 0,
     written: 0,
     moved: 0,
     patchesWritten: 0,
@@ -34,7 +31,8 @@ export function createCounters(scanned: number): SyncCounters {
   }
 }
 
-export function addItemStats(counters: SyncCounters, stats: Pick<SyncCounters, 'written' | 'moved' | 'patchesWritten' | 'patchesDeleted'>): void {
+export function addItemStats(counters: SyncCounters, stats: Pick<SyncCounters, 'skipped' | 'written' | 'moved' | 'patchesWritten' | 'patchesDeleted'>): void {
+  counters.skipped += stats.skipped
   counters.written += stats.written
   counters.moved += stats.moved
   counters.patchesWritten += stats.patchesWritten
@@ -49,8 +47,8 @@ export function shouldSyncKind(sync: GhfsResolvedConfig['sync'], kind: IssueKind
   return kind === 'issue' ? sync.issues : sync.pulls
 }
 
-export function shouldSyncIssue(sync: GhfsResolvedConfig['sync'], issue: GitHubIssue): boolean {
-  return shouldSyncKind(sync, issue.pull_request ? 'pull' : 'issue')
+export function shouldSyncIssue(sync: GhfsResolvedConfig['sync'], issue: ProviderItem): boolean {
+  return shouldSyncKind(sync, issue.kind)
 }
 
 export function resolvePatchPlan(patchesMode: GhfsResolvedConfig['sync']['patches'], kind: IssueKind, state: IssueState): PatchPlan {
@@ -72,14 +70,4 @@ export function relativeToStorage(storageDirAbsolute: string, absolutePath: stri
   if (absolutePath.startsWith(storageDirAbsolute))
     return absolutePath.slice(storageDirAbsolute.length + 1)
   return basename(absolutePath)
-}
-
-export function normalizeLabels(labels: GitHubIssue['labels']): string[] {
-  return labels
-    .map((label) => {
-      if (typeof label === 'string')
-        return label
-      return label.name ?? undefined
-    })
-    .filter((label): label is string => Boolean(label))
 }

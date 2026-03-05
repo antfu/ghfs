@@ -1,5 +1,6 @@
 export * from './config'
 export * from './execution'
 export * from './issue'
+export * from './provider'
 export * from './repo'
 export * from './sync-state'

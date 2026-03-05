@@ -1,5 +1,6 @@
 import type { SyncItemState } from '../types'
-import type { GitHubLabel, GitHubMilestone, GitHubRepository, SyncContext } from './sync-repository-types'
+import type { ProviderRepository } from '../types/provider'
+import type { SyncContext } from './sync-repository-types'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { parse as parseYaml } from 'yaml'
@@ -244,24 +245,12 @@ function escapeInlineCode(value: string): string {
 
 async function buildRepoSnapshot(context: SyncContext): Promise<RepoSnapshot> {
   const [repoResult, labelsResult, milestonesResult] = await Promise.all([
-    context.octokit.rest.repos.get({
-      owner: context.owner,
-      repo: context.repo,
-    }),
-    context.octokit.paginate(context.octokit.rest.issues.listLabelsForRepo, {
-      owner: context.owner,
-      repo: context.repo,
-      per_page: 100,
-    }) as Promise<GitHubLabel[]>,
-    context.octokit.paginate(context.octokit.rest.issues.listMilestones, {
-      owner: context.owner,
-      repo: context.repo,
-      state: 'all',
-      per_page: 100,
-    }) as Promise<GitHubMilestone[]>,
+    context.provider.fetchRepository(),
+    context.provider.fetchRepositoryLabels(),
+    context.provider.fetchRepositoryMilestones(),
   ])
 
-  const repository = repoResult.data as GitHubRepository
+  const repository = repoResult as ProviderRepository
   const labels = labelsResult
     .map(label => ({
       name: label.name,

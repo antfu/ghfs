@@ -46,7 +46,7 @@ describe('renderIssueMarkdown', () => {
     expect(markdown).toContain('## Description')
     expect(markdown).toContain('## Comments')
     expect(markdown).toContain('<!-- comment-id:10')
-    expect(markdown).toMatch(/### Comment 10[\s\S]*?Looks good\n\n---\n\n### Comment 11/)
+    expect(markdown).toMatch(/### @alice on 2026-01-01T03:00:00\.000Z[\s\S]*?Looks good\n\n---\n\n### @bob on 2026-01-01T04:00:00\.000Z/)
   })
 
   it('renders pull request metadata and empty placeholders', () => {

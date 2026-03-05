@@ -56,6 +56,7 @@ export async function handleClosedIssueByPolicy(input: ClosedIssuePolicyInput): 
 
     delete context.syncState.items[String(number)]
     return {
+      skipped: 0,
       written: 0,
       moved: 0,
       patchesWritten: 0,
@@ -70,6 +71,7 @@ export async function handleClosedIssueByPolicy(input: ClosedIssuePolicyInput): 
 
     delete context.syncState.items[String(number)]
     return {
+      skipped: 0,
       written: 0,
       moved: 0,
       patchesWritten: 0,
