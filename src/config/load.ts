@@ -6,6 +6,7 @@ import { createJiti } from 'jiti'
 import {
   CONFIG_FILE_CANDIDATES,
   DEFAULT_STORAGE_DIR,
+  EXECUTE_FILE_NAME,
 } from '../constants'
 
 export interface ResolveConfigOptions {
@@ -84,7 +85,7 @@ export function getStorageDirAbsolute(config: Pick<GhfsResolvedConfig, 'cwd' | '
 }
 
 export function getExecuteFile(config: Pick<GhfsResolvedConfig, 'directory'>): string {
-  return join(config.directory, 'execute.yml')
+  return join(config.directory, EXECUTE_FILE_NAME)
 }
 
 function findConfigFile(cwd: string): string | undefined {

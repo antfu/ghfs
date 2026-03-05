@@ -21,7 +21,7 @@ export function registerExecuteCommand(cli: CAC): void {
   cli
     .command('execute', 'Execute operations from .ghfs/execute.yml')
     .option('--repo <repo>', 'GitHub repository in owner/name format')
-    .option('--file <file>', 'Path to execute yml file')
+    .option('--file <file>', 'Path to execute yaml file')
     .option('--apply', 'Apply mutations to GitHub (default is dry-run)')
     .option('--non-interactive', 'Disable interactive prompts')
     .option('--continue-on-error', 'Continue applying ops after a failure')

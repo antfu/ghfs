@@ -36,7 +36,6 @@
     "test": "vitest run",
     "lint": "eslint",
     "release": "bumpp",
-    "schema": "tsx src/cli.ts schema",
     "play": "cd playgrounds/ni && tsx ../../src/cli.ts",
     "prepare": "git submodule update --init --recursive && simple-git-hooks"
   },

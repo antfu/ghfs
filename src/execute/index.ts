@@ -4,6 +4,7 @@ import type { PendingOp } from './types'
 import process from 'node:process'
 import { cancel, confirm, isCancel, multiselect } from '@clack/prompts'
 import { createRepositoryProvider } from '../providers/factory'
+import { ensureExecuteArtifacts } from './schema'
 import { readAndValidateExecuteFile, writeExecuteFile } from './validate'
 
 export interface ExecuteOptions {
@@ -19,6 +20,7 @@ export interface ExecuteOptions {
 }
 
 export async function executePendingChanges(options: ExecuteOptions): Promise<ExecutionResult> {
+  await ensureExecuteArtifacts(options.executeFilePath)
   const allOps = await readAndValidateExecuteFile(options.executeFilePath)
 
   const interactive = process.stdin.isTTY && !options.nonInteractive

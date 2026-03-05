@@ -39,7 +39,8 @@ Then you can view them offline, or ask your local agent to summarize them for yo
 
 `ghfs` also allows you to take actions on the issues and pull requests in batch.
 
-Create a `.ghfs/execute.yml` file with the following content:
+`ghfs sync` or `ghfs execute` will auto-create `.ghfs/execute.yaml` and `.ghfs/schema/execute.schema.json` if missing.
+Then edit `.ghfs/execute.yaml` with content like:
 
 ```yaml
 # close the issue #123
@@ -66,7 +67,7 @@ ghfs execute
 to execute the operations in batch.
 
 When running `ghfs execute --apply`:
-- Each successfully applied operation is removed from `.ghfs/execute.yml`.
+- Each successfully applied operation is removed from `.ghfs/execute.yaml`.
 - After execution, `ghfs` runs a targeted sync only for affected issue/PR numbers.
 
 > TODO: directly editing the `<5-digit-number>-<slug>.md` file to apply the operations will be rolled out in the future.

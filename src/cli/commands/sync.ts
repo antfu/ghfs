@@ -1,8 +1,10 @@
 import type { CAC } from 'cac'
+import { resolve } from 'node:path'
 import process from 'node:process'
 import { resolveAuthToken } from '../../config/auth'
-import { resolveConfig } from '../../config/load'
+import { getExecuteFile, resolveConfig } from '../../config/load'
 import { resolveRepo } from '../../config/repo'
+import { ensureExecuteArtifacts } from '../../execute/schema'
 import { syncRepository } from '../../sync'
 import { withErrorHandling } from '../errors'
 import { printSyncSummary } from '../output'
@@ -25,6 +27,7 @@ function setupSyncCommand(command: ReturnType<CAC['command']>): void {
     .option('--full', 'Full sync ignoring previous cursor')
     .action(withErrorHandling(async (options: SyncCommandOptions) => {
       const config = await resolveConfig()
+      await ensureExecuteArtifacts(resolve(config.cwd, getExecuteFile(config)))
 
       const repo = await resolveRepo({
         cwd: config.cwd,

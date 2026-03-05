@@ -37,10 +37,6 @@ export function printStatusSummary(summary: StatusSummary): void {
   }
 }
 
-export function printSchemaPath(schemaPath: string): void {
-  console.log(schemaPath)
-}
-
 export function printCommandError(error: unknown): void {
   const message = (error as Error).message || String(error)
   console.error(`ghfs error: ${message}`)
