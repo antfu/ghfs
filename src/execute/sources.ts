@@ -1,4 +1,4 @@
-import type { PendingFile, PendingOp, PendingSimpleOp } from './types'
+import type { PendingOp, PendingSimpleOp } from './types'
 import { readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'pathe'
 import { pathExists } from '../utils/fs'
