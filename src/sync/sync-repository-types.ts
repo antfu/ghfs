@@ -4,6 +4,7 @@ import type { GhfsResolvedConfig, IssueKind, IssueState, SyncState } from '../ty
 export interface GitHubIssue {
   number: number
   state: 'open' | 'closed'
+  html_url?: string
   updated_at: string
   created_at: string
   closed_at: string | null

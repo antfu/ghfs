@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { renderIssueMarkdown } from './markdown'
 
 describe('renderIssueMarkdown', () => {
-  it('renders frontmatter and sections', () => {
+  it('renders compact frontmatter and sections', () => {
     const markdown = renderIssueMarkdown({
       repo: 'antfu/ghfs',
       number: 1,
       kind: 'issue',
+      url: 'https://github.com/antfu/ghfs/issues/1',
       state: 'open',
       title: 'Example issue',
       body: 'Body text',
@@ -26,14 +27,26 @@ describe('renderIssueMarkdown', () => {
           createdAt: '2026-01-01T03:00:00.000Z',
           updatedAt: '2026-01-01T03:00:00.000Z',
         },
+        {
+          id: 11,
+          author: 'bob',
+          body: 'Needs tests',
+          createdAt: '2026-01-01T04:00:00.000Z',
+          updatedAt: '2026-01-01T04:00:00.000Z',
+        },
       ],
     })
 
     expect(markdown).toContain('schema: ghfs/issue-doc@v1')
+    expect(markdown).toContain('url: https://github.com/antfu/ghfs/issues/1')
+    expect(markdown).not.toContain('\nrepo:')
+    expect(markdown).not.toContain('\nkind:')
+    expect(markdown).not.toContain('\nmilestone:')
     expect(markdown).toContain('# Example issue')
     expect(markdown).toContain('## Description')
     expect(markdown).toContain('## Comments')
     expect(markdown).toContain('<!-- comment-id:10')
+    expect(markdown).toMatch(/### Comment 10[\s\S]*?Looks good\n\n---\n\n### Comment 11/)
   })
 
   it('renders pull request metadata and empty placeholders', () => {
@@ -63,8 +76,12 @@ describe('renderIssueMarkdown', () => {
       },
     })
 
-    expect(markdown).toContain('kind: pull')
+    expect(markdown).toContain('url: https://github.com/antfu/ghfs/pull/2')
+    expect(markdown).toContain('labels: []')
+    expect(markdown).toContain('assignees: []')
     expect(markdown).toContain('is_draft: true')
+    expect(markdown).not.toContain('\nmerged: false')
+    expect(markdown).not.toContain('\nmerged_at:')
     expect(markdown).toContain('_No description._')
     expect(markdown).toContain('_No comments._')
   })

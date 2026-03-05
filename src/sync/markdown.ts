@@ -13,6 +13,7 @@ export interface MarkdownDocumentInput {
   repo: string
   number: number
   kind: IssueKind
+  url?: string
   state: IssueState
   title: string
   body: string
@@ -35,12 +36,17 @@ export interface MarkdownDocumentInput {
   }
 }
 
+const FIELDS_ALWAYS_KEEP = new Set(['labels', 'assignees'])
+const FIELDS_ALWAYS_EXCLUDE = new Set(['repo', 'kind'])
+
 export function renderIssueMarkdown(input: MarkdownDocumentInput): string {
+  const url = input.url || `https://github.com/${input.repo}/${input.kind === 'pull' ? 'pull' : 'issues'}/${input.number}`
   const frontmatter = {
     schema: 'ghfs/issue-doc@v1',
     repo: input.repo,
     number: input.number,
     kind: input.kind,
+    url,
     state: input.state,
     title: input.title,
     author: input.author,
@@ -60,7 +66,17 @@ export function renderIssueMarkdown(input: MarkdownDocumentInput): string {
   }
 
   const compactFrontmatter = Object.fromEntries(
-    Object.entries(frontmatter).filter(([, value]) => value !== undefined),
+    Object.entries(frontmatter).filter(([key, value]) => {
+      if (FIELDS_ALWAYS_EXCLUDE.has(key))
+        return false
+      if (FIELDS_ALWAYS_KEEP.has(key))
+        return true
+      if (value === undefined || value === null || value === false)
+        return false
+      if (Array.isArray(value))
+        return value.length > 0
+      return true
+    }),
   )
 
   const sections: string[] = [
@@ -70,6 +86,8 @@ export function renderIssueMarkdown(input: MarkdownDocumentInput): string {
     '',
     input.body?.trim() || '_No description._',
     '',
+    '---',
+    '',
     '## Comments',
     '',
   ]
@@ -78,8 +96,13 @@ export function renderIssueMarkdown(input: MarkdownDocumentInput): string {
     sections.push('_No comments._')
   }
   else {
-    for (const comment of input.comments) {
-      sections.push(`### Comment ${comment.id} by @${comment.author} on ${comment.createdAt}`)
+    for (const [index, comment] of input.comments.entries()) {
+      if (index > 0) {
+        sections.push('---')
+        sections.push('')
+      }
+
+      sections.push(`### @${comment.author} on ${comment.createdAt}`)
       sections.push(`<!-- comment-id:${comment.id} updated:${comment.updatedAt} -->`)
       sections.push('')
       sections.push(comment.body?.trim() || '_No content._')

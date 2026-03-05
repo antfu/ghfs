@@ -56,6 +56,7 @@ export async function syncIssueCandidate(context: SyncContext, issue: GitHubIssu
     repo: context.repoSlug,
     number,
     kind,
+    url: issue.html_url,
     state,
     title: issue.title,
     body: issue.body ?? '',
