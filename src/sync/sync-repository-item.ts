@@ -1,8 +1,8 @@
-import type { GitHubIssue, ItemSyncStats, PatchPlan, SyncContext } from './sync-repository-types'
+import type { ProviderItem } from '../types/provider'
+import type { ItemSyncStats, PatchPlan, SyncContext } from './sync-repository-types'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { renderIssueMarkdown } from './markdown'
-import { downloadPullPatch, fetchIssueComments, getPullMetadata } from './sync-repository-github'
 import {
   handleClosedIssueByPolicy,
   moveMarkdownByState,
@@ -12,12 +12,12 @@ import {
   shouldSkipIssueSync,
   updateTrackedItem,
 } from './sync-repository-storage'
-import { normalizeLabels, resolvePatchPlan } from './sync-repository-utils'
+import { resolvePatchPlan } from './sync-repository-utils'
 
-export async function syncIssueCandidate(context: SyncContext, issue: GitHubIssue): Promise<ItemSyncStats> {
+export async function syncIssueCandidate(context: SyncContext, issue: ProviderItem): Promise<ItemSyncStats> {
   const number = issue.number
-  const kind = issue.pull_request ? 'pull' : 'issue'
-  const state = issue.state === 'closed' ? 'closed' : 'open'
+  const kind = issue.kind
+  const state = issue.state
   const tracked = context.syncState.items[String(number)]
   const paths = await resolveIssuePaths(context.storageDirAbsolute, kind, number, issue.title, state, tracked?.filePath)
 
@@ -33,12 +33,12 @@ export async function syncIssueCandidate(context: SyncContext, issue: GitHubIssu
 
   const patchPlan = resolvePatchPlan(context.config.sync.patches, kind, state)
 
-  if (await shouldSkipIssueSync(tracked, issue.updated_at, paths, patchPlan)) {
+  if (await shouldSkipIssueSync(tracked, issue.updatedAt, paths, patchPlan)) {
     let patchesDeleted = 0
     if (patchPlan.shouldDeletePatch)
       patchesDeleted += await removePatchIfExists(context.storageDirAbsolute, number)
     await removeStaleMarkdownFiles(paths)
-    updateTrackedItem(context, number, kind, state, issue.updated_at, paths.targetPath, patchPlan.shouldWritePatch ? paths.patchPath : undefined)
+    updateTrackedItem(context, number, kind, state, issue.updatedAt, paths.targetPath, patchPlan.shouldWritePatch ? paths.patchPath : undefined)
     return {
       skipped: 1,
       written: 0,
@@ -48,9 +48,9 @@ export async function syncIssueCandidate(context: SyncContext, issue: GitHubIssu
     }
   }
 
-  const comments = await fetchIssueComments(context, number)
+  const comments = await context.provider.fetchComments(number)
   const pull = kind === 'pull'
-    ? await getPullMetadata(context.octokit, context.owner, context.repo, number)
+    ? await context.provider.fetchPullMetadata(number)
     : undefined
 
   const markdown = renderIssueMarkdown({
@@ -60,20 +60,20 @@ export async function syncIssueCandidate(context: SyncContext, issue: GitHubIssu
     state,
     title: issue.title,
     body: issue.body ?? '',
-    author: issue.user?.login ?? 'unknown',
-    labels: normalizeLabels(issue.labels),
-    assignees: (issue.assignees ?? []).map(assignee => assignee.login),
-    milestone: issue.milestone?.title ?? null,
-    createdAt: issue.created_at,
-    updatedAt: issue.updated_at,
-    closedAt: issue.closed_at,
+    author: issue.author ?? 'unknown',
+    labels: issue.labels,
+    assignees: issue.assignees,
+    milestone: issue.milestone,
+    createdAt: issue.createdAt,
+    updatedAt: issue.updatedAt,
+    closedAt: issue.closedAt,
     lastSyncedAt: context.syncedAt,
     comments: comments.map(comment => ({
       id: comment.id,
-      author: comment.user?.login ?? 'unknown',
+      author: comment.author ?? 'unknown',
       body: comment.body ?? '',
-      createdAt: comment.created_at,
-      updatedAt: comment.updated_at,
+      createdAt: comment.createdAt,
+      updatedAt: comment.updatedAt,
     })),
     pr: pull,
   })
@@ -83,7 +83,7 @@ export async function syncIssueCandidate(context: SyncContext, issue: GitHubIssu
   await removeStaleMarkdownFiles(paths)
 
   const patchStats = await syncPatchByPlan(context, number, paths.patchPath, patchPlan)
-  updateTrackedItem(context, number, kind, state, issue.updated_at, paths.targetPath, patchPlan.shouldWritePatch ? paths.patchPath : undefined)
+  updateTrackedItem(context, number, kind, state, issue.updatedAt, paths.targetPath, patchPlan.shouldWritePatch ? paths.patchPath : undefined)
 
   return {
     skipped: 0,
@@ -104,7 +104,7 @@ async function syncPatchByPlan(
   let patchesDeleted = 0
 
   if (patchPlan.shouldWritePatch) {
-    const patch = await downloadPullPatch(context.octokit, context.owner, context.repo, number)
+    const patch = await context.provider.fetchPullPatch(number)
     await writeFileEnsured(patchPath, patch)
     patchesWritten += 1
   }

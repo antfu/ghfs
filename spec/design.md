@@ -9,7 +9,7 @@ It reflects the current behavior in code, including sync, execute, config resolu
 
 ## Core Decisions
 1. CLI framework: `cac`
-2. GitHub API client: `octokit` with retry/throttling plugins
+2. Provider abstraction: sync/execute use `RepositoryProvider`; GitHub adapter uses `octokit` with retry/throttling plugins
 3. Prompting: `@clack/prompts`
 4. Execute file: `.ghfs/execute.yml`
 5. Sync state file: `.ghfs/.sync.json`
@@ -67,6 +67,9 @@ Non-TTY with no token is a hard error.
 ```txt
 .ghfs/
   .sync.json
+  issues.md
+  pulls.md
+  repo.json
   execute.yml
   schema/
     execute.schema.json
@@ -84,6 +87,8 @@ Non-TTY with no token is a hard error.
 Notes:
 - Issues and PRs use separate markdown trees (`issues/` and `pulls/`).
 - PR patches are stored under `pulls/`.
+- `issues.md` and `pulls.md` are aggregate tables generated from tracked mirrored items.
+- `repo.json` stores curated repository metadata with labels and milestones.
 - Markdown file names use `<number>-<slug>.md` with 5-digit zero-padding for `number` (example: `00134-some-bug.md`).
 - Slug generation rules: lowercase; replace non-`[a-z0-9]` runs with `-`; trim leading/trailing `-`; max length 48; fallback slug `item`.
 
@@ -133,7 +138,8 @@ High-level flow:
    - otherwise fetch comments (+ PR metadata if pull), render markdown, move paths as needed
    - manage patch write/delete from `sync.patches`
    - update tracked item state
-6. Persist `.sync.json` summary metadata and counters.
+6. Write aggregate snapshots: `.ghfs/issues.md`, `.ghfs/pulls.md`, and `.ghfs/repo.json`.
+7. Persist `.sync.json` summary metadata and counters.
 
 Directory creation behavior:
 - sync does not eagerly create `issues/` or `pulls/` trees at startup.
@@ -180,7 +186,7 @@ Supported actions:
 4. Dry-run by default (`--apply` required to mutate).
 5. On apply:
    - optional confirm prompt in TTY
-   - execute operations in order
+   - execute operations in order through provider `actionXxx` methods
    - enforce `ifUnchangedSince` conflict guard per op
 6. After each successful operation, rewrite `execute.yml` to keep only remaining (not-yet-successful) operations.
 7. Save execution run record to `.sync.json`.
@@ -198,14 +204,20 @@ Current breakdown:
 - `contracts.ts`: public sync options/summary types
 - `execution-log.ts`: execution result append helper
 - `sync-repository.ts`: top-level sync orchestration
-- `sync-repository-github.ts`: paginate/fetch GitHub data + PR metadata + patches
+- `sync-repository-provider.ts`: provider-backed candidate fetching and pagination wiring
 - `sync-repository-item.ts`: per-item sync workflow
+- `sync-repository-snapshot.ts`: writes aggregate indexes and repo metadata snapshot
 - `sync-repository-storage.ts`: path/storage/prune/policy helpers
 - `sync-repository-utils.ts`: pure helpers and decision functions
 - `sync-repository-types.ts`: internal sync types
 - `state.ts`: sync state load/save/normalization
 - `status.ts`: status summary from sync state
 - `markdown.ts`, `paths.ts`: render/path contracts
+
+Provider layer:
+- `src/provider/contracts.ts`: normalized provider models + `RepositoryProvider` contract
+- `src/provider/factory.ts`: provider factory wiring from repo/token
+- `src/provider/github/provider.ts`: GitHub adapter implementing provider reads and `actionXxx` mutations
 
 ## Testing Strategy
 Tests are colocated with source in `src/**/*.test.ts`.

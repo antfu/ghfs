@@ -1,53 +1,50 @@
-import type { Octokit } from 'octokit'
 import type { GhfsResolvedConfig, IssueKind, IssueState, SyncState } from '../types'
+import type { ProviderItem, RepositoryProvider } from '../types/provider'
 import type { SyncProgressSnapshot } from './contracts'
 
-export interface GitHubIssue {
+export interface GitHubRepository {
+  name: string
+  full_name: string
+  description: string | null
+  private: boolean
+  archived: boolean
+  default_branch: string
+  html_url: string
+  fork: boolean
+  open_issues_count: number
+  has_issues: boolean
+  has_projects: boolean
+  has_wiki: boolean
+  created_at: string
+  updated_at: string
+  pushed_at: string | null
+  owner: {
+    login: string
+  }
+}
+
+export interface GitHubLabel {
+  name: string
+  color: string
+  description: string | null
+  default: boolean
+}
+
+export interface GitHubMilestone {
   number: number
-  state: 'open' | 'closed'
-  updated_at: string
-  created_at: string
-  closed_at: string | null
   title: string
-  body: string | null
-  user: {
-    login: string
-  } | null
-  labels: Array<string | { name?: string | null }>
-  assignees: Array<{ login: string }> | null
-  milestone: {
-    title?: string | null
-  } | null
-  pull_request?: Record<string, unknown>
-}
-
-export interface GitHubComment {
-  id: number
-  body: string | null
+  state: 'open' | 'closed'
+  description: string | null
+  due_on: string | null
+  open_issues: number
+  closed_issues: number
   created_at: string
   updated_at: string
-  user: {
-    login: string
-  } | null
-}
-
-export interface GitHubPull {
-  draft: boolean
-  merged: boolean
-  merged_at: string | null
-  base: {
-    ref: string
-  }
-  head: {
-    ref: string
-  }
-  requested_reviewers: Array<{ login: string }>
+  closed_at: string | null
 }
 
 export interface SyncContext {
-  octokit: Octokit
-  owner: string
-  repo: string
+  provider: RepositoryProvider
   repoSlug: string
   storageDirAbsolute: string
   config: GhfsResolvedConfig
@@ -56,7 +53,7 @@ export interface SyncContext {
 }
 
 export interface IssueCandidates {
-  issues: GitHubIssue[]
+  issues: ProviderItem[]
   scanned: number
   allOpenNumbers?: Set<number>
 }

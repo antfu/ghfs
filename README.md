@@ -19,18 +19,21 @@ It will sync the open issues and pull requests to the local filesystem under `.g
 
 ```txt
 .ghfs/
+  repo.json  # repository basic information
+  issues.md  # index of fetched issues
+  pulls.md   # index of fetched pull requests
   issues/
     00134-some-bug.md
     closed/
       00135-fixed-crash.md
   pulls/
     00042-add-cache.md
+    00042-add-cache.patch
     closed/
       00043-release-cleanup.md
-    <number>.patch
 ```
 
-Where you can view them, or ask your local agent to summarize them for you.
+Then you can view them offline, or ask your local agent to summarize them for you.
 
 ## CLI feedback
 
@@ -100,5 +103,5 @@ export default defineConfig({
 - [x] Directly editing the `<5-digit-number>-<slug>.md` file to apply the operations.
 - [ ] Add a VS Code extension for guided sync/execute.
 - [ ] Documentation.
-- [ ] Index page, and basic repo info
+- [x] Index page, and basic repo info
 - [ ] Agent Skills.

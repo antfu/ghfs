@@ -1,4 +1,5 @@
 import type { GhfsResolvedConfig } from '../types'
+import type { RepositoryProvider } from '../types/provider'
 
 export type SyncMode = 'full' | 'incremental' | 'targeted'
 export type SyncStage = 'resolve' | 'fetch' | 'filter' | 'sync' | 'prune' | 'save'
@@ -54,6 +55,7 @@ export interface SyncOptions {
   config: GhfsResolvedConfig
   repo: string
   token: string
+  provider?: RepositoryProvider
   full?: boolean
   since?: string
   numbers?: number[]

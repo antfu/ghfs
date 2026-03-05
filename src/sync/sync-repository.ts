@@ -2,18 +2,24 @@ import type { SyncMode, SyncOptions, SyncProgressSnapshot, SyncStage, SyncSummar
 import type { IssueCandidates, SyncContext, SyncCounters } from './sync-repository-types'
 import { randomBytes } from 'node:crypto'
 import { resolve } from 'node:path'
-import { createGitHubClient } from '../github/client'
+import { createRepositoryProvider } from '../providers/factory'
 import { loadSyncState, saveSyncState } from './state'
-import { fetchIssueCandidatesByNumbers, fetchIssueCandidatesByPagination } from './sync-repository-github'
 import { syncIssueCandidate } from './sync-repository-item'
+import { fetchIssueCandidatesByNumbers, fetchIssueCandidatesByPagination } from './sync-repository-provider'
+import { writeRepositoryIndexes, writeRepoSnapshot } from './sync-repository-snapshot'
 import { pruneMissingOpenTrackedItems, pruneTrackedClosedItems } from './sync-repository-storage'
-import { addItemStats, createCounters, normalizeIssueNumbers, resolveSince, shouldSyncIssue, splitRepo } from './sync-repository-utils'
+import { addItemStats, createCounters, normalizeIssueNumbers, resolveSince, shouldSyncIssue } from './sync-repository-utils'
 
 export async function syncRepository(options: SyncOptions): Promise<SyncSummary> {
   const reporter = options.reporter
   const startedAt = new Date()
   const startedAtIso = startedAt.toISOString()
   const runId = createSyncRunId()
+  const provider = options.provider ?? createRepositoryProvider({
+    token: options.token,
+    repo: options.repo,
+  })
+  const storageDirAbsolute = resolve(options.config.cwd, options.config.directory)
   const targetNumbers = normalizeIssueNumbers(options.numbers)
   const counters = createCounters()
   const stageDurations = createStageDurations()
@@ -68,9 +74,6 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
 
   try {
     await runStage('resolve', 'Resolve sync context', async () => {
-      const { owner, repo } = splitRepo(options.repo)
-      const octokit = createGitHubClient(options.token)
-      const storageDirAbsolute = resolve(options.config.cwd, options.config.directory)
       const syncState = await loadSyncState(storageDirAbsolute)
       since = targetNumbers ? undefined : resolveSince(options, syncState)
       const syncedAt = new Date().toISOString()
@@ -81,9 +84,7 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
           : 'full'
 
       context = {
-        octokit,
-        owner,
-        repo,
+        provider,
         repoSlug: options.repo,
         storageDirAbsolute,
         config: options.config,
@@ -129,16 +130,13 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
     await runStage('sync', 'Sync items', async () => {
       assertContext(context)
       for (const issue of issues) {
-        const kind = issue.pull_request ? 'pull' : 'issue'
-        const state = issue.state === 'closed' ? 'closed' : 'open'
-
         addItemStats(counters, await syncIssueCandidate(context, issue))
         counters.processed += 1
 
         reporter?.onStageUpdate?.({
           stage: 'sync',
           snapshot: cloneSnapshot(counters),
-          message: `#${issue.number} ${kind} ${state}`,
+          message: `#${issue.number} ${issue.kind} ${issue.state}`,
         })
       }
     })
@@ -172,6 +170,9 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
         context.syncState.lastSyncedAt = context.syncedAt
         context.syncState.lastSince = since
       }
+
+      await writeRepoSnapshot(context)
+      await writeRepositoryIndexes(context)
       await saveSyncState(context.storageDirAbsolute, context.syncState)
     })
 
