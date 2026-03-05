@@ -5,13 +5,13 @@ This document is the implementation-level design reference for `ghfs`.
 It reflects the current behavior in code, including sync, execute, config resolution, and filesystem/state contracts.
 
 ## Product Summary
-`ghfs` mirrors GitHub issues and pull requests into local markdown files for offline review, then applies explicit batch actions from `.ghfs/execute.yaml` back to GitHub.
+`ghfs` mirrors GitHub issues and pull requests into local markdown files for offline review, then applies explicit batch actions from `.ghfs/execute.yml` back to GitHub.
 
 ## Core Decisions
 1. CLI framework: `cac`
 2. Provider abstraction: sync/execute use `RepositoryProvider`; GitHub adapter uses `octokit` with retry/throttling plugins
 3. Prompting: `@clack/prompts`
-4. Execute file: `.ghfs/execute.yaml`
+4. Execute file: `.ghfs/execute.yml`
 5. Sync state file: `.ghfs/.sync.json`
 6. Validation: `valibot` + custom semantic checks
 7. Default command: `ghfs` => `ghfs sync`
@@ -69,7 +69,7 @@ Non-TTY with no token is a hard error.
   issues.md
   pulls.md
   repo.json
-  execute.yaml
+  execute.yml
   schema/
     execute.schema.json
   issues/
@@ -150,9 +150,9 @@ Details:
 - `sync.issues` / `sync.pulls` disable processing for that kind only. Disabled kinds are ignored; existing mirrored files for them are not aggressively deleted.
 - Sync keeps `filePath` in state and uses it to move/clean stale markdown files when title slug or open/closed state changes.
 
-## Execute File Contract (`.ghfs/execute.yaml`)
+## Execute File Contract (`.ghfs/execute.yml`)
 Root must be a YAML array of operations.
-If missing, `sync`/`execute` auto-create `execute.yaml` plus `schema/execute.schema.json`, and seed `execute.yaml` with a short commented example and `[]`.
+If missing, `sync`/`execute` auto-create `execute.yml` plus `schema/execute.schema.json`, and seed `execute.yml` with a short commented example and `[]`.
 Each operation includes:
 - required: `number`, `action`
 - optional: `ifUnchangedSince`
@@ -188,7 +188,7 @@ Supported actions:
    - optional confirm prompt in TTY
    - execute operations in order through provider `actionXxx` methods
    - enforce `ifUnchangedSince` conflict guard per op
-6. After each successful operation, rewrite `execute.yaml` to keep only remaining (not-yet-successful) operations.
+6. After each successful operation, rewrite `execute.yml` to keep only remaining (not-yet-successful) operations.
 7. Save execution run record to `.sync.json`.
 8. Run targeted sync for affected numbers only (successful operations) to refresh local mirror.
 
