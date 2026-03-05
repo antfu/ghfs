@@ -62,8 +62,6 @@ describe('executePendingChanges', () => {
     await cleanupTempFile(executeFilePath)
   })
 
-
-
   it('loads execute-md operations and reports parsing warnings', async () => {
     const executeFilePath = await createTempExecuteFile('[]\n')
     const executeMdPath = executeFilePath.replace(/execute\.yml$/, 'execute.md')
