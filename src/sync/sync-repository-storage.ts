@@ -1,11 +1,10 @@
 import type { SyncItemState, SyncState } from '../types'
 import type { ClosedIssuePolicyInput, IssuePaths, ItemSyncStats, PatchPlan, SyncContext } from './sync-repository-types'
-import { rm } from 'node:fs/promises'
+import { readdir, rm } from 'node:fs/promises'
 import { isAbsolute, join } from 'pathe'
+import { CLOSED_DIR_NAME, ISSUE_DIR_NAME, PULL_DIR_NAME } from '../constants'
 import { movePath, pathExists, removePatchIfExists, removePath } from '../utils/fs'
 import {
-  getClosedIssuesDir,
-  getClosedPullsDir,
   getItemMarkdownPath,
   getPrPatchPath,
 } from './paths'
@@ -27,6 +26,11 @@ export async function resolveIssuePaths(
   const hasTrackedFile = trackedPath ? await pathExists(trackedPath) : false
   const targetPath = getItemMarkdownPath(storageDirAbsolute, kind, number, state, title)
   const hasTargetFile = state === 'open' ? hasOpenFile : hasClosedFile
+  const matchedPaths = await findMatchedMarkdownPaths(storageDirAbsolute, kind, number, [
+    openPath,
+    closedPath,
+    trackedPath,
+  ])
 
   return {
     openPath,
@@ -37,7 +41,8 @@ export async function resolveIssuePaths(
     hasOpenFile,
     hasClosedFile,
     hasTrackedFile,
-    hasLocalFile: hasOpenFile || hasClosedFile || hasTrackedFile,
+    matchedPaths,
+    hasLocalFile: hasOpenFile || hasClosedFile || hasTrackedFile || matchedPaths.length > 0,
     hasTargetFile,
   }
 }
@@ -147,7 +152,7 @@ export function resolveMoveSourcePath(paths: IssuePaths, state: 'open' | 'closed
   if (closedPathIsMovable)
     return paths.closedPath
 
-  return undefined
+  return paths.matchedPaths.find(path => path !== paths.targetPath)
 }
 
 export function getExistingMarkdownPaths(paths: IssuePaths): string[] {
@@ -158,6 +163,8 @@ export function getExistingMarkdownPaths(paths: IssuePaths): string[] {
     markdownPaths.add(paths.closedPath)
   if (paths.hasTrackedFile && paths.trackedPath)
     markdownPaths.add(paths.trackedPath)
+  for (const matchedPath of paths.matchedPaths)
+    markdownPaths.add(matchedPath)
   return [...markdownPaths]
 }
 
@@ -171,6 +178,42 @@ function resolveTrackedPath(storageDirAbsolute: string, trackedFilePath: string 
 
 function resolveTrackedPathOrJoin(storageDirAbsolute: string, trackedFilePath: string): string {
   return resolveTrackedPath(storageDirAbsolute, trackedFilePath) ?? join(storageDirAbsolute, trackedFilePath)
+}
+
+async function findMatchedMarkdownPaths(
+  storageDirAbsolute: string,
+  kind: 'issue' | 'pull',
+  number: number,
+  knownPaths: Array<string | undefined>,
+): Promise<string[]> {
+  const matchedPaths = new Set<string>()
+  const knownPathSet = new Set(knownPaths.filter(Boolean))
+  const padded = String(number).padStart(5, '0')
+  const kindDir = kind === 'issue' ? ISSUE_DIR_NAME : PULL_DIR_NAME
+
+  for (const stateDir of ['', CLOSED_DIR_NAME]) {
+    const dir = stateDir
+      ? join(storageDirAbsolute, kindDir, stateDir)
+      : join(storageDirAbsolute, kindDir)
+
+    let files: string[]
+    try {
+      files = await readdir(dir)
+    }
+    catch {
+      continue
+    }
+
+    for (const fileName of files) {
+      if (!fileName.startsWith(`${padded}-`) || !fileName.endsWith('.md'))
+        continue
+      const fullPath = join(dir, fileName)
+      if (!knownPathSet.has(fullPath))
+        matchedPaths.add(fullPath)
+    }
+  }
+
+  return [...matchedPaths]
 }
 
 export function updateTrackedItem(
@@ -197,9 +240,9 @@ export function updateTrackedItem(
 
 export async function pruneTrackedClosedItems(storageDirAbsolute: string, syncState: SyncState, sync: SyncContext['config']['sync']): Promise<number> {
   if (sync.issues)
-    await rm(getClosedIssuesDir(storageDirAbsolute), { recursive: true, force: true })
+    await rm(join(storageDirAbsolute, ISSUE_DIR_NAME, CLOSED_DIR_NAME), { recursive: true, force: true })
   if (sync.pulls)
-    await rm(getClosedPullsDir(storageDirAbsolute), { recursive: true, force: true })
+    await rm(join(storageDirAbsolute, PULL_DIR_NAME, CLOSED_DIR_NAME), { recursive: true, force: true })
 
   let patchesDeleted = 0
   for (const item of Object.values(syncState.items)) {

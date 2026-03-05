@@ -6,34 +6,18 @@ import { slugifyTitle } from '../utils/string'
 const FILE_NUMBER_PAD_LENGTH = 5
 const MAX_SLUG_LENGTH = 48
 
-export function getIssuesDir(storageDirAbsolute: string): string {
-  return join(storageDirAbsolute, ISSUE_DIR_NAME)
-}
-
-export function getClosedIssuesDir(storageDirAbsolute: string): string {
-  return join(getIssuesDir(storageDirAbsolute), CLOSED_DIR_NAME)
-}
-
-export function getPullsDir(storageDirAbsolute: string): string {
-  return join(storageDirAbsolute, PULL_DIR_NAME)
-}
-
-export function getClosedPullsDir(storageDirAbsolute: string): string {
-  return join(getPullsDir(storageDirAbsolute), CLOSED_DIR_NAME)
-}
-
 export function getIssueMarkdownPath(storageDirAbsolute: string, number: number, state: IssueState, title: string): string {
   const fileName = getItemFileName(number, title)
   if (state === 'closed')
-    return join(getClosedIssuesDir(storageDirAbsolute), fileName)
-  return join(getIssuesDir(storageDirAbsolute), fileName)
+    return join(storageDirAbsolute, ISSUE_DIR_NAME, CLOSED_DIR_NAME, fileName)
+  return join(storageDirAbsolute, ISSUE_DIR_NAME, fileName)
 }
 
 export function getPullMarkdownPath(storageDirAbsolute: string, number: number, state: IssueState, title: string): string {
   const fileName = getItemFileName(number, title)
   if (state === 'closed')
-    return join(getClosedPullsDir(storageDirAbsolute), fileName)
-  return join(getPullsDir(storageDirAbsolute), fileName)
+    return join(storageDirAbsolute, PULL_DIR_NAME, CLOSED_DIR_NAME, fileName)
+  return join(storageDirAbsolute, PULL_DIR_NAME, fileName)
 }
 
 export function getItemMarkdownPath(storageDirAbsolute: string, kind: IssueKind, number: number, state: IssueState, title: string): string {
@@ -50,5 +34,5 @@ export function getItemFileName(number: number, title: string): string {
 
 export function getPrPatchPath(storageDirAbsolute: string, number: number, title: string): string {
   const markdownFileName = getItemFileName(number, title)
-  return join(getPullsDir(storageDirAbsolute), markdownFileName.replace(/\.md$/, '.patch'))
+  return join(storageDirAbsolute, PULL_DIR_NAME, markdownFileName.replace(/\.md$/, '.patch'))
 }

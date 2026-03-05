@@ -1,7 +1,7 @@
 import type { Dirent } from 'node:fs'
 import { access, mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'pathe'
-import { getPullsDir } from '../sync/paths'
+import { PULL_DIR_NAME } from '../constants'
 
 export async function pathExists(path: string): Promise<boolean> {
   try {
@@ -28,7 +28,7 @@ export async function movePath(from: string, to: string): Promise<void> {
 }
 
 export async function removePatchIfExists(storageDirAbsolute: string, number: number): Promise<number> {
-  const pullsDir = getPullsDir(storageDirAbsolute)
+  const pullsDir = join(storageDirAbsolute, PULL_DIR_NAME)
 
   let entries: Dirent[]
   try {

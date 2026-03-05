@@ -1,6 +1,6 @@
 import type { GhfsResolvedConfig } from '../types'
 import type { ProviderItem, RepositoryProvider } from '../types/provider'
-import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'pathe'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -153,6 +153,46 @@ describe('syncRepository', () => {
     await expect(stat(join(cwd, '.ghfs', 'issues.md'))).resolves.toBeDefined()
     await expect(stat(join(cwd, '.ghfs', 'pulls.md'))).resolves.toBeDefined()
     await expect(stat(join(cwd, '.ghfs', 'repo.json'))).resolves.toBeDefined()
+
+    await rm(cwd, { recursive: true, force: true })
+  })
+
+  it('renames local markdown when title changes without tracked state', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ghfs-sync-index-test-'))
+    const storageDir = join(cwd, '.ghfs')
+    await mkdir(join(storageDir, 'issues'), { recursive: true })
+    await writeFile(join(storageDir, 'issues', '00001-old-title.md'), '# stale title\n', 'utf8')
+
+    const paginateItems = vi.fn(async function* () {
+      yield [createIssue({
+        number: 1,
+        kind: 'issue',
+        state: 'open',
+        updatedAt: '2026-01-15T00:00:00.000Z',
+        title: 'New Title',
+      })]
+    })
+    const fetchComments = vi.fn(async () => [])
+    const provider = createMockProvider({
+      paginateItems,
+      fetchComments,
+    })
+
+    const summary = await syncRepository({
+      config: createConfig(cwd),
+      repo: 'owner/repo',
+      token: 'test-token',
+      provider,
+      full: true,
+    })
+
+    expect(summary.processed).toBe(1)
+    expect(summary.written).toBe(1)
+
+    const renamedPath = join(storageDir, 'issues', '00001-new-title.md')
+    await expect(stat(renamedPath)).resolves.toBeDefined()
+    await expect(stat(join(storageDir, 'issues', '00001-old-title.md'))).rejects.toThrow()
+    await expect(readFile(renamedPath, 'utf8')).resolves.toContain('# New Title')
 
     await rm(cwd, { recursive: true, force: true })
   })

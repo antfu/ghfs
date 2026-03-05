@@ -69,6 +69,7 @@ export interface IssuePaths {
   hasOpenFile: boolean
   hasClosedFile: boolean
   hasTrackedFile: boolean
+  matchedPaths: string[]
   hasLocalFile: boolean
   hasTargetFile: boolean
 }
