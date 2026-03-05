@@ -65,6 +65,7 @@ export function registerExecuteCommand(cli: CAC): void {
         nonInteractive: Boolean(options.nonInteractive),
         continueOnError: Boolean(options.continueOnError),
         onPlan: ops => printExecutionPlan(printer, ops),
+        onWarning: warning => printer.warn(warning),
         reporter: printer.createExecuteReporter(),
         prompts: createExecutePrompts(),
       })

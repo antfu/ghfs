@@ -5,7 +5,7 @@ import process from 'node:process'
 import { createRepositoryProvider } from '../providers/factory'
 import { describeAction } from '../utils/format'
 import { ensureExecuteArtifacts } from './schema'
-import { readAndValidateExecuteFile, writeExecuteFile } from './validate'
+import { loadExecuteSources } from './sources'
 
 export interface ExecutePrompts {
   selectOperations: (ops: PendingOp[]) => Promise<number[] | undefined>
@@ -22,6 +22,7 @@ export interface ExecuteOptions {
   nonInteractive: boolean
   continueOnError: boolean
   onPlan?: (ops: PendingOp[]) => void
+  onWarning?: (warning: string) => void
   reporter?: ExecuteReporter
   prompts?: ExecutePrompts
 }
@@ -60,7 +61,10 @@ export interface ExecuteReporter {
 export async function executePendingChanges(options: ExecuteOptions): Promise<ExecutionResult> {
   try {
     await ensureExecuteArtifacts(options.executeFilePath)
-    const allOps = await readAndValidateExecuteFile(options.executeFilePath)
+    const sources = await loadExecuteSources(options.executeFilePath)
+    const allOps = sources.ops
+    for (const warning of sources.warnings)
+      options.onWarning?.(warning)
 
     if (allOps.length === 0) {
       return {
@@ -151,7 +155,7 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
       try {
         const target = await applyOperation(provider, op)
         appliedIndexes.add(index)
-        await persistRemainingOps(options.executeFilePath, allOps, appliedIndexes)
+        await persistRemainingOps(sources.writeRemaining, allOps, appliedIndexes)
         const detail: ExecutionResult['details'][number] = {
           op: index + 1,
           action: op.action,
@@ -216,9 +220,13 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
   }
 }
 
-async function persistRemainingOps(path: string, allOps: PendingOp[], appliedIndexes: Set<number>): Promise<void> {
-  const remaining = allOps.filter((_, index) => !appliedIndexes.has(index))
-  await writeExecuteFile(path, remaining)
+async function persistRemainingOps(writeRemaining: (remainingIndexes: Set<number>) => Promise<void>, allOps: PendingOp[], appliedIndexes: Set<number>): Promise<void> {
+  const remainingIndexes = new Set<number>()
+  for (const [index] of allOps.entries()) {
+    if (!appliedIndexes.has(index))
+      remainingIndexes.add(index)
+  }
+  await writeRemaining(remainingIndexes)
 }
 
 async function applyOperation(provider: RepositoryProvider, op: PendingOp): Promise<IssueKind> {
