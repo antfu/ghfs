@@ -2,7 +2,7 @@ import type { ExecutePrompts } from '../execute'
 import type { PendingOp } from '../execute/types'
 import type { RepoDetectionCandidate } from '../types'
 import { cancel, confirm, isCancel, multiselect, password, select } from '@clack/prompts'
-import { describeAction } from '../utils/action'
+import { describeAction } from '../utils/format'
 
 export async function promptForToken(): Promise<string | undefined> {
   const result = await password({

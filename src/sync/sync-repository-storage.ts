@@ -1,8 +1,8 @@
 import type { SyncItemState, SyncState } from '../types'
 import type { ClosedIssuePolicyInput, IssuePaths, ItemSyncStats, PatchPlan, SyncContext } from './sync-repository-types'
-import { mkdir, rename, rm } from 'node:fs/promises'
-import { dirname, isAbsolute, join } from 'node:path'
-import { pathExists } from '../utils/fs'
+import { rm } from 'node:fs/promises'
+import { isAbsolute, join } from 'node:path'
+import { movePath, pathExists, removePatchIfExists, removePath } from '../utils/fs'
 import {
   getClosedIssuesDir,
   getClosedPullsDir,
@@ -228,21 +228,4 @@ export async function pruneMissingOpenTrackedItems(storageDirAbsolute: string, s
   }
 
   return patchesDeleted
-}
-
-export async function removePatchIfExists(storageDirAbsolute: string, number: number): Promise<number> {
-  const patchPath = getPrPatchPath(storageDirAbsolute, number)
-  if (!await pathExists(patchPath))
-    return 0
-  await removePath(patchPath)
-  return 1
-}
-
-async function removePath(path: string): Promise<void> {
-  await rm(path, { force: true })
-}
-
-async function movePath(from: string, to: string): Promise<void> {
-  await mkdir(dirname(to), { recursive: true })
-  await rename(from, to)
 }

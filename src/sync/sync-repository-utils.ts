@@ -1,22 +1,7 @@
-import type { GhfsResolvedConfig, IssueKind, IssueState, SyncState } from '../types'
+import type { GhfsResolvedConfig, IssueKind, IssueState } from '../types'
 import type { ProviderItem } from '../types/provider'
-import type { SyncOptions } from './contracts'
 import type { PatchPlan, SyncCounters } from './sync-repository-types'
 import { basename } from 'node:path'
-
-export function resolveSince(options: SyncOptions, syncState: SyncState): string | undefined {
-  if (options.full)
-    return undefined
-  if (options.since)
-    return options.since
-  return syncState.lastSyncedAt
-}
-
-export function normalizeIssueNumbers(numbers: number[] | undefined): number[] | undefined {
-  if (!numbers)
-    return undefined
-  return [...new Set(numbers.filter(number => Number.isInteger(number) && number > 0))]
-}
 
 export function createCounters(scanned = 0, selected = 0): SyncCounters {
   return {

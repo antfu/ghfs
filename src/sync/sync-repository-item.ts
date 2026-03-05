@@ -1,12 +1,10 @@
 import type { ProviderItem } from '../types/provider'
 import type { ItemSyncStats, PatchPlan, SyncContext } from './sync-repository-types'
-import { mkdir, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { removePatchIfExists, writeFileEnsured } from '../utils/fs'
 import { renderIssueMarkdown } from './markdown'
 import {
   handleClosedIssueByPolicy,
   moveMarkdownByState,
-  removePatchIfExists,
   removeStaleMarkdownFiles,
   resolveIssuePaths,
   shouldSkipIssueSync,
@@ -117,9 +115,4 @@ async function syncPatchByPlan(
     patchesWritten,
     patchesDeleted,
   }
-}
-
-async function writeFileEnsured(path: string, content: string): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, content, 'utf8')
 }

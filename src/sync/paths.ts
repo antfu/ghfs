@@ -1,6 +1,7 @@
 import type { IssueKind, IssueState } from '../types'
 import { join } from 'node:path'
 import { CLOSED_DIR_NAME, ISSUE_DIR_NAME, PULL_DIR_NAME } from '../constants'
+import { slugifyTitle } from '../utils/string'
 
 const FILE_NUMBER_PAD_LENGTH = 5
 const MAX_SLUG_LENGTH = 48
@@ -43,20 +44,8 @@ export function getItemMarkdownPath(storageDirAbsolute: string, kind: IssueKind,
 
 export function getItemFileName(number: number, title: string): string {
   const padded = String(number).padStart(FILE_NUMBER_PAD_LENGTH, '0')
-  const slug = slugifyTitle(title)
+  const slug = slugifyTitle(title, MAX_SLUG_LENGTH)
   return `${padded}-${slug}.md`
-}
-
-function slugifyTitle(title: string): string {
-  const normalized = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-
-  if (!normalized)
-    return 'item'
-
-  return normalized.slice(0, MAX_SLUG_LENGTH).replace(/-+$/g, '') || 'item'
 }
 
 export function getPrPatchPath(storageDirAbsolute: string, number: number): string {

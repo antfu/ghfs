@@ -9,7 +9,7 @@ import { getExecuteFile, getStorageDirAbsolute, resolveConfig } from '../../conf
 import { resolveRepo } from '../../config/repo'
 import { executePendingChanges } from '../../execute'
 import { appendExecutionResult, syncRepository } from '../../sync'
-import { describeAction } from '../../utils/action'
+import { describeAction } from '../../utils/format'
 import { withErrorHandling } from '../errors'
 import { createCliPrinter } from '../printer'
 import { createExecutePrompts, promptForToken, promptRepoChoice } from '../prompts'

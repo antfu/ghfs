@@ -3,12 +3,13 @@ import type { IssueCandidates, SyncContext, SyncCounters } from './sync-reposito
 import { randomBytes } from 'node:crypto'
 import { resolve } from 'node:path'
 import { createRepositoryProvider } from '../providers/factory'
+import { normalizeIssueNumbers, resolveSince } from '../utils/sync'
 import { loadSyncState, saveSyncState } from './state'
 import { syncIssueCandidate } from './sync-repository-item'
 import { fetchIssueCandidatesByNumbers, fetchIssueCandidatesByPagination } from './sync-repository-provider'
 import { writeRepositoryIndexes, writeRepoSnapshot } from './sync-repository-snapshot'
 import { pruneMissingOpenTrackedItems, pruneTrackedClosedItems } from './sync-repository-storage'
-import { addItemStats, createCounters, normalizeIssueNumbers, resolveSince, shouldSyncIssue } from './sync-repository-utils'
+import { addItemStats, createCounters, shouldSyncIssue } from './sync-repository-utils'
 
 export async function syncRepository(options: SyncOptions): Promise<SyncSummary> {
   const reporter = options.reporter

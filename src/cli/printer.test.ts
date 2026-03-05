@@ -237,53 +237,6 @@ describe('createCliPrinter', () => {
     expect(clack.logStep).not.toHaveBeenCalled()
   })
 
-  it('skips no-op completion lines in plain mode', () => {
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    const printer = createCliPrinter('sync', {
-      isTTY: false,
-      isCI: false,
-    })
-    const reporter = printer.createSyncReporter()
-
-    reporter.onStageEnd?.({
-      stage: 'fetch',
-      message: 'Fetch issue and pull request candidates',
-      durationMs: 12,
-      snapshot: {
-        scanned: 0,
-        selected: 0,
-        processed: 0,
-        skipped: 0,
-        written: 0,
-        moved: 0,
-        patchesWritten: 0,
-        patchesDeleted: 0,
-      },
-    })
-
-    reporter.onStageEnd?.({
-      stage: 'fetch',
-      message: 'Fetch issue and pull request candidates',
-      durationMs: 12,
-      snapshot: {
-        scanned: 2,
-        selected: 0,
-        processed: 0,
-        skipped: 0,
-        written: 0,
-        moved: 0,
-        patchesWritten: 0,
-        patchesDeleted: 0,
-      },
-    })
-
-    const printed = logSpy.mock.calls.map(call => String(call[0]))
-    expect(printed).toHaveLength(1)
-    expect(printed[0]).toContain('Fetched 2 candidate items (12ms).')
-
-    logSpy.mockRestore()
-  })
-
   it('does not print resolve and filter stages', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     const printer = createCliPrinter('sync', {

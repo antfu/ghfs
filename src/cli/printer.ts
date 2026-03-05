@@ -3,6 +3,7 @@ import type { SyncReporter, SyncStage } from '../sync'
 import process from 'node:process'
 import * as p from '@clack/prompts'
 import c from 'ansis'
+import { countNoun, formatDuration, formatValue } from '../utils/format'
 import { ASCII_HEADER, toGitHubRepoUrl } from './meta'
 
 export type PrinterMode = 'rich' | 'plain'
@@ -56,7 +57,9 @@ export function createCliPrinter(command: string, options: CreateCliPrinterOptio
   const mode = resolveMode(options)
   const progressEvery = options.progressEvery ?? 25
 
-  const write = (message: string) => {
+  const write = (message?: string) => {
+    if (message == null)
+      return
     console.log(message)
   }
 
@@ -208,7 +211,6 @@ function createRichSyncReporter(printer: CliPrinter): SyncReporter {
         event.stage,
         event.snapshot,
         event.durationMs,
-        { dimDuration: true },
       )
 
       if (event.stage === 'sync' && hasSyncProgress) {
@@ -229,7 +231,7 @@ function createRichSyncReporter(printer: CliPrinter): SyncReporter {
         stageSpinner.clear()
     },
     onComplete(event) {
-      printer.success(`Sync finished. Processed ${event.summary.processed} of ${countNoun(event.summary.selected, 'selected item')}${formatDurationSuffix(event.summary.durationMs, { dim: true })}.`)
+      printer.success(`Sync finished. Processed ${event.summary.processed} of ${countNoun(event.summary.selected, 'selected item')}${c.dim(` (${formatDuration(event.summary.durationMs)}`)}.`)
     },
     onError(event) {
       const stage = event.stage && !isHiddenSyncStage(event.stage) ? ` while ${describeStage(event.stage)}` : ''
@@ -286,7 +288,7 @@ function createPlainSyncReporter(printer: CliPrinter, progressEvery: number): Sy
       printer.step(completionLine)
     },
     onComplete(event) {
-      printer.success(`Sync finished. Processed ${event.summary.processed} of ${countNoun(event.summary.selected, 'selected item')}${formatDurationSuffix(event.summary.durationMs)}.`)
+      printer.success(`Sync finished. Processed ${event.summary.processed} of ${countNoun(event.summary.selected, 'selected item')}${c.dim(` (${formatDuration(event.summary.durationMs)})`)}.`)
     },
     onError(event) {
       const stage = event.stage && !isHiddenSyncStage(event.stage) ? ` while ${describeStage(event.stage)}` : ''
@@ -392,14 +394,11 @@ function formatStageCompletionLine(
   stage: SyncStage,
   snapshot: SyncStageSnapshot,
   durationMs: number,
-  options: {
-    dimDuration?: boolean
-  } = {},
 ): string | undefined {
   if (!hasStageEffect(stage, snapshot))
     return undefined
 
-  const duration = formatDurationSuffix(durationMs, { dim: options.dimDuration })
+  const duration = c.dim(` (${formatDuration(durationMs)})`)
 
   if (stage === 'resolve')
     return `Resolved sync context${duration}.`
@@ -421,17 +420,6 @@ function formatStageCompletionLine(
 
 function toErrorMessage(error: unknown): string {
   return (error as Error).message || String(error)
-}
-
-export function formatDuration(durationMs: number): string {
-  if (durationMs < 1000)
-    return `${durationMs}ms`
-  return `${(durationMs / 1000).toFixed(2)}s`
-}
-
-function formatDurationSuffix(durationMs: number, options: { dim?: boolean } = {}): string {
-  const value = ` (${formatDuration(durationMs)})`
-  return options.dim ? c.dim(value) : value
 }
 
 export function formatKeyValueLines(
@@ -467,37 +455,11 @@ export function formatKeyValueLines(
       if (excludeZero && value === 0)
         return undefined
 
-      const formattedValue = typeof value === 'string'
-        ? value
-        : value instanceof Date
-          ? `${value.toLocaleString()} ${c.dim(`(${formatRelativeTime(value)})`)}`
-          : typeof value === 'number'
-            ? formatNumber(value)
-            : String(value)
+      const formattedValue = formatValue(value)
 
       return `${padding}${displayKey}  ${formattedValue}`
     })
     .filter(x => x != null)
-}
-
-export function formatNumber(value: number): string {
-  return value.toLocaleString()
-}
-
-export function formatRelativeTime(date: Date): string {
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  if (diff < 1000)
-    return 'just now'
-  if (diff < 60000)
-    return `${Math.round(diff / 1000)}s ago`
-  if (diff < 3600000)
-    return `${Math.round(diff / 60000)}m ago`
-  return date.toLocaleString()
-}
-
-function countNoun(count: number, singular: string, plural = `${singular}s`): string {
-  return `${count} ${count === 1 ? singular : plural}`
 }
 
 function hasStageEffect(stage: SyncStage, snapshot: SyncStageSnapshot): boolean {

@@ -1,6 +1,6 @@
 import type { SyncSummary } from '../sync'
 import type { CliPrinter } from './printer'
-import { formatDuration } from './printer'
+import { formatDuration } from '../utils/format'
 
 export function printSyncSummaryTable(
   printer: CliPrinter,

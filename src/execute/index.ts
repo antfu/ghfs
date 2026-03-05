@@ -3,7 +3,7 @@ import type { RepositoryProvider } from '../types/provider'
 import type { PendingOp } from './types'
 import process from 'node:process'
 import { createRepositoryProvider } from '../providers/factory'
-import { describeAction } from '../utils/action'
+import { describeAction } from '../utils/format'
 import { ensureExecuteArtifacts } from './schema'
 import { readAndValidateExecuteFile, writeExecuteFile } from './validate'
 

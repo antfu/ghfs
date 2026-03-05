@@ -5,6 +5,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import { ISSUES_INDEX_FILE_NAME, PULLS_INDEX_FILE_NAME, REPO_SNAPSHOT_FILE_NAME } from '../constants'
+import { getTimestamp, isRecord, renderRowsTable } from '../utils/markdown'
 
 interface IndexRow {
   number: number
@@ -181,10 +182,6 @@ function parseFrontmatter(markdown: string): Record<string, unknown> | undefined
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
 function normalizeFrontmatterLabels(value: unknown): string[] {
   if (!Array.isArray(value))
     return []
@@ -201,46 +198,6 @@ function sortRows(rows: IndexRow[]): IndexRow[] {
       return updatedDiff
     return right.number - left.number
   })
-}
-
-function getTimestamp(value: string): number {
-  const timestamp = Date.parse(value)
-  if (Number.isFinite(timestamp))
-    return timestamp
-  return Number.NEGATIVE_INFINITY
-}
-
-function renderRowsTable(rows: IndexRow[]): string[] {
-  const lines = [
-    '| Number | Title | Labels | Updated | File |',
-    '| --- | --- | --- | --- | --- |',
-  ]
-
-  if (rows.length === 0) {
-    lines.push('| - | - | - | - | - |')
-    return lines
-  }
-
-  for (const row of rows) {
-    const labels = row.labels.length
-      ? row.labels.map(label => `\`${escapeInlineCode(label)}\``).join(', ')
-      : '-'
-
-    lines.push(
-      `| #${row.number} | ${escapeTableCell(row.title)} | ${labels} | ${escapeTableCell(row.updatedAt)} | [${row.filePath}](${row.filePath}) |`,
-    )
-  }
-
-  return lines
-}
-
-function escapeTableCell(value: string): string {
-  const normalized = value.replace(/\r?\n/g, ' ').replace(/\|/g, '\\|').trim()
-  return normalized || '-'
-}
-
-function escapeInlineCode(value: string): string {
-  return value.replace(/`/g, '\\`')
 }
 
 async function buildRepoSnapshot(context: SyncContext): Promise<RepoSnapshot> {
