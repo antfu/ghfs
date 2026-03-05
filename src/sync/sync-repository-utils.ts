@@ -1,7 +1,7 @@
 import type { GhfsResolvedConfig, IssueKind, IssueState } from '../types'
 import type { ProviderItem } from '../types/provider'
 import type { PatchPlan, SyncCounters } from './sync-repository-types'
-import { basename } from 'node:path'
+import { basename } from 'pathe'
 
 export function createCounters(scanned = 0, selected = 0): SyncCounters {
   return {

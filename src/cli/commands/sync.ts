@@ -1,6 +1,6 @@
 import type { CAC } from 'cac'
-import { resolve } from 'node:path'
 import process from 'node:process'
+import { resolve } from 'pathe'
 import { resolveAuthToken } from '../../config/auth'
 import { getExecuteFile, resolveConfig } from '../../config/load'
 import { resolveRepo } from '../../config/repo'

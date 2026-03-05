@@ -3,7 +3,7 @@ import type { ProviderLabel, ProviderMilestone, ProviderRepository, RepositoryPr
 import type { SyncContext } from './sync-repository-types'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join } from 'pathe'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { stringify } from 'yaml'
 import { writeRepositoryIndexes, writeRepoSnapshot } from './sync-repository-snapshot'

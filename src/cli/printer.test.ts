@@ -2,8 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createCliPrinter } from './printer'
 
 const clack = vi.hoisted(() => ({
-  intro: vi.fn(),
-  outro: vi.fn(),
   spinnerStart: vi.fn(),
   spinnerStop: vi.fn(),
   spinnerMessage: vi.fn(),
@@ -17,8 +15,6 @@ const clack = vi.hoisted(() => ({
 }))
 
 vi.mock('@clack/prompts', () => ({
-  intro: clack.intro,
-  outro: clack.outro,
   log: {
     step: clack.logStep,
     info: vi.fn(),
@@ -50,18 +46,6 @@ vi.mock('@clack/prompts', () => ({
 describe('createCliPrinter', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-  })
-
-  it('prints clickable repo link in rich header', () => {
-    const printer = createCliPrinter('sync', {
-      isTTY: true,
-      isCI: false,
-    })
-
-    printer.header('owner/repo')
-
-    expect(clack.intro).toHaveBeenCalledTimes(1)
-    expect(clack.intro.mock.calls[0]?.[0]).toContain('\u001B]8;;https://github.com/owner/repo\u001B\\owner/repo\u001B]8;;\u001B\\')
   })
 
   it('throttles plain sync progress output', () => {

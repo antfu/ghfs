@@ -1,6 +1,6 @@
 import type { PendingFile, PendingOp } from './types'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { dirname } from 'pathe'
 import * as v from 'valibot'
 import { parse, stringify } from 'yaml'
 

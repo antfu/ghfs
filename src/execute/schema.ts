@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, join } from 'pathe'
 import { EXECUTE_SCHEMA_RELATIVE_PATH } from '../constants'
 import { pathExists } from '../utils/fs'
 

@@ -1,5 +1,5 @@
 import type { GhfsResolvedConfig } from '../types'
-import { resolve } from 'node:path'
+import { resolve } from 'pathe'
 import { loadSyncState } from './state'
 
 export interface StatusSummary {

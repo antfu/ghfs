@@ -1,7 +1,7 @@
 import type { SyncItemState, SyncState } from '../types'
 import type { ClosedIssuePolicyInput, IssuePaths, ItemSyncStats, PatchPlan, SyncContext } from './sync-repository-types'
 import { rm } from 'node:fs/promises'
-import { isAbsolute, join } from 'node:path'
+import { isAbsolute, join } from 'pathe'
 import { movePath, pathExists, removePatchIfExists, removePath } from '../utils/fs'
 import {
   getClosedIssuesDir,

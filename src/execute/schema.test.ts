@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join } from 'pathe'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ensureExecuteArtifacts, EXECUTE_FILE_PLACEHOLDER, getExecuteSchemaPath } from './schema'
 import { readAndValidateExecuteFile } from './validate'

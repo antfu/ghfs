@@ -1,6 +1,6 @@
 import type { ExecutionResult, SyncItemState, SyncState } from '../types'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join } from 'pathe'
 import { SYNC_STATE_FILE_NAME } from '../constants'
 
 export function getSyncStatePath(storageDirAbsolute: string): string {

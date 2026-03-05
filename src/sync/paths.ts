@@ -1,5 +1,5 @@
 import type { IssueKind, IssueState } from '../types'
-import { join } from 'node:path'
+import { join } from 'pathe'
 import { CLOSED_DIR_NAME, ISSUE_DIR_NAME, PULL_DIR_NAME } from '../constants'
 import { slugifyTitle } from '../utils/string'
 

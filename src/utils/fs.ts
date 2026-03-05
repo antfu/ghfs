@@ -1,5 +1,5 @@
 import { access, mkdir, rename, rm, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { dirname } from 'pathe'
 import { getPrPatchPath } from '../sync/paths'
 
 export async function pathExists(path: string): Promise<boolean> {

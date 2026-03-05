@@ -1,7 +1,7 @@
 import type { PendingFile } from './types'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join } from 'pathe'
 import { describe, expect, it } from 'vitest'
 import { readAndValidateExecuteFile, validateExecuteRules, writeExecuteFile } from './validate'
 

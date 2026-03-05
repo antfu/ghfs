@@ -1,7 +1,7 @@
 import type { SyncMode, SyncOptions, SyncProgressSnapshot, SyncStage, SyncSummary } from './contracts'
 import type { IssueCandidates, SyncContext, SyncCounters } from './sync-repository-types'
 import { randomBytes } from 'node:crypto'
-import { resolve } from 'node:path'
+import { resolve } from 'pathe'
 import { createRepositoryProvider } from '../providers/factory'
 import { normalizeIssueNumbers, resolveSince } from '../utils/sync'
 import { loadSyncState, saveSyncState } from './state'
