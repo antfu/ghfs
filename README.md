@@ -82,6 +82,23 @@ When running `ghfs execute --apply`:
 
 > TODO: directly editing the `<5-digit-number>-<slug>.md` file to apply the operations will be rolled out in the future.
 
+## Agent Skill
+
+This repository ships an [agent skill](https://agentskills.io/home) at [`skills/ghfs/SKILL.md`](skills/ghfs/SKILL.md).
+
+Install with [`skills`](https://github.com/vercel-labs/skills) CLI:
+
+```bash
+pnpx skills add antfu/ghfs
+```
+
+The `@ghfs/cli` also ship the skills into the npm package that you can have it also installed with [`skills-npm`](https://github.com/antfu/skills-npm):
+
+```bash
+pnpm i -D @ghfs/cli
+pnpx skills-npm
+```
+
 ## Configuration
 
 You can configure by creating a `ghfs.config.ts` file in the root of the repository.
@@ -106,4 +123,4 @@ export default defineConfig({
 - [ ] Add a VS Code extension for guided sync/execute.
 - [ ] Documentation.
 - [x] Index page, and basic repo info
-- [ ] Agent Skills.
+- [x] Agent Skills.

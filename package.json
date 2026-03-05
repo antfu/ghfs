@@ -27,7 +27,8 @@
     "ghfs": "./dist/cli.mjs"
   },
   "files": [
-    "dist"
+    "dist",
+    "skills/ghfs"
   ],
   "scripts": {
     "build": "tsdown",
