@@ -69,6 +69,11 @@ describe('syncRepository', () => {
     })
 
     expect(summary.scanned).toBe(1)
+    expect(summary.selected).toBe(1)
+    expect(summary.processed).toBe(1)
+    expect(summary.skipped).toBe(1)
+    expect(summary.mode).toBe('full')
+    expect(summary.durationMs).toBeGreaterThanOrEqual(0)
     expect(summary.written).toBe(0)
     expect(fetchItems).toHaveBeenCalledTimes(1)
     expect(fetchItems).toHaveBeenCalledWith({ state: 'open', since: undefined })
@@ -77,6 +82,9 @@ describe('syncRepository', () => {
     const syncState = await loadSyncState(storageDir)
     expect(syncState.items['1']?.lastUpdatedAt).toBe('2026-01-10T00:00:00.000Z')
     expect(syncState.items['1']?.lastSyncedAt).toBe(summary.syncedAt)
+    expect(syncState.lastSyncRun?.mode).toBe('full')
+    expect(syncState.lastSyncRun?.counters.skipped).toBe(1)
+    expect(syncState.lastSyncRun?.counters.processed).toBe(1)
 
     await expect(stat(join(storageDir, 'issues.md'))).resolves.toBeDefined()
     await expect(stat(join(storageDir, 'pulls.md'))).resolves.toBeDefined()
@@ -149,7 +157,10 @@ describe('syncRepository', () => {
       full: true,
     })
 
-    expect(summary.scanned).toBe(1)
+    expect(summary.scanned).toBe(2)
+    expect(summary.selected).toBe(1)
+    expect(summary.processed).toBe(1)
+    expect(summary.skipped).toBe(0)
     expect(summary.written).toBe(1)
     expect(fetchPullMetadata).toHaveBeenCalledTimes(1)
     expect(fetchPullMetadata).toHaveBeenCalledWith(2)
@@ -161,6 +172,63 @@ describe('syncRepository', () => {
     await expect(stat(join(cwd, '.ghfs', 'issues.md'))).resolves.toBeDefined()
     await expect(stat(join(cwd, '.ghfs', 'pulls.md'))).resolves.toBeDefined()
     await expect(stat(join(cwd, '.ghfs', 'repo.json'))).resolves.toBeDefined()
+
+    await rm(cwd, { recursive: true, force: true })
+  })
+
+  it('emits reporter lifecycle callbacks for sync progress', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ghfs-sync-index-test-'))
+    const fetchItems = vi.fn(async (): Promise<ProviderItem[]> => {
+      return [
+        {
+          number: 4,
+          kind: 'issue' as const,
+          state: 'open' as const,
+          updatedAt: '2026-01-12T00:00:00.000Z',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          closedAt: null,
+          title: 'Issue 4',
+          body: 'Body',
+          author: 'user4',
+          labels: [],
+          assignees: [],
+          milestone: null,
+        },
+      ]
+    })
+    const fetchComments = vi.fn(async () => [])
+    const provider = createMockProvider({
+      fetchItems,
+      fetchComments,
+    })
+
+    const events: string[] = []
+    const summary = await syncRepository({
+      config: createConfig(cwd),
+      repo: 'owner/repo',
+      token: 'test-token',
+      provider,
+      full: true,
+      reporter: {
+        onStart: () => events.push('start'),
+        onStageStart: event => events.push(`stage:start:${event.stage}`),
+        onStageUpdate: (event) => {
+          if (event.stage === 'sync')
+            events.push(`stage:update:${event.stage}`)
+        },
+        onStageEnd: event => events.push(`stage:end:${event.stage}`),
+        onComplete: () => events.push('complete'),
+      },
+    })
+
+    expect(summary.mode).toBe('full')
+    expect(summary.processed).toBe(1)
+    expect(events).toContain('start')
+    expect(events).toContain('stage:start:resolve')
+    expect(events).toContain('stage:start:sync')
+    expect(events).toContain('stage:end:save')
+    expect(events).toContain('stage:update:sync')
+    expect(events).toContain('complete')
 
     await rm(cwd, { recursive: true, force: true })
   })

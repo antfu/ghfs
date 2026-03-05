@@ -18,6 +18,7 @@ export async function loadSyncState(storageDirAbsolute: string): Promise<SyncSta
       repo?: string
       lastSyncedAt?: string
       lastSince?: string
+      lastSyncRun?: SyncState['lastSyncRun']
     }
     if (parsed.version !== 1)
       return createEmptySyncState()
@@ -28,6 +29,7 @@ export async function loadSyncState(storageDirAbsolute: string): Promise<SyncSta
       repo: parsed.repo,
       lastSyncedAt: parsed.lastSyncedAt,
       lastSince: parsed.lastSince,
+      lastSyncRun: normalizeLastSyncRun(parsed.lastSyncRun),
     }
   }
   catch {
@@ -75,4 +77,12 @@ export function appendExecution(state: SyncState, result: ExecutionResult, limit
     ...state,
     executions: nextExecutions,
   }
+}
+
+function normalizeLastSyncRun(lastSyncRun: SyncState['lastSyncRun'] | undefined): SyncState['lastSyncRun'] {
+  if (!lastSyncRun)
+    return undefined
+  if (!lastSyncRun.runId || !lastSyncRun.repo || !lastSyncRun.mode)
+    return undefined
+  return lastSyncRun
 }

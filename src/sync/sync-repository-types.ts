@@ -1,5 +1,6 @@
 import type { GhfsResolvedConfig, IssueKind, IssueState, SyncState } from '../types'
 import type { ProviderItem, RepositoryProvider } from '../types/provider'
+import type { SyncProgressSnapshot } from './contracts'
 
 export interface GitHubRepository {
   name: string
@@ -76,15 +77,14 @@ export interface PatchPlan {
 }
 
 export interface ItemSyncStats {
+  skipped: number
   written: number
   moved: number
   patchesWritten: number
   patchesDeleted: number
 }
 
-export interface SyncCounters extends ItemSyncStats {
-  scanned: number
-}
+export interface SyncCounters extends SyncProgressSnapshot {}
 
 export interface ClosedIssuePolicyInput {
   context: SyncContext

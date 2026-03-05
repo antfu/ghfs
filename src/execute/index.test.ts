@@ -61,6 +61,64 @@ describe('executePendingChanges', () => {
 
     await cleanupTempFile(executeFilePath)
   })
+
+  it('emits reporter lifecycle callbacks for apply mode', async () => {
+    const executeFilePath = await createTempExecuteFile(
+      [
+        '- action: close',
+        '  number: 1',
+        '- action: close',
+        '  number: 2',
+        '',
+      ].join('\n'),
+    )
+
+    const fetchItemSnapshot = vi.fn(async (number: number) => ({
+      number,
+      kind: 'issue' as const,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }))
+    const actionClose = vi.fn(async (number: number) => {
+      if (number === 2)
+        throw new Error('simulated failure')
+    })
+    const provider = createMockProvider({
+      fetchItemSnapshot,
+      actionClose,
+    })
+
+    const reporter = {
+      onStart: vi.fn(),
+      onProgress: vi.fn(),
+      onComplete: vi.fn(),
+      onError: vi.fn(),
+    }
+
+    const result = await executePendingChanges({
+      config: createConfig(),
+      repo: 'owner/repo',
+      token: 'test-token',
+      provider,
+      executeFilePath,
+      apply: true,
+      nonInteractive: true,
+      continueOnError: false,
+      reporter,
+    })
+
+    expect(result.applied).toBe(1)
+    expect(result.failed).toBe(1)
+    expect(reporter.onStart).toHaveBeenCalledWith({
+      repo: 'owner/repo',
+      mode: 'apply',
+      planned: 2,
+    })
+    expect(reporter.onProgress).toHaveBeenCalledTimes(2)
+    expect(reporter.onComplete).toHaveBeenCalledTimes(1)
+    expect(reporter.onError).not.toHaveBeenCalled()
+
+    await cleanupTempFile(executeFilePath)
+  })
 })
 
 function createMockProvider(overrides: Partial<RepositoryProvider> = {}): RepositoryProvider {

@@ -1,5 +1,9 @@
 export type {
+  SyncMode,
   SyncOptions,
+  SyncProgressSnapshot,
+  SyncReporter,
+  SyncStage,
   SyncSummary,
 } from './contracts'
 

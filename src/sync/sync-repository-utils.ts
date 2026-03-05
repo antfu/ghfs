@@ -18,9 +18,12 @@ export function normalizeIssueNumbers(numbers: number[] | undefined): number[] |
   return [...new Set(numbers.filter(number => Number.isInteger(number) && number > 0))]
 }
 
-export function createCounters(scanned: number): SyncCounters {
+export function createCounters(scanned = 0, selected = 0): SyncCounters {
   return {
     scanned,
+    selected,
+    processed: 0,
+    skipped: 0,
     written: 0,
     moved: 0,
     patchesWritten: 0,
@@ -28,7 +31,8 @@ export function createCounters(scanned: number): SyncCounters {
   }
 }
 
-export function addItemStats(counters: SyncCounters, stats: Pick<SyncCounters, 'written' | 'moved' | 'patchesWritten' | 'patchesDeleted'>): void {
+export function addItemStats(counters: SyncCounters, stats: Pick<SyncCounters, 'skipped' | 'written' | 'moved' | 'patchesWritten' | 'patchesDeleted'>): void {
+  counters.skipped += stats.skipped
   counters.written += stats.written
   counters.moved += stats.moved
   counters.patchesWritten += stats.patchesWritten
