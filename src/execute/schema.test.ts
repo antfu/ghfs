@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'pathe'
 import { afterEach, describe, expect, it } from 'vitest'
-import { ensureExecuteArtifacts, EXECUTE_FILE_PLACEHOLDER, getExecuteSchemaPath } from './schema'
+import { ensureExecuteArtifacts, DETAILS_MD_FILE_PLACEHOLDER, EXECUTE_FILE_PLACEHOLDER, EXECUTE_MD_FILE_PLACEHOLDER, getExecuteSchemaPath } from './schema'
 import { readAndValidateExecuteFile } from './validate'
 
 const tempDirs: string[] = []
@@ -20,7 +20,9 @@ describe('ensureExecuteArtifacts', () => {
     expect(schemaPath).toBe(getExecuteSchemaPath(dir))
     await expect(readFile(executeFilePath, 'utf8')).resolves.toBe(EXECUTE_FILE_PLACEHOLDER)
     await expect(readAndValidateExecuteFile(executeFilePath)).resolves.toEqual([])
-    await expect(readFile(schemaPath, 'utf8')).resolves.toContain('"$id": "https://ghfs.dev/schema/execute.json"')
+    await expect(readFile(join(dir, 'execute.md'), 'utf8')).resolves.toBe(EXECUTE_MD_FILE_PLACEHOLDER)
+    await expect(readFile(join(dir, 'details.md'), 'utf8')).resolves.toBe(DETAILS_MD_FILE_PLACEHOLDER)
+    await expect(readFile(schemaPath, 'utf8')).resolves.toContain('\"$id\": \"https://ghfs.dev/schema/execute.json\"')
   })
 
   it('does not overwrite existing execute file and schema', async () => {
