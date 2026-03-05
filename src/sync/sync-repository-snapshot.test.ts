@@ -1,6 +1,6 @@
-import type { Octokit } from 'octokit'
 import type { GhfsResolvedConfig, SyncState } from '../types'
-import type { GitHubLabel, GitHubMilestone, GitHubRepository, SyncContext } from './sync-repository-types'
+import type { ProviderLabel, ProviderMilestone, ProviderRepository, RepositoryProvider } from '../types/provider'
+import type { SyncContext } from './sync-repository-types'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -163,14 +163,12 @@ function createContext(
   storageDirAbsolute: string,
   syncState: SyncState,
   options: {
-    labels?: GitHubLabel[]
-    milestones?: GitHubMilestone[]
-    repository?: Partial<GitHubRepository>
+    labels?: ProviderLabel[]
+    milestones?: ProviderMilestone[]
+    repository?: Partial<ProviderRepository>
   } = {},
 ): SyncContext {
-  const listLabelsForRepo = vi.fn()
-  const listMilestones = vi.fn()
-  const repository: GitHubRepository = {
+  const repository: ProviderRepository = {
     name: 'repo',
     full_name: 'owner/repo',
     description: 'Test repository',
@@ -207,31 +205,85 @@ function createContext(
   }
 
   return {
-    octokit: {
-      rest: {
-        repos: {
-          get: vi.fn(async () => ({ data: repository })),
-        },
-        issues: {
-          listLabelsForRepo,
-          listMilestones,
-        },
-      },
-      paginate: vi.fn(async (method: unknown) => {
-        if (method === listLabelsForRepo)
-          return options.labels ?? []
-        if (method === listMilestones)
-          return options.milestones ?? []
-        return []
-      }),
-    } as unknown as Octokit,
-    owner: 'owner',
-    repo: 'repo',
+    provider: createProviderMock({
+      fetchRepository: vi.fn(async () => repository),
+      fetchRepositoryLabels: vi.fn(async () => options.labels ?? []),
+      fetchRepositoryMilestones: vi.fn(async () => options.milestones ?? []),
+    }),
     repoSlug: 'owner/repo',
     storageDirAbsolute,
     config,
     syncState,
     syncedAt: '2026-02-10T00:00:00.000Z',
+  }
+}
+
+function createProviderMock(overrides: Partial<RepositoryProvider> = {}): RepositoryProvider {
+  return {
+    async* paginateItems() {
+      yield []
+    },
+    fetchItems: vi.fn(async () => []),
+    async* eachItem() {
+    },
+    fetchItemsByNumbers: vi.fn(async () => []),
+    fetchComments: vi.fn(async () => []),
+    fetchPullMetadata: vi.fn(async () => ({
+      isDraft: false,
+      merged: false,
+      mergedAt: null,
+      baseRef: 'main',
+      headRef: 'feature',
+      requestedReviewers: [],
+    })),
+    fetchPullPatch: vi.fn(async () => ''),
+    fetchItemSnapshot: vi.fn(async number => ({
+      number,
+      kind: 'issue' as const,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    })),
+    fetchRepository: vi.fn(async () => ({
+      name: 'repo',
+      full_name: 'owner/repo',
+      description: null,
+      private: false,
+      archived: false,
+      default_branch: 'main',
+      html_url: 'https://github.com/owner/repo',
+      fork: false,
+      open_issues_count: 0,
+      has_issues: true,
+      has_projects: true,
+      has_wiki: false,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+      pushed_at: '2026-01-01T00:00:00.000Z',
+      owner: {
+        login: 'owner',
+      },
+    })),
+    fetchRepositoryLabels: vi.fn(async () => []),
+    fetchRepositoryMilestones: vi.fn(async () => []),
+    actionClose: vi.fn(async () => {}),
+    actionReopen: vi.fn(async () => {}),
+    actionSetTitle: vi.fn(async () => {}),
+    actionSetBody: vi.fn(async () => {}),
+    actionAddComment: vi.fn(async () => {}),
+    actionAddLabels: vi.fn(async () => {}),
+    actionRemoveLabels: vi.fn(async () => {}),
+    actionSetLabels: vi.fn(async () => {}),
+    actionAddAssignees: vi.fn(async () => {}),
+    actionRemoveAssignees: vi.fn(async () => {}),
+    actionSetAssignees: vi.fn(async () => {}),
+    actionSetMilestone: vi.fn(async () => {}),
+    actionClearMilestone: vi.fn(async () => {}),
+    actionLock: vi.fn(async () => {}),
+    actionUnlock: vi.fn(async () => {}),
+    actionRequestReviewers: vi.fn(async () => {}),
+    actionRemoveReviewers: vi.fn(async () => {}),
+    actionMarkReadyForReview: vi.fn(async () => {}),
+    actionConvertToDraft: vi.fn(async () => {}),
+    ...overrides,
   }
 }
 
@@ -264,7 +316,7 @@ async function writeTrackedFile(storageDirAbsolute: string, relativePath: string
   await writeFile(absolutePath, content, 'utf8')
 }
 
-function milestone(number: number, title: string, state: 'open' | 'closed'): GitHubMilestone {
+function milestone(number: number, title: string, state: 'open' | 'closed'): ProviderMilestone {
   return {
     number,
     title,

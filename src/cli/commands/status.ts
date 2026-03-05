@@ -1,5 +1,5 @@
 import type { CAC } from 'cac'
-import { resolveConfig } from '../../config'
+import { resolveConfig } from '../../config/load'
 import { getStatusSummary } from '../../sync/status'
 import { withErrorHandling } from '../errors'
 import { printStatusSummary } from '../output'

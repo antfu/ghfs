@@ -1,47 +1,5 @@
-import type { Octokit } from 'octokit'
 import type { GhfsResolvedConfig, IssueKind, IssueState, SyncState } from '../types'
-
-export interface GitHubIssue {
-  number: number
-  state: 'open' | 'closed'
-  updated_at: string
-  created_at: string
-  closed_at: string | null
-  title: string
-  body: string | null
-  user: {
-    login: string
-  } | null
-  labels: Array<string | { name?: string | null }>
-  assignees: Array<{ login: string }> | null
-  milestone: {
-    title?: string | null
-  } | null
-  pull_request?: Record<string, unknown>
-}
-
-export interface GitHubComment {
-  id: number
-  body: string | null
-  created_at: string
-  updated_at: string
-  user: {
-    login: string
-  } | null
-}
-
-export interface GitHubPull {
-  draft: boolean
-  merged: boolean
-  merged_at: string | null
-  base: {
-    ref: string
-  }
-  head: {
-    ref: string
-  }
-  requested_reviewers: Array<{ login: string }>
-}
+import type { ProviderItem, RepositoryProvider } from '../types/provider'
 
 export interface GitHubRepository {
   name: string
@@ -85,9 +43,7 @@ export interface GitHubMilestone {
 }
 
 export interface SyncContext {
-  octokit: Octokit
-  owner: string
-  repo: string
+  provider: RepositoryProvider
   repoSlug: string
   storageDirAbsolute: string
   config: GhfsResolvedConfig
@@ -96,7 +52,7 @@ export interface SyncContext {
 }
 
 export interface IssueCandidates {
-  issues: GitHubIssue[]
+  issues: ProviderItem[]
   scanned: number
   allOpenNumbers?: Set<number>
 }

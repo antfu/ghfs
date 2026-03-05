@@ -1,17 +1,19 @@
 import type { SyncOptions, SyncSummary } from './contracts'
 import type { SyncContext } from './sync-repository-types'
 import { resolve } from 'node:path'
-import { createGitHubClient } from '../github/client'
+import { createRepositoryProvider } from '../providers/factory'
 import { loadSyncState, saveSyncState } from './state'
-import { fetchIssueCandidatesByNumbers, fetchIssueCandidatesByPagination } from './sync-repository-github'
 import { syncIssueCandidate } from './sync-repository-item'
+import { fetchIssueCandidatesByNumbers, fetchIssueCandidatesByPagination } from './sync-repository-provider'
 import { writeRepositoryIndexes, writeRepoSnapshot } from './sync-repository-snapshot'
 import { pruneMissingOpenTrackedItems, pruneTrackedClosedItems } from './sync-repository-storage'
-import { addItemStats, createCounters, normalizeIssueNumbers, resolveSince, shouldSyncIssue, splitRepo } from './sync-repository-utils'
+import { addItemStats, createCounters, normalizeIssueNumbers, resolveSince, shouldSyncIssue } from './sync-repository-utils'
 
 export async function syncRepository(options: SyncOptions): Promise<SyncSummary> {
-  const { owner, repo } = splitRepo(options.repo)
-  const octokit = createGitHubClient(options.token)
+  const provider = options.provider ?? createRepositoryProvider({
+    token: options.token,
+    repo: options.repo,
+  })
   const storageDirAbsolute = resolve(options.config.cwd, options.config.directory)
   const targetNumbers = normalizeIssueNumbers(options.numbers)
 
@@ -20,9 +22,7 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
   const syncedAt = new Date().toISOString()
 
   const context: SyncContext = {
-    octokit,
-    owner,
-    repo,
+    provider,
     repoSlug: options.repo,
     storageDirAbsolute,
     config: options.config,

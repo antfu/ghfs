@@ -1,4 +1,4 @@
-import type { GhfsResolvedConfig, GhfsUserConfig } from './types'
+import type { GhfsResolvedConfig, GhfsUserConfig } from '../types'
 import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import process from 'node:process'
@@ -6,7 +6,7 @@ import { createJiti } from 'jiti'
 import {
   CONFIG_FILE_CANDIDATES,
   DEFAULT_STORAGE_DIR,
-} from './constants'
+} from '../constants'
 
 export interface ResolveConfigOptions {
   cwd?: string
