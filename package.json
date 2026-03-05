@@ -37,6 +37,7 @@
     "test": "vitest run",
     "lint": "eslint",
     "release": "bumpp",
+    "prepublishOnly": "pnpm run build",
     "play": "cd playgrounds/ni && tsx ../../src/cli.ts",
     "prepare": "git submodule update --init --recursive && simple-git-hooks"
   },
