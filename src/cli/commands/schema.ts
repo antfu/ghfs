@@ -1,5 +1,5 @@
 import type { CAC } from 'cac'
-import { getStorageDirAbsolute, resolveConfig } from '../../config'
+import { getStorageDirAbsolute, resolveConfig } from '../../config/load'
 import { writeExecuteSchema } from '../../execute/schema'
 import { withErrorHandling } from '../errors'
 import { printSchemaPath } from '../output'

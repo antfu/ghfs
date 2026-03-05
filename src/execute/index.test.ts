@@ -1,18 +1,11 @@
-import type { Octokit } from 'octokit'
 import type { GhfsResolvedConfig } from '../types'
+import type { RepositoryProvider } from '../types/provider'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createGitHubClient } from '../github/client'
 import { executePendingChanges } from './index'
 import { readAndValidateExecuteFile } from './validate'
-
-vi.mock('../github/client', () => ({
-  createGitHubClient: vi.fn(),
-}))
-
-const mockedCreateGitHubClient = vi.mocked(createGitHubClient)
 
 describe('executePendingChanges', () => {
   afterEach(() => {
@@ -32,13 +25,26 @@ describe('executePendingChanges', () => {
       ].join('\n'),
     )
 
-    const octokit = createMockOctokit()
-    mockedCreateGitHubClient.mockReturnValue(octokit)
+    const fetchItemSnapshot = vi.fn(async (number: number) => ({
+      number,
+      kind: 'issue' as const,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }))
+    const actionClose = vi.fn(async (number: number) => {
+      if (number === 2)
+        throw new Error('simulated failure')
+    })
+
+    const provider = createMockProvider({
+      fetchItemSnapshot,
+      actionClose,
+    })
 
     const result = await executePendingChanges({
       config: createConfig(),
       repo: 'owner/repo',
       token: 'test-token',
+      provider,
       executeFilePath,
       apply: true,
       nonInteractive: true,
@@ -47,6 +53,7 @@ describe('executePendingChanges', () => {
 
     expect(result.applied).toBe(1)
     expect(result.failed).toBe(1)
+    expect(actionClose).toHaveBeenCalledTimes(2)
     await expect(readAndValidateExecuteFile(executeFilePath)).resolves.toEqual([
       { action: 'close', number: 2 },
       { action: 'close', number: 3 },
@@ -56,32 +63,51 @@ describe('executePendingChanges', () => {
   })
 })
 
-function createMockOctokit(): Octokit {
-  const get = vi.fn(async ({ issue_number }: { issue_number: number }) => {
-    return {
-      data: {
-        number: issue_number,
-        updated_at: '2026-01-01T00:00:00.000Z',
-      },
-    }
-  })
-
-  const update = vi.fn(async ({ issue_number }: { issue_number: number }) => {
-    if (issue_number === 2)
-      throw new Error('simulated failure')
-    return { data: {} }
-  })
-
+function createMockProvider(overrides: Partial<RepositoryProvider> = {}): RepositoryProvider {
   return {
-    rest: {
-      issues: {
-        get,
-        update,
-      },
+    async* paginateItems() {
+      yield []
     },
-    paginate: vi.fn(),
-    request: vi.fn(),
-  } as unknown as Octokit
+    fetchItems: vi.fn(async () => []),
+    async* eachItem() {
+    },
+    fetchItemsByNumbers: vi.fn(async () => []),
+    fetchComments: vi.fn(async () => []),
+    fetchPullMetadata: vi.fn(async () => ({
+      isDraft: false,
+      merged: false,
+      mergedAt: null,
+      baseRef: 'main',
+      headRef: 'feature',
+      requestedReviewers: [],
+    })),
+    fetchPullPatch: vi.fn(async () => ''),
+    fetchItemSnapshot: vi.fn(async number => ({
+      number,
+      kind: 'issue' as const,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    })),
+    actionClose: vi.fn(async () => {}),
+    actionReopen: vi.fn(async () => {}),
+    actionSetTitle: vi.fn(async () => {}),
+    actionSetBody: vi.fn(async () => {}),
+    actionAddComment: vi.fn(async () => {}),
+    actionAddLabels: vi.fn(async () => {}),
+    actionRemoveLabels: vi.fn(async () => {}),
+    actionSetLabels: vi.fn(async () => {}),
+    actionAddAssignees: vi.fn(async () => {}),
+    actionRemoveAssignees: vi.fn(async () => {}),
+    actionSetAssignees: vi.fn(async () => {}),
+    actionSetMilestone: vi.fn(async () => {}),
+    actionClearMilestone: vi.fn(async () => {}),
+    actionLock: vi.fn(async () => {}),
+    actionUnlock: vi.fn(async () => {}),
+    actionRequestReviewers: vi.fn(async () => {}),
+    actionRemoveReviewers: vi.fn(async () => {}),
+    actionMarkReadyForReview: vi.fn(async () => {}),
+    actionConvertToDraft: vi.fn(async () => {}),
+    ...overrides,
+  }
 }
 
 function createConfig(): GhfsResolvedConfig {
