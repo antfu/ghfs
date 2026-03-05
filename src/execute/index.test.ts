@@ -1,6 +1,6 @@
 import type { GhfsResolvedConfig } from '../types'
 import type { RepositoryProvider } from '../types/provider'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'pathe'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -62,6 +62,38 @@ describe('executePendingChanges', () => {
     await cleanupTempFile(executeFilePath)
   })
 
+  it('loads execute-md operations and reports parsing warnings', async () => {
+    const executeFilePath = await createTempExecuteFile('[]\n')
+    const executeMdPath = executeFilePath.replace(/execute\.yml$/, 'execute.md')
+    await writeFile(executeMdPath, ['close #10 #11', 'unknown #1', ''].join('\n'), 'utf8')
+
+    const fetchItemSnapshot = vi.fn(async (number: number) => ({
+      number,
+      kind: 'issue' as const,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }))
+    const actionClose = vi.fn(async () => {})
+    const provider = createMockProvider({ fetchItemSnapshot, actionClose })
+    const warnings: string[] = []
+
+    const result = await executePendingChanges({
+      config: createConfig(),
+      repo: 'owner/repo',
+      token: 'test-token',
+      provider,
+      executeFilePath,
+      apply: true,
+      nonInteractive: true,
+      continueOnError: true,
+      onWarning: warning => warnings.push(warning),
+    })
+
+    expect(result.applied).toBe(2)
+    expect(warnings).toHaveLength(1)
+    await expect(readFile(executeMdPath, 'utf8')).resolves.toContain('unknown #1')
+
+    await cleanupTempFile(executeFilePath)
+  })
   it('emits reporter lifecycle callbacks for apply mode', async () => {
     const executeFilePath = await createTempExecuteFile(
       [
