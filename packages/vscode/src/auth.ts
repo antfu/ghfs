@@ -5,5 +5,5 @@ export async function readTokenFromVSCode() {
     createIfNone: true,
   })
 
-  return session?.accessToken
+  return session.accessToken
 }
