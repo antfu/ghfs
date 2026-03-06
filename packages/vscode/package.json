@@ -47,7 +47,7 @@
     "commands": [
       {
         "command": "ghfs.sync",
-        "title": "Sync Repository",
+        "title": "Sync Now",
         "category": "ghfs"
       }
     ],
@@ -56,12 +56,12 @@
       "properties": {
         "ghfs.autoSync.enabled": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Enable automatic periodic sync"
         },
         "ghfs.autoSync.intervalMinutes": {
           "type": "number",
-          "default": 30,
+          "default": 1440,
           "minimum": 1,
           "description": "Auto-sync interval in minutes"
         }
