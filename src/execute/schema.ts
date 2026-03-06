@@ -46,24 +46,23 @@ export const executeSchema = {
 
 export const EXECUTE_FILE_PLACEHOLDER = [
   `# yaml-language-server: $schema=./${EXECUTE_SCHEMA_RELATIVE_PATH}`,
-  '# Add operations as YAML list items, then run: ghfs execute --run',
-  '# Action names are case-insensitive and support aliases (for example: label, assign, comment, close-comment).',
+  '# Add operations as YAML list items, then run: `ghfs execute`, examples:',
+  '#',
   '# - action: close',
   '#   number: 123',
-  '[]',
   '',
 ].join('\n')
 
 export const EXECUTE_MD_FILE_PLACEHOLDER = [
-  '# Add one action per line, then run: ghfs execute --run',
-  '# Command names are case-insensitive and support aliases.',
-  '# close #123 #124',
-  '# label #123 bug, triage',
-  '# assign #123 antfu',
-  '# comment #123 "Need more context"',
-  '# close-comment #123 "Closing as completed"',
-  '# set-title #123 "new title"',
-  '# add-tag #123 foo, bar',
+  '<!-- Add one action per line, then run: `ghfs execute`, examples: -->',
+  '',
+  '<!-- close #123 #124 -->',
+  '<!-- label #123 bug, triage -->',
+  '<!-- assign #123 antfu -->',
+  '<!-- comment #123 "Need more context" -->',
+  '<!-- close-comment #123 "Closing as completed" -->',
+  '<!-- set-title #123 "new title" -->',
+  '<!-- add-tag #123 foo, bar -->',
   '',
 ].join('\n')
 
