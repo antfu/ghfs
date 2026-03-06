@@ -12,6 +12,7 @@ import type {
   ProviderRepository,
   RepositoryProvider,
 } from '../../types/provider'
+import { randomHexColor } from '../../utils/color'
 import { formatIssueNumber } from '../../utils/format'
 import { normalizeReactions } from '../../utils/reactions'
 import { collectPages, iteratePages } from '../helpers'
@@ -301,6 +302,7 @@ async function actionAddLabels(
   labels: string[],
   bumpRequestCount: BumpRequestCount,
 ): Promise<void> {
+  await ensureLabelsExist(octokit, owner, repo, labels, bumpRequestCount)
   bumpRequestCount()
   await octokit.rest.issues.addLabels({ owner, repo, issue_number: number, labels })
 }
@@ -334,8 +336,46 @@ async function actionSetLabels(
   labels: string[],
   bumpRequestCount: BumpRequestCount,
 ): Promise<void> {
+  await ensureLabelsExist(octokit, owner, repo, labels, bumpRequestCount)
   bumpRequestCount()
   await octokit.rest.issues.setLabels({ owner, repo, issue_number: number, labels })
+}
+
+async function ensureLabelsExist(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  labels: string[],
+  bumpRequestCount: BumpRequestCount,
+): Promise<void> {
+  if (!labels.length)
+    return
+
+  const existingLabels = await fetchRepositoryLabels(octokit, owner, repo, bumpRequestCount)
+  const existingLabelNames = new Set(existingLabels.map(label => label.name.toLowerCase()))
+
+  for (const label of labels) {
+    const normalizedLabel = label.toLowerCase()
+    if (existingLabelNames.has(normalizedLabel))
+      continue
+
+    try {
+      bumpRequestCount()
+      await octokit.rest.issues.createLabel({
+        owner,
+        repo,
+        name: label,
+        color: randomHexColor(),
+      })
+      existingLabelNames.add(normalizedLabel)
+    }
+    catch (error) {
+      const status = (error as { status?: number }).status
+      if (status !== 422)
+        throw error
+      existingLabelNames.add(normalizedLabel)
+    }
+  }
 }
 
 async function actionAddAssignees(

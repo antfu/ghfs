@@ -1,3 +1,4 @@
+export * from './color'
 export * from './format'
 export * from './fs'
 export * from './reactions'

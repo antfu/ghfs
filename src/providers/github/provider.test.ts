@@ -1,13 +1,18 @@
 import type { Octokit } from 'octokit'
 import { describe, expect, it, vi } from 'vitest'
+import { randomHexColor } from '../../utils/color'
 import { createGitHubClient } from './client'
 import { createGitHubProvider } from './provider'
 
 vi.mock('./client', () => ({
   createGitHubClient: vi.fn(),
 }))
+vi.mock('../../utils/color', () => ({
+  randomHexColor: vi.fn(() => 'abcdef'),
+}))
 
 const mockedCreateGitHubClient = vi.mocked(createGitHubClient)
+const mockedRandomHexColor = vi.mocked(randomHexColor)
 
 describe('createGitHubProvider', () => {
   it('maps GitHub items/comments and pull metadata to provider models', async () => {
@@ -288,6 +293,81 @@ describe('createGitHubProvider', () => {
 
     expect(pages).toEqual([[1], [2]])
     expect(numbers).toEqual([1, 2])
+  })
+
+  it('creates missing labels before add-labels and set-labels actions', async () => {
+    const listLabelsForRepo = vi.fn()
+    const addLabels = vi.fn(async () => ({ data: {} }))
+    const setLabels = vi.fn(async () => ({ data: {} }))
+    const repositoryLabels = new Set(['bug'])
+    const createLabel = vi.fn(async ({ name }: { name: string }) => {
+      repositoryLabels.add(name)
+      return { data: {} }
+    })
+
+    const paginate = vi.fn(async (method: unknown) => {
+      if (method === listLabelsForRepo) {
+        return [...repositoryLabels].map(name => ({
+          name,
+          color: 'ededed',
+          description: null,
+          default: false,
+        }))
+      }
+      return []
+    })
+
+    mockedCreateGitHubClient.mockReturnValue({
+      rest: {
+        issues: {
+          listLabelsForRepo,
+          createLabel,
+          addLabels,
+          setLabels,
+        },
+      },
+      paginate,
+    } as unknown as Octokit)
+
+    const provider = createGitHubProvider({
+      token: 'test-token',
+      owner: 'owner',
+      repo: 'repo',
+    })
+    mockedRandomHexColor.mockReset()
+    mockedRandomHexColor
+      .mockReturnValueOnce('123456')
+      .mockReturnValueOnce('654321')
+
+    await provider.actionAddLabels(10, ['bug', 'enhancement'])
+    expect(createLabel).toHaveBeenCalledTimes(1)
+    expect(createLabel).toHaveBeenNthCalledWith(1, {
+      owner: 'owner',
+      repo: 'repo',
+      name: 'enhancement',
+      color: '123456',
+    })
+    expect(addLabels).toHaveBeenCalledWith({
+      owner: 'owner',
+      repo: 'repo',
+      issue_number: 10,
+      labels: ['bug', 'enhancement'],
+    })
+
+    await provider.actionSetLabels(10, ['enhancement', 'help wanted'])
+    expect(createLabel).toHaveBeenCalledTimes(2)
+    expect(createLabel).toHaveBeenNthCalledWith(2, {
+      owner: 'owner',
+      repo: 'repo',
+      name: 'help wanted',
+      color: '654321',
+    })
+    expect(setLabels).toHaveBeenCalledWith({
+      owner: 'owner',
+      repo: 'repo',
+      issue_number: 10,
+      labels: ['enhancement', 'help wanted'],
+    })
   })
 
   it('handles remove-label 404 and resolves milestone by title', async () => {
