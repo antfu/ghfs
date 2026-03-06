@@ -4,15 +4,12 @@ import { runSync } from '../sync'
 export async function sync(cwd?: string): Promise<void> {
   if (!cwd) {
     const activeEditor = window.activeTextEditor
+    const folder = activeEditor
+      ? workspace.getWorkspaceFolder(activeEditor.document.uri)
+      : workspace.workspaceFolders?.[0]
 
-    if (!activeEditor) {
-      window.showWarningMessage('ghfs: Sync failed - no active editor.')
-      return
-    }
-
-    const folder = workspace.getWorkspaceFolder(activeEditor.document.uri)
     if (!folder) {
-      window.showWarningMessage('ghfs: Sync failed - no workspace folder.')
+      window.showWarningMessage('ghfs: Sync failed - workspace folder not found.')
       return
     }
 
@@ -22,7 +19,7 @@ export async function sync(cwd?: string): Promise<void> {
   await window.withProgress(
     {
       location: ProgressLocation.Notification,
-      title: 'ghfs: Syncing repository…',
+      title: 'ghfs: Syncing repository...',
       cancellable: true,
     },
     async () => {
