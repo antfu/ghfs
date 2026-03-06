@@ -4,6 +4,7 @@ import * as utils from './index'
 describe('utils index', () => {
   it('re-exports utility functions', () => {
     expect(typeof utils.describeAction).toBe('function')
+    expect(typeof utils.formatIssueNumber).toBe('function')
     expect(typeof utils.pathExists).toBe('function')
     expect(typeof utils.normalizeReactions).toBe('function')
     expect(typeof utils.splitRepo).toBe('function')

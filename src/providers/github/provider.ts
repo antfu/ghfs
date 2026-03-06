@@ -12,6 +12,7 @@ import type {
   ProviderRepository,
   RepositoryProvider,
 } from '../../types/provider'
+import { formatIssueNumber } from '../../utils/format'
 import { normalizeReactions } from '../../utils/reactions'
 import { collectPages, iteratePages } from '../helpers'
 import { createGitHubClient } from './client'
@@ -196,7 +197,7 @@ async function fetchPullPatch(
   if (typeof result.data === 'string')
     return result.data
 
-  throw new Error(`Unexpected patch response for pull #${number}`)
+  throw new Error(`Unexpected patch response for pull ${formatIssueNumber(number, { repo: `${owner}/${repo}`, kind: 'pull' })}`)
 }
 
 async function fetchItemSnapshot(

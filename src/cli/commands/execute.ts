@@ -64,10 +64,10 @@ export function registerExecuteCommand(cli: CAC): void {
         apply: Boolean(options.apply),
         nonInteractive: Boolean(options.nonInteractive),
         continueOnError: Boolean(options.continueOnError),
-        onPlan: ops => printExecutionPlan(printer, ops),
+        onPlan: ops => printExecutionPlan(printer, ops, repo.repo),
         onWarning: warning => printer.warn(warning),
         reporter: printer.createExecuteReporter(),
-        prompts: createExecutePrompts(),
+        prompts: createExecutePrompts(repo.repo),
       })
 
       await appendExecutionResult(storageDirAbsolute, result)
@@ -98,7 +98,7 @@ export function registerExecuteCommand(cli: CAC): void {
     }))
 }
 
-function printExecutionPlan(printer: CliPrinter, ops: PendingOp[]): void {
+function printExecutionPlan(printer: CliPrinter, ops: PendingOp[], repo: string): void {
   printer.table('Execution Plan', [
     ['operations', ops.length],
   ], { indent: 2 })
@@ -110,7 +110,7 @@ function printExecutionPlan(printer: CliPrinter, ops: PendingOp[]): void {
     return
   }
 
-  printer.table('Execution Plan Ops', ops.map((op, index) => [`op ${index + 1}`, describeAction(op.action, op.number)] as const), { indent: 2 })
+  printer.table('Execution Plan Ops', ops.map((op, index) => [`op ${index + 1}`, describeAction(op.action, op.number, { repo })] as const), { indent: 2 })
 }
 
 function printExecutionResult(printer: CliPrinter, result: ExecutionResult): void {

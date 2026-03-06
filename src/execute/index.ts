@@ -3,7 +3,7 @@ import type { RepositoryProvider } from '../types/provider'
 import type { PendingOp } from './types'
 import process from 'node:process'
 import { createRepositoryProvider } from '../providers/factory'
-import { describeAction } from '../utils/format'
+import { describeAction, formatIssueNumber } from '../utils/format'
 import { ensureExecuteArtifacts } from './schema'
 import { loadExecuteSources } from './sources'
 
@@ -128,7 +128,7 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
           action: op.action,
           number: op.number,
           status: 'planned',
-          message: describeAction(op.action, op.number),
+          message: describeAction(op.action, op.number, { repo: options.repo }),
         })),
       }
       options.reporter?.onComplete?.({ result })
@@ -153,7 +153,7 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
 
     for (const { op, index } of selected) {
       try {
-        const target = await applyOperation(provider, op)
+        const target = await applyOperation(provider, op, options.repo)
         appliedIndexes.add(index)
         await persistRemainingOps(sources.writeRemaining, allOps, appliedIndexes)
         const detail: ExecutionResult['details'][number] = {
@@ -162,7 +162,7 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
           number: op.number,
           target,
           status: 'applied',
-          message: describeAction(op.action, op.number),
+          message: describeAction(op.action, op.number, { repo: options.repo }),
         }
         details.push(detail)
         applied += 1
@@ -229,7 +229,7 @@ async function persistRemainingOps(writeRemaining: (remainingIndexes: Set<number
   await writeRemaining(remainingIndexes)
 }
 
-async function applyOperation(provider: RepositoryProvider, op: PendingOp): Promise<IssueKind> {
+async function applyOperation(provider: RepositoryProvider, op: PendingOp, repo: string): Promise<IssueKind> {
   const item = await provider.fetchItemSnapshot(op.number)
   const isPull = item.kind === 'pull'
 
@@ -301,22 +301,22 @@ async function applyOperation(provider: RepositoryProvider, op: PendingOp): Prom
       break
 
     case 'request-reviewers':
-      ensurePullAction(op.action, op.number, isPull)
+      ensurePullAction(op.action, op.number, isPull, repo)
       await provider.actionRequestReviewers(op.number, op.reviewers)
       break
 
     case 'remove-reviewers':
-      ensurePullAction(op.action, op.number, isPull)
+      ensurePullAction(op.action, op.number, isPull, repo)
       await provider.actionRemoveReviewers(op.number, op.reviewers)
       break
 
     case 'mark-ready-for-review':
-      ensurePullAction(op.action, op.number, isPull)
+      ensurePullAction(op.action, op.number, isPull, repo)
       await provider.actionMarkReadyForReview(op.number)
       break
 
     case 'convert-to-draft':
-      ensurePullAction(op.action, op.number, isPull)
+      ensurePullAction(op.action, op.number, isPull, repo)
       await provider.actionConvertToDraft(op.number)
       break
 
@@ -354,7 +354,7 @@ async function confirmApply(count: number, prompts: ExecutePrompts): Promise<boo
   return result
 }
 
-function ensurePullAction(action: PendingOp['action'], number: number, isPull: boolean): void {
+function ensurePullAction(action: PendingOp['action'], number: number, isPull: boolean, repo: string): void {
   if (!isPull)
-    throw new Error(`Action ${action} requires #${number} to be a pull request`)
+    throw new Error(`Action ${action} requires ${formatIssueNumber(number, { repo, kind: 'pull' })} to be a pull request`)
 }

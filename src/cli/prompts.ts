@@ -45,18 +45,18 @@ export async function promptRepoChoice(
   return result
 }
 
-export function createExecutePrompts(): ExecutePrompts {
+export function createExecutePrompts(repo?: string): ExecutePrompts {
   return {
-    selectOperations: promptExecuteOperations,
+    selectOperations: ops => promptExecuteOperations(ops, repo),
     confirmApply: confirmExecuteApply,
   }
 }
 
-async function promptExecuteOperations(ops: PendingOp[]): Promise<number[] | undefined> {
+async function promptExecuteOperations(ops: PendingOp[], repo?: string): Promise<number[] | undefined> {
   const result = await multiselect<number>({
     message: 'Select operations to include',
     options: ops.map((op, index) => ({
-      label: `${index + 1}. ${describeAction(op.action, op.number)}`,
+      label: `${index + 1}. ${describeAction(op.action, op.number, { repo })}`,
       value: index,
     })),
     required: false,

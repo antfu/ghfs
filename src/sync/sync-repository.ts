@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto'
 import { resolve } from 'pathe'
 import { GHFS_VERSION } from '../meta'
 import { createRepositoryProvider } from '../providers/factory'
+import { formatIssueNumber } from '../utils/format'
 import { normalizeIssueNumbers, resolveSince } from '../utils/sync'
 import { loadSyncState, saveSyncState } from './state'
 import {
@@ -150,7 +151,7 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
           reporter?.onStageUpdate?.({
             stage: 'fetch',
             snapshot: cloneSnapshot(counters),
-            message: `#${issue.number} ${prepared.kind} ${prepared.action}`,
+            message: `${formatIssueNumber(issue.number, { repo: options.repo, kind: issue.kind })} ${prepared.kind} ${prepared.action}`,
           })
         }
       })

@@ -3,6 +3,7 @@ import type { ItemSyncStats, PatchPlan, PreparedIssueCandidate, SyncContext } fr
 import { readdir } from 'node:fs/promises'
 import { basename, join } from 'pathe'
 import { CLOSED_DIR_NAME, ISSUE_DIR_NAME, PULL_DIR_NAME } from '../constants'
+import { formatIssueNumber } from '../utils/format'
 import { movePath, pathExists, removePatchIfExists, removePath, writeFileEnsured } from '../utils/fs'
 import { normalizeReactions } from '../utils/reactions'
 import { renderIssueMarkdown } from './markdown'
@@ -114,7 +115,7 @@ export async function materializePreparedIssue(context: SyncContext, candidate: 
 
   const tracked = context.syncState.items[String(number)]
   if (!tracked)
-    throw new Error(`Missing tracked canonical data for #${number}`)
+    throw new Error(`Missing tracked canonical data for ${formatIssueNumber(number, { repo: context.repoSlug, kind })}`)
 
   const markdown = buildTrackedMarkdown(context, tracked)
 

@@ -3,9 +3,12 @@ import {
   countNoun,
   describeAction,
   formatDuration,
+  formatIssueNumber,
   formatNumber,
   formatRelativeTime,
+  formatTerminalLink,
   formatValue,
+  toGitHubIssueUrl,
 } from './format'
 
 afterEach(() => {
@@ -15,6 +18,28 @@ afterEach(() => {
 describe('describeAction', () => {
   it('formats action and issue number', () => {
     expect(describeAction('close', 42)).toBe('close #42')
+  })
+
+  it('renders terminal link when repo is provided', () => {
+    expect(describeAction('close', 42, { repo: 'owner/repo' }))
+      .toBe(`close ${formatTerminalLink('#42', 'https://github.com/owner/repo/issues/42')}`)
+  })
+})
+
+describe('formatIssueNumber', () => {
+  it('formats plain and linked issue refs', () => {
+    expect(formatIssueNumber(7)).toBe('#7')
+    expect(formatIssueNumber(7, { repo: 'owner/repo' }))
+      .toBe(formatTerminalLink('#7', 'https://github.com/owner/repo/issues/7'))
+    expect(formatIssueNumber(7, { repo: 'owner/repo', kind: 'pull' }))
+      .toBe(formatTerminalLink('#7', 'https://github.com/owner/repo/pull/7'))
+  })
+})
+
+describe('toGitHubIssueUrl', () => {
+  it('builds issue and pull URLs', () => {
+    expect(toGitHubIssueUrl('owner/repo', 8)).toBe('https://github.com/owner/repo/issues/8')
+    expect(toGitHubIssueUrl('owner/repo', 8, 'pull')).toBe('https://github.com/owner/repo/pull/8')
   })
 })
 
