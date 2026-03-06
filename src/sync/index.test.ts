@@ -1,9 +1,10 @@
-import type { GhfsResolvedConfig } from '../types'
+import type { GhfsResolvedConfig, SyncItemState } from '../types'
 import type { ProviderItem, RepositoryProvider } from '../types/provider'
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'pathe'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { GHFS_VERSION } from '../meta'
 import { syncRepository } from './index'
 import { getSyncStatePath, loadSyncState } from './state'
 
@@ -81,6 +82,89 @@ describe('syncRepository', () => {
     await expect(stat(join(storageDir, 'issues.md'))).resolves.toBeDefined()
     await expect(stat(join(storageDir, 'pulls.md'))).resolves.toBeDefined()
     await expect(stat(join(storageDir, 'repo.json'))).resolves.toBeDefined()
+
+    await rm(cwd, { recursive: true, force: true })
+  })
+
+  it('regenerates markdown from sync state on ghfs version mismatch', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ghfs-sync-index-test-'))
+    const storageDir = join(cwd, '.ghfs')
+    const tracked = createTrackedItem({
+      number: 1,
+      kind: 'issue',
+      state: 'open',
+      updatedAt: '2026-01-10T00:00:00.000Z',
+      filePath: 'issues/00001-issue-1.md',
+    })
+    tracked.data.item.reactions = {
+      totalCount: 3,
+      plusOne: 2,
+      minusOne: 0,
+      laugh: 0,
+      hooray: 0,
+      confused: 0,
+      heart: 1,
+      rocket: 0,
+      eyes: 0,
+    }
+    tracked.data.comments = [
+      {
+        id: 10,
+        body: 'Looks good',
+        createdAt: '2026-01-01T03:00:00.000Z',
+        updatedAt: '2026-01-01T03:00:00.000Z',
+        author: 'alice',
+        reactions: {
+          totalCount: 1,
+          plusOne: 0,
+          minusOne: 0,
+          laugh: 1,
+          hooray: 0,
+          confused: 0,
+          heart: 0,
+          rocket: 0,
+          eyes: 0,
+        },
+      },
+    ]
+
+    await mkdir(join(storageDir, 'issues'), { recursive: true })
+    await writeFile(join(storageDir, 'issues', '00001-issue-1.md'), '# stale\n', 'utf8')
+    await writeFile(getSyncStatePath(storageDir), JSON.stringify({
+      version: 2,
+      ghfsVersion: '0.0.0',
+      repo: 'owner/repo',
+      lastSyncedAt: '2026-01-01T00:00:00.000Z',
+      lastRepoUpdatedAt: '2026-01-02T00:00:00.000Z',
+      items: {
+        1: tracked,
+      },
+      executions: [],
+    }, null, 2), 'utf8')
+
+    const paginateItems = vi.fn(async function* () {
+      yield []
+    })
+    const provider = createMockProvider({
+      paginateItems,
+    })
+
+    const summary = await syncRepository({
+      config: createConfig(cwd),
+      repo: 'owner/repo',
+      token: 'test-token',
+      provider,
+    })
+
+    expect(summary.scanned).toBe(0)
+    expect(summary.written).toBe(0)
+    expect(paginateItems).not.toHaveBeenCalled()
+    const markdown = await readFile(join(storageDir, 'issues', '00001-issue-1.md'), 'utf8')
+    expect(markdown).toContain('> `👍 2` | `❤️ 1`')
+    expect(markdown).toContain('> `😄 1`')
+
+    const syncState = await loadSyncState(storageDir)
+    expect(syncState.ghfsVersion).toBe(GHFS_VERSION)
 
     await rm(cwd, { recursive: true, force: true })
   })
@@ -193,6 +277,69 @@ describe('syncRepository', () => {
     await expect(stat(renamedPath)).resolves.toBeDefined()
     await expect(stat(join(storageDir, 'issues', '00001-old-title.md'))).rejects.toThrow()
     await expect(readFile(renamedPath, 'utf8')).resolves.toContain('# New Title')
+
+    await rm(cwd, { recursive: true, force: true })
+  })
+
+  it('reconciles markdown files by scan after sync', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ghfs-sync-index-test-'))
+    const storageDir = join(cwd, '.ghfs')
+    const trackedRenamed = createTrackedItem({
+      number: 1,
+      kind: 'issue',
+      state: 'open',
+      updatedAt: '2026-01-10T00:00:00.000Z',
+      filePath: 'issues/00001-old-title.md',
+    })
+    trackedRenamed.data.item.title = 'Renamed Issue'
+
+    const trackedMissing = createTrackedItem({
+      number: 2,
+      kind: 'issue',
+      state: 'open',
+      updatedAt: '2026-01-11T00:00:00.000Z',
+      filePath: 'issues/00002-issue-2.md',
+    })
+
+    await mkdir(join(storageDir, 'issues'), { recursive: true })
+    await writeFile(join(storageDir, 'issues', '00001-old-title.md'), '# stale title\n', 'utf8')
+    await writeFile(join(storageDir, 'issues', '00099-extra.md'), '# extra item\n', 'utf8')
+    await writeFile(getSyncStatePath(storageDir), JSON.stringify({
+      version: 2,
+      ghfsVersion: GHFS_VERSION,
+      repo: 'owner/repo',
+      lastSyncedAt: '2026-01-01T00:00:00.000Z',
+      lastRepoUpdatedAt: '2026-01-02T00:00:00.000Z',
+      items: {
+        1: trackedRenamed,
+        2: trackedMissing,
+      },
+      executions: [],
+    }, null, 2), 'utf8')
+
+    const paginateItems = vi.fn(async function* () {
+      yield []
+    })
+    const provider = createMockProvider({ paginateItems })
+
+    const summary = await syncRepository({
+      config: createConfig(cwd),
+      repo: 'owner/repo',
+      token: 'test-token',
+      provider,
+    })
+
+    expect(paginateItems).not.toHaveBeenCalled()
+    expect(summary.written).toBe(1)
+    expect(summary.moved).toBe(2)
+    await expect(stat(join(storageDir, 'issues', '00001-renamed-issue.md'))).resolves.toBeDefined()
+    await expect(stat(join(storageDir, 'issues', '00002-issue-2.md'))).resolves.toBeDefined()
+    await expect(stat(join(storageDir, 'issues', '00099-extra.md'))).rejects.toThrow()
+    await expect(stat(join(storageDir, 'issues', 'closed', '00099-extra.md'))).resolves.toBeDefined()
+
+    const syncState = await loadSyncState(storageDir)
+    expect(syncState.items['1']?.filePath).toBe('issues/00001-renamed-issue.md')
+    expect(syncState.items['2']?.filePath).toBe('issues/00002-issue-2.md')
 
     await rm(cwd, { recursive: true, force: true })
   })
@@ -366,7 +513,7 @@ function createTrackedItem(input: {
   state: 'open' | 'closed'
   updatedAt: string
   filePath: string
-}) {
+}): SyncItemState {
   return {
     number: input.number,
     kind: input.kind,
@@ -382,7 +529,7 @@ function createTrackedItem(input: {
         updatedAt: input.updatedAt,
         title: `Issue ${input.number}`,
       }),
-      comments: [],
+      comments: [] as SyncItemState['data']['comments'],
       ...(input.kind === 'pull'
         ? {
             pull: {

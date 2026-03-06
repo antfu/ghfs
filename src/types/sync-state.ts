@@ -47,6 +47,7 @@ export interface SyncItemState {
 
 export interface SyncState {
   version: 2
+  ghfsVersion?: string
   repo?: string
   lastSyncedAt?: string
   lastSince?: string

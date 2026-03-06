@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { parse } from 'yaml'
 import { loadSyncState } from '../../sync/state'
+import { formatIssueNumber } from '../../utils/format'
 import { pathExists } from '../../utils/fs'
 
 export interface PerItemSourceResult {
@@ -14,18 +15,19 @@ export async function loadPerItemSource(storageDir: string): Promise<PerItemSour
   const syncState = await loadSyncState(storageDir)
   const ops: PendingOp[] = []
   const warnings: string[] = []
+  const repo = syncState.repo
 
   for (const tracked of Object.values(syncState.items)) {
     const markdownPath = join(storageDir, tracked.filePath)
     if (!await pathExists(markdownPath)) {
-      warnings.push(`per-item: missing markdown for #${tracked.number} (${tracked.filePath})`)
+      warnings.push(`per-item: missing markdown for ${formatIssueNumber(tracked.number, { repo })} (${tracked.filePath})`)
       continue
     }
 
     const raw = await readFile(markdownPath, 'utf8')
     const frontmatter = parseFrontmatter(raw)
     if (!frontmatter) {
-      warnings.push(`per-item: invalid or missing frontmatter for #${tracked.number}`)
+      warnings.push(`per-item: invalid or missing frontmatter for ${formatIssueNumber(tracked.number, { repo })}`)
       continue
     }
 

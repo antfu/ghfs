@@ -1,13 +1,17 @@
 import type { ExecuteMdParsed } from './types'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { pathExists } from '../../utils/fs'
 import { parseExecuteMdLine } from './execute-md-parser'
 
 export async function readExecuteMdFile(path: string): Promise<ExecuteMdParsed> {
   if (!await pathExists(path))
-    return { ops: [], warnings: [], lines: [] }
+    return parseExecuteMd('')
 
   const raw = await readFile(path, 'utf8')
+  return parseExecuteMd(raw)
+}
+
+export function parseExecuteMd(raw: string): ExecuteMdParsed {
   const lines = raw.split(/\r?\n/)
 
   const ops = [] as ExecuteMdParsed['ops']
@@ -69,8 +73,4 @@ export function stringifyExecuteMd(parsed: ExecuteMdParsed, remainingOpIndexes: 
   }
 
   return `${lines.join('\n')}\n`
-}
-
-export async function writeExecuteMdFile(path: string, parsed: ExecuteMdParsed, remainingOpIndexes: Set<number>): Promise<void> {
-  await writeFile(path, stringifyExecuteMd(parsed, remainingOpIndexes), 'utf8')
 }

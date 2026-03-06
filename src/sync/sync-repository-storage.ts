@@ -118,10 +118,8 @@ export async function moveMarkdownByState(paths: IssuePaths, state: 'open' | 'cl
   if (sourcePath === paths.targetPath)
     return 0
 
-  if (await pathExists(paths.targetPath)) {
-    await removePath(sourcePath)
+  if (await pathExists(paths.targetPath))
     return 0
-  }
 
   await movePath(sourcePath, paths.targetPath)
   return 1

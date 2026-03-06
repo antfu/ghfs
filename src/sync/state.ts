@@ -2,6 +2,8 @@ import type { ExecutionResult, SyncItemState, SyncState } from '../types'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { SYNC_STATE_FILE_NAME } from '../constants'
+import { GHFS_VERSION } from '../meta'
+import { normalizeReactions } from '../utils/reactions'
 
 export function getSyncStatePath(storageDirAbsolute: string): string {
   return join(storageDirAbsolute, SYNC_STATE_FILE_NAME)
@@ -22,6 +24,7 @@ export async function loadSyncState(storageDirAbsolute: string): Promise<SyncSta
       version: 2,
       items,
       executions,
+      ghfsVersion: typeof parsed.ghfsVersion === 'string' ? parsed.ghfsVersion : undefined,
       repo: parsed.repo,
       lastSyncedAt: parsed.lastSyncedAt,
       lastSince: parsed.lastSince,
@@ -43,13 +46,10 @@ function normalizeItems(items: unknown): SyncState['items'] {
 
   const normalizedItems: SyncState['items'] = {}
   for (const [key, item] of Object.entries(items as Record<string, SyncItemState>)) {
-    if (!item || typeof item !== 'object')
+    const normalizedItem = normalizeItem(item)
+    if (!normalizedItem)
       continue
-    if (!item.lastUpdatedAt || !item.lastSyncedAt || !item.filePath)
-      continue
-    if (!item.data || !item.data.item)
-      continue
-    normalizedItems[key] = item
+    normalizedItems[key] = normalizedItem
   }
 
   return normalizedItems
@@ -73,8 +73,12 @@ function normalizeExecutions(executions: unknown): SyncState['executions'] {
 
 export async function saveSyncState(storageDirAbsolute: string, state: SyncState): Promise<void> {
   await mkdir(storageDirAbsolute, { recursive: true })
+  const normalizedState: SyncState = {
+    ...state,
+    ghfsVersion: state.ghfsVersion ?? GHFS_VERSION,
+  }
   const path = getSyncStatePath(storageDirAbsolute)
-  await writeFile(path, `${JSON.stringify(state, null, 2)}\n`, 'utf8')
+  await writeFile(path, `${JSON.stringify(normalizedState, null, 2)}\n`, 'utf8')
 }
 
 export function createEmptySyncState(): SyncState {
@@ -90,5 +94,32 @@ export function appendExecution(state: SyncState, result: ExecutionResult, limit
   return {
     ...state,
     executions: nextExecutions,
+  }
+}
+
+function normalizeItem(item: SyncItemState | undefined): SyncItemState | undefined {
+  if (!item || typeof item !== 'object')
+    return undefined
+  if (!item.lastUpdatedAt || !item.lastSyncedAt || !item.filePath)
+    return undefined
+  if (!item.data || !item.data.item)
+    return undefined
+  const comments = Array.isArray(item.data.comments) ? item.data.comments : []
+
+  return {
+    ...item,
+    data: {
+      ...item.data,
+      item: {
+        ...item.data.item,
+        reactions: normalizeReactions(item.data.item.reactions),
+      },
+      comments: comments
+        .filter(comment => comment && typeof comment === 'object')
+        .map(comment => ({
+          ...comment,
+          reactions: normalizeReactions(comment.reactions),
+        })),
+    },
   }
 }

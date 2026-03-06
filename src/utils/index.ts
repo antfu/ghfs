@@ -1,5 +1,6 @@
 export * from './format'
 export * from './fs'
+export * from './reactions'
 export * from './repo'
 export * from './string'
 export * from './sync'

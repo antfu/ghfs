@@ -8,9 +8,12 @@ import type {
   ProviderLockReason,
   ProviderMilestone,
   ProviderPullMetadata,
+  ProviderReactions,
   ProviderRepository,
   RepositoryProvider,
 } from '../../types/provider'
+import { formatIssueNumber } from '../../utils/format'
+import { normalizeReactions } from '../../utils/reactions'
 import { collectPages, iteratePages } from '../helpers'
 import { createGitHubClient } from './client'
 
@@ -194,7 +197,7 @@ async function fetchPullPatch(
   if (typeof result.data === 'string')
     return result.data
 
-  throw new Error(`Unexpected patch response for pull #${number}`)
+  throw new Error(`Unexpected patch response for pull ${formatIssueNumber(number, { repo: `${owner}/${repo}`, kind: 'pull' })}`)
 }
 
 async function fetchItemSnapshot(
@@ -538,6 +541,7 @@ function mapIssue(issue: GitHubIssue): ProviderItem {
       .filter((label): label is string => Boolean(label)),
     assignees: (issue.assignees ?? []).map(assignee => assignee.login),
     milestone: issue.milestone?.title ?? null,
+    reactions: mapReactions(issue.reactions),
   }
 }
 
@@ -548,7 +552,22 @@ function mapComment(comment: GitHubComment): ProviderComment {
     createdAt: comment.created_at,
     updatedAt: comment.updated_at,
     author: comment.user?.login ?? null,
+    reactions: mapReactions(comment.reactions),
   }
+}
+
+function mapReactions(reactions: GitHubReactions | null | undefined): ProviderReactions {
+  return normalizeReactions({
+    totalCount: reactions?.total_count,
+    plusOne: reactions?.['+1'],
+    minusOne: reactions?.['-1'],
+    laugh: reactions?.laugh,
+    hooray: reactions?.hooray,
+    confused: reactions?.confused,
+    heart: reactions?.heart,
+    rocket: reactions?.rocket,
+    eyes: reactions?.eyes,
+  })
 }
 
 interface GitHubIssue {
@@ -568,6 +587,7 @@ interface GitHubIssue {
   milestone: {
     title?: string | null
   } | null
+  reactions?: GitHubReactions | null
   pull_request?: Record<string, unknown>
 }
 
@@ -579,6 +599,7 @@ interface GitHubComment {
   user: {
     login: string
   } | null
+  reactions?: GitHubReactions | null
 }
 
 interface GitHubPull {
@@ -592,4 +613,16 @@ interface GitHubPull {
     ref: string
   }
   requested_reviewers: Array<{ login: string }>
+}
+
+interface GitHubReactions {
+  'total_count'?: number
+  '+1'?: number
+  '-1'?: number
+  'laugh'?: number
+  'hooray'?: number
+  'confused'?: number
+  'heart'?: number
+  'rocket'?: number
+  'eyes'?: number
 }

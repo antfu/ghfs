@@ -1,9 +1,10 @@
 import type { ExecuteLoadResult } from './types'
+import { writeFile } from 'node:fs/promises'
 import { dirname, join } from 'pathe'
 import { EXECUTE_MD_FILE_NAME } from '../../constants'
 import { pathExists } from '../../utils/fs'
 import { readAndValidateExecuteFile, validateExecuteRules, writeExecuteFile } from '../validate'
-import { readExecuteMdFile, writeExecuteMdFile } from './execute-md'
+import { readExecuteMdFile, stringifyExecuteMd } from './execute-md'
 import { loadPerItemSource } from './per-item'
 
 export async function loadExecuteSources(executeFilePath: string): Promise<ExecuteLoadResult> {
@@ -35,7 +36,7 @@ export async function loadExecuteSources(executeFilePath: string): Promise<Execu
         if (index >= mdOffset)
           mdRemaining.add(index - mdOffset)
       }
-      await writeExecuteMdFile(executeMdPath, executeMd, mdRemaining)
+      await writeFile(executeMdPath, stringifyExecuteMd(executeMd, mdRemaining), 'utf-8')
     },
   }
 }

@@ -1,8 +1,8 @@
 import c from 'ansis'
-import packageJson from '../../package.json'
+import { GHFS_NAME, GHFS_VERSION } from '../meta'
 
-export const CLI_NAME = 'ghfs'
-export const CLI_VERSION = packageJson.version
+export const CLI_NAME = GHFS_NAME
+export const CLI_VERSION = GHFS_VERSION
 
 export function ASCII_HEADER(repo: string) {
   return c.gray([

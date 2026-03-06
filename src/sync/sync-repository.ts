@@ -2,10 +2,17 @@ import type { SyncOptions, SyncProgressSnapshot, SyncStage, SyncSummary } from '
 import type { IssueCandidates, PreparedIssueCandidate, SyncContext, SyncCounters } from './sync-repository-types'
 import { randomBytes } from 'node:crypto'
 import { resolve } from 'pathe'
+import { GHFS_VERSION } from '../meta'
 import { createRepositoryProvider } from '../providers/factory'
+import { formatIssueNumber } from '../utils/format'
 import { normalizeIssueNumbers, resolveSince } from '../utils/sync'
 import { loadSyncState, saveSyncState } from './state'
-import { materializePreparedIssue, prepareIssueCandidateSync } from './sync-repository-item'
+import {
+  materializePreparedIssue,
+  prepareIssueCandidateSync,
+  reconcileMarkdownFilesByScan,
+  rematerializeTrackedMarkdown,
+} from './sync-repository-item'
 import { fetchIssueCandidatesByNumbers, fetchIssueCandidatesByPagination } from './sync-repository-provider'
 import { writeRepositoryIndexes, writeRepoSnapshot } from './sync-repository-snapshot'
 import { pruneMissingOpenTrackedItems, pruneTrackedClosedItems } from './sync-repository-storage'
@@ -40,6 +47,8 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
   const preparedCandidates: PreparedIssueCandidate[] = []
   let updatedIssues = 0
   let updatedPulls = 0
+  let ghfsVersionMismatch = false
+  let previousGhfsVersion: string | undefined
 
   const runStage = async <T>(stage: SyncStage, message: string, fn: () => Promise<T>): Promise<T> => {
     reporter?.onStageStart?.({
@@ -90,6 +99,8 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
         totalIssues: 0,
         totalPulls: 0,
       }
+      previousGhfsVersion = syncState.ghfsVersion
+      ghfsVersionMismatch = syncState.ghfsVersion !== GHFS_VERSION
 
       if (targetNumbers)
         return
@@ -140,7 +151,7 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
           reporter?.onStageUpdate?.({
             stage: 'fetch',
             snapshot: cloneSnapshot(counters),
-            message: `#${issue.number} ${prepared.kind} ${prepared.action}`,
+            message: `${formatIssueNumber(issue.number, { repo: options.repo, kind: issue.kind })} ${prepared.kind} ${prepared.action}`,
           })
         }
       })
@@ -181,10 +192,31 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
     }
 
     await runStage('save', 'Save sync state', async () => {
-      if (!shouldEarlyReturn) {
-        await writeRepoSnapshot(syncContext)
-        await writeRepositoryIndexes(syncContext)
+      if (ghfsVersionMismatch) {
+        const rematerialized = await rematerializeTrackedMarkdown(syncContext)
+        reporter?.onStageUpdate?.({
+          stage: 'save',
+          snapshot: cloneSnapshot(counters),
+          message: `regenerated=${rematerialized.written} version=${previousGhfsVersion ?? '(none)'}->${GHFS_VERSION}`,
+        })
       }
+
+      const scanStats = await reconcileMarkdownFilesByScan(syncContext)
+      counters.written += scanStats.written
+      counters.moved += scanStats.moved
+      reporter?.onStageUpdate?.({
+        stage: 'save',
+        snapshot: cloneSnapshot(counters),
+        message: `scan-fixed written=${scanStats.written} moved=${scanStats.moved}`,
+      })
+
+      if (!shouldEarlyReturn)
+        await writeRepoSnapshot(syncContext)
+
+      if (!shouldEarlyReturn || ghfsVersionMismatch)
+        await writeRepositoryIndexes(syncContext)
+
+      syncContext.syncState.ghfsVersion = GHFS_VERSION
       await saveSyncState(syncContext.storageDirAbsolute, syncContext.syncState)
     })
 

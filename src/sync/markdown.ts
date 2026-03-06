@@ -1,5 +1,7 @@
 import type { IssueKind, IssueState } from '../types'
+import type { ProviderReactions } from '../types/provider'
 import { stringify } from 'yaml'
+import { normalizeReactions } from '../utils/reactions'
 
 export interface MarkdownComment {
   id: number
@@ -7,6 +9,7 @@ export interface MarkdownComment {
   body: string
   createdAt: string
   updatedAt: string
+  reactions?: ProviderReactions
 }
 
 export interface MarkdownDocumentInput {
@@ -25,6 +28,7 @@ export interface MarkdownDocumentInput {
   updatedAt: string
   closedAt: string | null
   lastSyncedAt: string
+  reactions?: ProviderReactions
   comments: MarkdownComment[]
   pr?: {
     isDraft: boolean
@@ -38,6 +42,16 @@ export interface MarkdownDocumentInput {
 
 const FIELDS_ALWAYS_KEEP = new Set(['labels', 'assignees'])
 const FIELDS_ALWAYS_EXCLUDE = new Set(['repo', 'kind'])
+const REACTION_FIELDS: Array<{ key: keyof ProviderReactions, emoji: string }> = [
+  { key: 'plusOne', emoji: '👍' },
+  { key: 'minusOne', emoji: '👎' },
+  { key: 'laugh', emoji: '😄' },
+  { key: 'hooray', emoji: '🎉' },
+  { key: 'confused', emoji: '😕' },
+  { key: 'heart', emoji: '❤️' },
+  { key: 'rocket', emoji: '🚀' },
+  { key: 'eyes', emoji: '👀' },
+]
 
 export function renderIssueMarkdown(input: MarkdownDocumentInput): string {
   const url = input.url || `https://github.com/${input.repo}/${input.kind === 'pull' ? 'pull' : 'issues'}/${input.number}`
@@ -56,6 +70,7 @@ export function renderIssueMarkdown(input: MarkdownDocumentInput): string {
     updated_at: input.updatedAt,
     closed_at: input.closedAt,
     last_synced_at: input.lastSyncedAt,
+    reactions: formatReactionsFrontmatter(input.reactions),
     is_draft: input.pr?.isDraft,
     merged: input.pr?.merged,
     merged_at: input.pr?.mergedAt,
@@ -84,12 +99,17 @@ export function renderIssueMarkdown(input: MarkdownDocumentInput): string {
     '## Description',
     '',
     input.body?.trim() || '_No description._',
-    '',
-    '---',
-    '',
-    '## Comments',
-    '',
   ]
+  const bodyReactionsLine = formatReactionsLine(input.reactions)
+  if (bodyReactionsLine) {
+    sections.push('')
+    sections.push(bodyReactionsLine)
+  }
+  sections.push('')
+  sections.push('---')
+  sections.push('')
+  sections.push('## Comments')
+  sections.push('')
 
   if (input.comments.length === 0) {
     sections.push('_No comments._')
@@ -105,6 +125,11 @@ export function renderIssueMarkdown(input: MarkdownDocumentInput): string {
       sections.push(`<!-- comment-id:${comment.id} updated:${comment.updatedAt} -->`)
       sections.push('')
       sections.push(comment.body?.trim() || '_No content._')
+      const reactionsLine = formatReactionsLine(comment.reactions)
+      if (reactionsLine) {
+        sections.push('')
+        sections.push(reactionsLine)
+      }
       sections.push('')
     }
   }
@@ -117,4 +142,33 @@ export function renderIssueMarkdown(input: MarkdownDocumentInput): string {
     ...sections,
     '',
   ].join('\n')
+}
+
+function formatReactionsLine(reactions: ProviderReactions | undefined): string | undefined {
+  const entries = getReactionEntries(reactions)
+
+  if (entries.length === 0)
+    return undefined
+
+  return `> ${entries.map(entry => `\`${entry.emoji} ${entry.count}\``).join(' | ')}`
+}
+
+function formatReactionsFrontmatter(reactions: ProviderReactions | undefined): Record<string, number> | undefined {
+  const entries = getReactionEntries(reactions)
+  if (entries.length === 0)
+    return undefined
+
+  return Object.fromEntries(entries.map(entry => [entry.emoji, entry.count]))
+}
+
+function getReactionEntries(reactions: ProviderReactions | undefined): Array<{ emoji: string, count: number }> {
+  const normalized = normalizeReactions(reactions)
+  return REACTION_FIELDS
+    .map(({ key, emoji }) => {
+      const count = normalized[key]
+      if (!count)
+        return undefined
+      return { emoji, count }
+    })
+    .filter((entry): entry is { emoji: string, count: number } => Boolean(entry))
 }

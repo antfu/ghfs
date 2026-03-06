@@ -2,15 +2,34 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   countNoun,
   formatDuration,
+  formatIssueNumber,
   formatNumber,
   formatRelativeTime,
+  formatTerminalLink,
   formatValue,
+  toGitHubIssueUrl,
 } from './format'
 
 afterEach(() => {
   vi.useRealTimers()
 })
 
+describe('formatIssueNumber', () => {
+  it('formats plain and linked issue refs', () => {
+    expect(formatIssueNumber(7)).toBe('#7')
+    expect(formatIssueNumber(7, { repo: 'owner/repo' }))
+      .toBe(formatTerminalLink('#7', 'https://github.com/owner/repo/issues/7'))
+    expect(formatIssueNumber(7, { repo: 'owner/repo', kind: 'pull' }))
+      .toBe(formatTerminalLink('#7', 'https://github.com/owner/repo/pull/7'))
+  })
+})
+
+describe('toGitHubIssueUrl', () => {
+  it('builds issue and pull URLs', () => {
+    expect(toGitHubIssueUrl('owner/repo', 8)).toBe('https://github.com/owner/repo/issues/8')
+    expect(toGitHubIssueUrl('owner/repo', 8, 'pull')).toBe('https://github.com/owner/repo/pull/8')
+  })
+})
 describe('formatValue', () => {
   it('formats nullish values as empty strings', () => {
     expect(formatValue(undefined)).toBe('')

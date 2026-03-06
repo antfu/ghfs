@@ -3,7 +3,7 @@ import type { SyncReporter, SyncStage } from '../sync'
 import process from 'node:process'
 import * as p from '@clack/prompts'
 import c from 'ansis'
-import { countNoun, formatDuration, formatValue } from '../utils/format'
+import { countNoun, formatDuration, formatTerminalLink, formatValue } from '../utils/format'
 import { ASCII_HEADER, toGitHubRepoUrl } from './meta'
 
 export type PrinterMode = 'rich' | 'plain'
@@ -152,10 +152,6 @@ export function createCliPrinter(command: string, options: CreateCliPrinterOptio
   }
 
   return printer
-}
-
-function formatTerminalLink(text: string, url: string): string {
-  return `\u001B]8;;${url}\u001B\\${text}\u001B]8;;\u001B\\`
 }
 
 function createRichSyncReporter(printer: CliPrinter): SyncReporter {

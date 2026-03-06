@@ -1,5 +1,17 @@
 import type { IssueKind, IssueState } from '../types'
 
+export interface ProviderReactions {
+  totalCount: number
+  plusOne: number
+  minusOne: number
+  laugh: number
+  hooray: number
+  confused: number
+  heart: number
+  rocket: number
+  eyes: number
+}
+
 export interface ProviderItem {
   number: number
   kind: IssueKind
@@ -14,6 +26,7 @@ export interface ProviderItem {
   labels: string[]
   assignees: string[]
   milestone: string | null
+  reactions?: ProviderReactions
 }
 
 export interface ProviderComment {
@@ -22,6 +35,7 @@ export interface ProviderComment {
   createdAt: string
   updatedAt: string
   author: string | null
+  reactions?: ProviderReactions
 }
 
 export interface ProviderPullMetadata {
