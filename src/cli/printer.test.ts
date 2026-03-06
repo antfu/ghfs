@@ -316,7 +316,7 @@ describe('createCliPrinter', () => {
     const executeReporter = printer.createExecuteReporter()
     executeReporter.onStart?.({
       repo: 'owner/repo',
-      mode: 'dry-run',
+      mode: 'report',
       planned: 1,
     })
     executeReporter.onStart?.({

@@ -39,7 +39,7 @@ export interface StatusSummary {
   lastExecution?: {
     runId: string
     createdAt: string
-    mode: 'dry-run' | 'apply'
+    mode: 'report' | 'apply'
     planned: number
     applied: number
     failed: number

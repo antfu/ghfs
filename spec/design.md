@@ -15,12 +15,12 @@ It reflects the current behavior in code, including sync, execute, config resolu
 5. Sync state file: `.ghfs/.sync.json`
 6. Validation: `valibot` + custom semantic checks
 7. Default command: `ghfs` => `ghfs sync`
-8. Execute mode: dry-run by default; `--apply` required for mutations
+8. Execute mode: report by default; `--run` required for mutations in non-interactive mode
 
 ## CLI Contract
 1. `ghfs` (alias of `ghfs sync`)
 2. `ghfs sync [--repo owner/name] [--since ISO] [--full]`
-3. `ghfs execute [--repo owner/name] [--file path] [--apply] [--non-interactive] [--continue-on-error]`
+3. `ghfs execute [--repo owner/name] [--file path] [--run] [--non-interactive] [--continue-on-error]`
 4. `ghfs status`
 
 ## Configuration Contract (`ghfs.config.ts`)
@@ -181,16 +181,17 @@ Supported actions:
 
 ## Execute Behavior
 1. Parse + validate execute file.
-2. In interactive TTY mode, allow selecting subset of operations.
-3. Print plan.
-4. Dry-run by default (`--apply` required to mutate).
-5. On apply:
-   - optional confirm prompt in TTY
+2. In interactive mode, allow selecting subset of operations (all selected by default).
+3. Without `--run`, execute uses report mode (no mutations).
+4. Print plan.
+5. Report mode does not mutate GitHub.
+6. On run mode:
+   - optional confirm prompt in TTY (default: no)
    - execute operations in order through provider `actionXxx` methods
    - enforce `ifUnchangedSince` conflict guard per op
-6. After each successful operation, rewrite `execute.yml` to keep only remaining (not-yet-successful) operations.
-7. Save execution run record to `.sync.json`.
-8. Run targeted sync for affected numbers only (successful operations) to refresh local mirror.
+7. After each successful operation, rewrite `execute.yml` to keep only remaining (not-yet-successful) operations.
+8. Save execution run record to `.sync.json` only for run mode.
+9. Run targeted sync for affected numbers only (successful operations) to refresh local mirror.
 
 ## Validation Strategy
 Two-layer validation for execute file:
@@ -232,5 +233,5 @@ Current focus areas:
 ## Operational Defaults
 1. `sync` is non-interactive.
 2. `execute` is interactive in TTY unless `--non-interactive`.
-3. `execute` is dry-run unless `--apply`.
+3. `execute` defaults to report mode and requires `--run` for mutations in non-interactive mode.
 4. `continue-on-error` is opt-in.

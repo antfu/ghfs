@@ -53,12 +53,14 @@ export function createExecutePrompts(): ExecutePrompts {
 }
 
 async function promptExecuteOperations(ops: PendingOp[]): Promise<number[] | undefined> {
+  const selectedByDefault = ops.map((_, index) => index)
   const result = await multiselect<number>({
     message: 'Select operations to include',
     options: ops.map((op, index) => ({
       label: `${index + 1}. ${describeAction(op.action, op.number)}`,
       value: index,
     })),
+    initialValues: selectedByDefault,
     required: false,
   })
 
@@ -72,7 +74,7 @@ async function promptExecuteOperations(ops: PendingOp[]): Promise<number[] | und
 
 async function confirmExecuteApply(count: number): Promise<boolean | undefined> {
   const result = await confirm({
-    message: `Apply ${count} ${count === 1 ? 'operation' : 'operations'} to GitHub?`,
+    message: `Run ${count} ${count === 1 ? 'operation' : 'operations'} on GitHub?`,
     initialValue: false,
   })
 

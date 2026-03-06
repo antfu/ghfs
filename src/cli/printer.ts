@@ -298,7 +298,7 @@ function createRichExecuteReporter(printer: CliPrinter): ExecuteReporter {
 
   return {
     onStart(event) {
-      const runMode = event.mode === 'apply' ? 'apply run' : 'dry run'
+      const runMode = event.mode === 'apply' ? 'apply run' : 'report mode'
       printer.step(`Starting ${runMode} with ${countNoun(event.planned, 'planned operation')}.`)
       if (event.mode === 'apply') {
         hasApplyProgress = true
@@ -326,7 +326,7 @@ function createRichExecuteReporter(printer: CliPrinter): ExecuteReporter {
         applyProgress.stop(`Apply run finished (${event.result.applied} applied, ${event.result.failed} failed).`)
         hasApplyProgress = false
       }
-      const runMode = event.result.mode === 'apply' ? 'Apply run' : 'Dry run'
+      const runMode = event.result.mode === 'apply' ? 'Apply run' : 'Report mode'
       printer.success(`${runMode} finished. Planned ${event.result.planned}, applied ${event.result.applied}, failed ${event.result.failed}.`)
     },
     onError(event) {
@@ -344,14 +344,14 @@ function createRichExecuteReporter(printer: CliPrinter): ExecuteReporter {
 function createPlainExecuteReporter(printer: CliPrinter): ExecuteReporter {
   return {
     onStart(event) {
-      const runMode = event.mode === 'apply' ? 'apply run' : 'dry run'
+      const runMode = event.mode === 'apply' ? 'apply run' : 'report mode'
       printer.step(`Starting ${runMode} with ${countNoun(event.planned, 'planned operation')}.`)
     },
     onProgress(event) {
       printer.step(`Completed ${event.completed} of ${countNoun(event.planned, 'operation')} (${event.applied} applied, ${event.failed} failed). Latest: operation #${event.detail.op} ${event.detail.status}.`)
     },
     onComplete(event) {
-      const runMode = event.result.mode === 'apply' ? 'Apply run' : 'Dry run'
+      const runMode = event.result.mode === 'apply' ? 'Apply run' : 'Report mode'
       printer.success(`${runMode} finished. Planned ${event.result.planned}, applied ${event.result.applied}, failed ${event.result.failed}.`)
     },
     onError(event) {

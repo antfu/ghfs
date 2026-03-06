@@ -16,11 +16,12 @@ export async function loadSyncState(storageDirAbsolute: string): Promise<SyncSta
       return createEmptySyncState()
 
     const items = normalizeItems(parsed.items)
+    const executions = normalizeExecutions(parsed.executions)
 
     return {
       version: 2,
       items,
-      executions: parsed.executions ?? [],
+      executions,
       repo: parsed.repo,
       lastSyncedAt: parsed.lastSyncedAt,
       lastSince: parsed.lastSince,
@@ -52,6 +53,22 @@ function normalizeItems(items: unknown): SyncState['items'] {
   }
 
   return normalizedItems
+}
+
+function normalizeExecutions(executions: unknown): SyncState['executions'] {
+  if (!Array.isArray(executions))
+    return []
+
+  return executions.map((execution) => {
+    if (!execution || typeof execution !== 'object')
+      return execution
+
+    const typedExecution = execution as Record<string, unknown>
+    if (typedExecution.mode === 'dry-run')
+      return { ...typedExecution, mode: 'report' } as ExecutionResult
+
+    return typedExecution as unknown as ExecutionResult
+  }) as SyncState['executions']
 }
 
 export async function saveSyncState(storageDirAbsolute: string, state: SyncState): Promise<void> {

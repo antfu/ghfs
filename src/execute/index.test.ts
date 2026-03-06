@@ -12,6 +12,36 @@ describe('executePendingChanges', () => {
     vi.clearAllMocks()
   })
 
+  it('returns report mode with planned operations when apply is false', async () => {
+    const executeFilePath = await createTempExecuteFile(
+      [
+        '- action: close',
+        '  number: 1',
+        '- action: close',
+        '  number: 2',
+        '',
+      ].join('\n'),
+    )
+
+    const result = await executePendingChanges({
+      config: createConfig(),
+      repo: 'owner/repo',
+      token: 'test-token',
+      executeFilePath,
+      apply: false,
+      nonInteractive: true,
+      continueOnError: false,
+    })
+
+    expect(result.mode).toBe('report')
+    expect(result.planned).toBe(2)
+    expect(result.applied).toBe(0)
+    expect(result.failed).toBe(0)
+    expect(result.details.every(detail => detail.status === 'planned')).toBe(true)
+
+    await cleanupTempFile(executeFilePath)
+  })
+
   it('removes successfully applied operations from execute.yml and keeps remaining ones', async () => {
     const executeFilePath = await createTempExecuteFile(
       [

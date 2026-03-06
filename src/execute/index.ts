@@ -29,7 +29,7 @@ export interface ExecuteOptions {
 
 export interface ExecuteReporterStartEvent {
   repo: string
-  mode: 'dry-run' | 'apply'
+  mode: 'report' | 'apply'
   planned: number
 }
 
@@ -58,6 +58,17 @@ export interface ExecuteReporter {
   onError?: (event: ExecuteReporterErrorEvent) => void
 }
 
+export class ExecuteCancelledError extends Error {
+  constructor() {
+    super('Execution cancelled')
+    this.name = 'ExecuteCancelledError'
+  }
+}
+
+export function isExecuteCancelledError(error: unknown): error is ExecuteCancelledError {
+  return error instanceof ExecuteCancelledError
+}
+
 export async function executePendingChanges(options: ExecuteOptions): Promise<ExecutionResult> {
   try {
     await ensureExecuteArtifacts(options.executeFilePath)
@@ -70,7 +81,7 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
       return {
         runId: createRunId(),
         createdAt: new Date().toISOString(),
-        mode: 'dry-run',
+        mode: 'report',
         repo: options.repo,
         planned: 0,
         applied: 0,
@@ -89,7 +100,7 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
 
     const runId = createRunId()
     const createdAt = new Date().toISOString()
-    const mode = options.apply ? 'apply' : 'dry-run'
+    const mode = options.apply ? 'apply' : 'report'
 
     options.reporter?.onStart?.({
       repo: options.repo,
@@ -118,7 +129,7 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
       const result: ExecutionResult = {
         runId,
         createdAt,
-        mode: 'dry-run',
+        mode: 'report',
         repo: options.repo,
         planned: selected.length,
         applied: 0,
@@ -138,7 +149,7 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
     if (interactive) {
       const confirmed = await confirmApply(selected.length, options.prompts!)
       if (!confirmed)
-        throw new Error('Execution cancelled')
+        throw new ExecuteCancelledError()
     }
 
     const provider = options.provider ?? createRepositoryProvider({
@@ -339,7 +350,7 @@ async function selectOperations(
 ): Promise<Array<{ op: PendingOp, index: number }>> {
   const selectedIndexes = await prompts.selectOperations(ops)
   if (!selectedIndexes)
-    throw new Error('Execution cancelled')
+    throw new ExecuteCancelledError()
 
   const selectedIndexesSet = new Set(selectedIndexes)
   return ops

@@ -65,7 +65,7 @@ export const executeSchema = {
 
 export const EXECUTE_FILE_PLACEHOLDER = [
   `# yaml-language-server: $schema=./${EXECUTE_SCHEMA_RELATIVE_PATH}`,
-  '# Add operations as YAML list items, then run: ghfs execute --apply',
+  '# Add operations as YAML list items, then run: ghfs execute --run',
   '# - action: close',
   '#   number: 123',
   '[]',
@@ -73,7 +73,7 @@ export const EXECUTE_FILE_PLACEHOLDER = [
 ].join('\n')
 
 export const EXECUTE_MD_FILE_PLACEHOLDER = [
-  '# Add one action per line, then run: ghfs execute --apply',
+  '# Add one action per line, then run: ghfs execute --run',
   '# close #123 #124',
   '# set-title #123 "new title"',
   '# add-tag #123 foo, bar',

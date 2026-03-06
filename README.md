@@ -74,9 +74,11 @@ Then run
 ghfs execute
 ```
 
-to execute the operations in batch.
+to preview operations in report mode. In TTY sessions, `ghfs execute` always opens operation selection.
 
-When running `ghfs execute --apply`:
+In non-interactive mode, `ghfs execute` reports only and does nothing unless you pass `--run`.
+
+When running `ghfs execute --run`:
 - Each successfully applied operation is removed from `.ghfs/execute.yml`.
 - After execution, `ghfs` runs a targeted sync only for affected issue/PR numbers.
 

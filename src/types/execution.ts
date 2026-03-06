@@ -3,7 +3,7 @@ import type { IssueKind } from './issue'
 export interface ExecutionResult {
   runId: string
   createdAt: string
-  mode: 'dry-run' | 'apply'
+  mode: 'report' | 'apply'
   repo: string
   applied: number
   planned: number

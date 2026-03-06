@@ -11,7 +11,7 @@ Use this skill to operate ghfs as a local filesystem mirror for GitHub issues an
 
 - `ghfs sync` mirrors remote content into `.ghfs/`.
 - `ghfs execute` reads `.ghfs/execute.yml` and plans or applies mutations.
-- Default execute mode is dry-run. Use `--apply` to mutate GitHub.
+- Default execute mode is report mode. Use `--run` to mutate GitHub.
 
 Key `.ghfs` files:
 - `execute.yml`: queued operations (YAML array)
@@ -25,14 +25,14 @@ Key `.ghfs` files:
 1. Sync first when local data may be stale: run `ghfs sync`.
 2. Update `.ghfs/execute.yml` from user instructions.
 3. Validate and preview with `ghfs execute`.
-4. Apply only on explicit user intent: `ghfs execute --apply`.
+4. Apply only on explicit user intent: `ghfs execute --run`.
 5. Report results and remaining queued operations.
 
 Execution behavior to remember:
 - Operations run in file order.
-- On `--apply`, each successful operation is removed from `execute.yml`.
+- On `--run`, each successful operation is removed from `execute.yml`.
 - Failed and not-yet-run operations stay in `execute.yml`.
-- After apply, ghfs runs targeted sync for affected numbers automatically.
+- After run, ghfs runs targeted sync for affected numbers automatically.
 
 ## Update `.ghfs/execute.yml` Correctly
 
@@ -89,7 +89,7 @@ ghfs sync
 ghfs sync --full
 ghfs sync --since 2026-03-01T00:00:00Z
 ghfs execute
-ghfs execute --apply
+ghfs execute --run
 ```
 
 Useful flags:

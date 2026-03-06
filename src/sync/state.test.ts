@@ -46,6 +46,31 @@ describe('loadSyncState', () => {
     await rm(storageDir, { recursive: true, force: true })
   })
 
+  it('normalizes legacy execution mode dry-run to report', async () => {
+    const storageDir = await mkdtemp(join(tmpdir(), 'ghfs-sync-state-test-'))
+    await writeFile(getSyncStatePath(storageDir), JSON.stringify({
+      version: 2,
+      items: {},
+      executions: [
+        {
+          runId: 'run_1',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          mode: 'dry-run',
+          repo: 'owner/repo',
+          planned: 1,
+          applied: 0,
+          failed: 0,
+          details: [],
+        },
+      ],
+    }, null, 2), 'utf8')
+
+    const state = await loadSyncState(storageDir)
+    expect(state.executions[0]?.mode).toBe('report')
+
+    await rm(storageDir, { recursive: true, force: true })
+  })
+
   it('loads and saves lastSyncRun telemetry', async () => {
     const storageDir = await mkdtemp(join(tmpdir(), 'ghfs-sync-state-test-'))
     const expected = {
