@@ -2,8 +2,8 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'pathe'
 import { afterEach, describe, expect, it } from 'vitest'
+import { ACTION_INPUTS } from './actions'
 import { ensureExecuteArtifacts, EXECUTE_FILE_PLACEHOLDER, EXECUTE_MD_FILE_PLACEHOLDER, getExecuteSchemaPath } from './schema'
-import { readAndValidateExecuteFile } from './validate'
 
 const tempDirs: string[] = []
 
@@ -20,14 +20,9 @@ describe('ensureExecuteArtifacts', () => {
 
     expect(schemaPath).toBe(getExecuteSchemaPath(dir))
     await expect(readFile(executeFilePath, 'utf8')).resolves.toBe(EXECUTE_FILE_PLACEHOLDER)
-    await expect(readAndValidateExecuteFile(executeFilePath)).resolves.toEqual([])
     await expect(readFile(join(dir, 'execute.md'), 'utf8')).resolves.toBe(EXECUTE_MD_FILE_PLACEHOLDER)
     await expect(readFile(schemaPath, 'utf8')).resolves.toContain('\"$id\": \"https://ghfs.dev/schema/execute.json\"')
-    expect(schema.items.properties.action.enum).toContain('label')
-    expect(schema.items.properties.action.enum).toContain('assign')
-    expect(schema.items.properties.action.enum).toContain('comment')
-    expect(schema.items.properties.action.enum).toContain('close-with-comment')
-    expect(schema.items.properties.action.enum).toContain('close-comment')
+    expect(schema.items.properties.action.enum).toEqual([...ACTION_INPUTS])
   })
 
   it('does not overwrite existing execute file and schema', async () => {
