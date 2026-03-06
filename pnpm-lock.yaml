@@ -81,6 +81,9 @@ importers:
 
   packages/vscode:
     devDependencies:
+      '@ghfs/cli':
+        specifier: workspace:*
+        version: link:../..
       '@types/vscode':
         specifier: 1.101.0
         version: 1.101.0
