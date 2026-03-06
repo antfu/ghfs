@@ -3,7 +3,7 @@ import * as utils from './index'
 
 describe('utils index', () => {
   it('re-exports utility functions', () => {
-    expect(typeof utils.describeAction).toBe('function')
+    expect(typeof utils.countNoun).toBe('function')
     expect(typeof utils.pathExists).toBe('function')
     expect(typeof utils.splitRepo).toBe('function')
     expect(typeof utils.slugifyTitle).toBe('function')

@@ -3,7 +3,6 @@ import type { RepositoryProvider } from '../types/provider'
 import type { PendingOp } from './types'
 import process from 'node:process'
 import { createRepositoryProvider } from '../providers/factory'
-import { describeAction } from '../utils/format'
 import { ensureExecuteArtifacts } from './schema'
 import { loadExecuteSources } from './sources'
 
@@ -19,6 +18,7 @@ export interface ExecuteOptions {
   provider?: RepositoryProvider
   executeFilePath: string
   apply: boolean
+  selectedIndexes?: number[]
   nonInteractive: boolean
   continueOnError: boolean
   onPlan?: (ops: PendingOp[]) => void
@@ -94,9 +94,11 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
     if (interactive && !options.prompts)
       throw new Error('Interactive execute prompts are unavailable. Use --non-interactive or provide prompts.')
 
-    const selected = interactive
-      ? await selectOperations(allOps, options.prompts!)
-      : allOps.map((op, index) => ({ op, index }))
+    const selected = Array.isArray(options.selectedIndexes)
+      ? selectOperationsByIndexes(allOps, options.selectedIndexes)
+      : interactive
+        ? await selectOperations(allOps, options.prompts!)
+        : allOps.map((op, index) => ({ op, index }))
 
     const runId = createRunId()
     const createdAt = new Date().toISOString()
@@ -139,7 +141,7 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
           action: op.action,
           number: op.number,
           status: 'planned',
-          message: describeAction(op.action, op.number),
+          message: describeExecutionAction(op.action, op.number),
         })),
       }
       options.reporter?.onComplete?.({ result })
@@ -173,7 +175,7 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
           number: op.number,
           target,
           status: 'applied',
-          message: describeAction(op.action, op.number),
+          message: describeExecutionAction(op.action, op.number),
         }
         details.push(detail)
         applied += 1
@@ -365,7 +367,26 @@ async function confirmApply(count: number, prompts: ExecutePrompts): Promise<boo
   return result
 }
 
+function selectOperationsByIndexes(
+  ops: PendingOp[],
+  selectedIndexes: number[],
+): Array<{ op: PendingOp, index: number }> {
+  const selectedSet = new Set<number>()
+  for (const index of selectedIndexes) {
+    if (Number.isInteger(index) && index >= 0 && index < ops.length)
+      selectedSet.add(index)
+  }
+
+  return ops
+    .map((op, index) => ({ op, index }))
+    .filter(item => selectedSet.has(item.index))
+}
+
 function ensurePullAction(action: PendingOp['action'], number: number, isPull: boolean): void {
   if (!isPull)
     throw new Error(`Action ${action} requires #${number} to be a pull request`)
+}
+
+function describeExecutionAction(action: string, number: number): string {
+  return `${action} #${number}`
 }

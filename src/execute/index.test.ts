@@ -42,6 +42,48 @@ describe('executePendingChanges', () => {
     await cleanupTempFile(executeFilePath)
   })
 
+  it('applies only selected indexes when provided', async () => {
+    const executeFilePath = await createTempExecuteFile(
+      [
+        '- action: close',
+        '  number: 1',
+        '- action: close',
+        '  number: 2',
+        '- action: close',
+        '  number: 3',
+        '',
+      ].join('\n'),
+    )
+
+    const actionClose = vi.fn(async () => {})
+    const provider = createMockProvider({ actionClose })
+
+    const result = await executePendingChanges({
+      config: createConfig(),
+      repo: 'owner/repo',
+      token: 'test-token',
+      provider,
+      executeFilePath,
+      apply: true,
+      selectedIndexes: [1, 99, 1],
+      nonInteractive: true,
+      continueOnError: false,
+    })
+
+    expect(result.mode).toBe('apply')
+    expect(result.planned).toBe(1)
+    expect(result.applied).toBe(1)
+    expect(result.failed).toBe(0)
+    expect(actionClose).toHaveBeenCalledTimes(1)
+    expect(actionClose).toHaveBeenCalledWith(2)
+    await expect(readAndValidateExecuteFile(executeFilePath)).resolves.toEqual([
+      { action: 'close', number: 1 },
+      { action: 'close', number: 3 },
+    ])
+
+    await cleanupTempFile(executeFilePath)
+  })
+
   it('removes successfully applied operations from execute.yml and keeps remaining ones', async () => {
     const executeFilePath = await createTempExecuteFile(
       [

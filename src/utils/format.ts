@@ -1,7 +1,3 @@
-export function describeAction(action: string, number: number): string {
-  return `${action} #${number}`
-}
-
 export function formatValue(value: string | number | Date | undefined | null): string {
   if (value == null)
     return ''

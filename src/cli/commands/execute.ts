@@ -4,6 +4,7 @@ import type { PendingOp } from '../../execute/types'
 import type { SyncSummary } from '../../sync'
 import type { ExecutionResult, RepoDetectionCandidate, RepoResolutionResult } from '../../types'
 import type { CliPrinter } from '../printer'
+import type { CreateExecutePromptsOptions } from '../prompts'
 import process from 'node:process'
 import { resolve } from 'pathe'
 import { resolveAuthToken } from '../../config/auth'
@@ -11,7 +12,8 @@ import { getExecuteFile, getStorageDirAbsolute, resolveConfig } from '../../conf
 import { resolveRepo } from '../../config/repo'
 import { executePendingChanges, isExecuteCancelledError } from '../../execute'
 import { appendExecutionResult, syncRepository } from '../../sync'
-import { countNoun, describeAction, formatDuration } from '../../utils/format'
+import { countNoun, formatDuration } from '../../utils/format'
+import { describeCliOperation } from '../action-color'
 import { withErrorHandling } from '../errors'
 import { createCliPrinter } from '../printer'
 import { createExecutePrompts, promptForToken, promptRepoChoice } from '../prompts'
@@ -35,7 +37,7 @@ export interface ExecuteCommandDependencies {
   executePendingChanges: typeof executePendingChanges
   appendExecutionResult: typeof appendExecutionResult
   syncRepository: typeof syncRepository
-  createExecutePrompts: () => ExecutePrompts
+  createExecutePrompts: (options?: CreateExecutePromptsOptions) => ExecutePrompts
   promptForToken: typeof promptForToken
   promptRepoChoice: (
     gitCandidate: RepoDetectionCandidate,
@@ -78,7 +80,6 @@ export async function runExecuteCommand(
   const storageDirAbsolute = getStorageDirAbsolute(config)
   const interactive = dependencies.isTTY() && !options.nonInteractive
 
-  const prompts = dependencies.createExecutePrompts()
   const runMutations = Boolean(options.run)
 
   let resolvedRepo: RepoResolutionResult | undefined
@@ -106,6 +107,10 @@ export async function runExecuteCommand(
     printer.header(repoForRun)
   }
 
+  const prompts = dependencies.createExecutePrompts({
+    repo: repoForRun || undefined,
+  })
+
   const executeFilePath = resolve(config.cwd, options.file ?? getExecuteFile(config))
 
   let result: ExecutionResult
@@ -118,9 +123,8 @@ export async function runExecuteCommand(
       apply: runMutations,
       nonInteractive: Boolean(options.nonInteractive),
       continueOnError: Boolean(options.continueOnError),
-      onPlan: ops => printExecutionPlan(printer, ops),
+      onPlan: runMutations ? undefined : ops => printExecutionPlan(printer, ops, repoForRun || undefined),
       onWarning: warning => printer.warn(warning),
-      reporter: runMutations ? printer.createExecuteReporter() : undefined,
       prompts,
     })
   }
@@ -133,12 +137,85 @@ export async function runExecuteCommand(
   }
 
   if (!runMutations) {
+    if (interactive && result.planned > 0) {
+      const executeNow = await prompts.confirmApply(result.planned)
+      if (executeNow) {
+        resolvedRepo = await dependencies.resolveRepo({
+          cwd: config.cwd,
+          cliRepo: options.repo,
+          configRepo: config.repo,
+          interactive,
+          selectRepoChoice: dependencies.promptRepoChoice,
+        })
+        repoForRun = resolvedRepo.repo
+
+        tokenForRun = await dependencies.resolveAuthToken({
+          token: config.auth.token,
+          interactive,
+          promptForToken: dependencies.promptForToken,
+        })
+
+        const selectedIndexes = result.details
+          .filter(detail => detail.status === 'planned')
+          .map(detail => detail.op - 1)
+          .filter(index => index >= 0)
+
+        try {
+          result = await dependencies.executePendingChanges({
+            config,
+            repo: repoForRun,
+            token: tokenForRun,
+            executeFilePath,
+            apply: true,
+            selectedIndexes,
+            nonInteractive: true,
+            continueOnError: Boolean(options.continueOnError),
+            onWarning: warning => printer.warn(warning),
+            prompts,
+          })
+        }
+        catch (error) {
+          if (isExecuteCancelledError(error)) {
+            printer.info('Execution cancelled.')
+            return
+          }
+          throw error
+        }
+
+        await dependencies.appendExecutionResult(storageDirAbsolute, result)
+        printFailedOperations(printer, result, resolvedRepo.repo)
+
+        const affectedNumbers = [...new Set(
+          result.details
+            .filter(detail => detail.status === 'applied')
+            .map(detail => detail.number),
+        )]
+
+        if (affectedNumbers.length > 0) {
+          const syncSummary = await dependencies.syncRepository({
+            config,
+            repo: resolvedRepo.repo,
+            token: tokenForRun,
+            numbers: affectedNumbers,
+            reporter: printer.createSyncReporter(),
+          })
+          printPostRunSyncSummary(printer, syncSummary)
+        }
+
+        printExecutionSummary(printer, result)
+
+        if (result.failed > 0)
+          process.exitCode = 1
+        return
+      }
+    }
+
     printReportSummary(printer, result)
     return
   }
 
   await dependencies.appendExecutionResult(storageDirAbsolute, result)
-  printFailedOperations(printer, result)
+  printFailedOperations(printer, result, resolvedRepo?.repo || repoForRun || undefined)
 
   const affectedNumbers = [...new Set(
     result.details
@@ -157,11 +234,15 @@ export async function runExecuteCommand(
     printPostRunSyncSummary(printer, syncSummary)
   }
 
+  printExecutionSummary(printer, result)
+
   if (result.failed > 0)
     process.exitCode = 1
 }
 
-function printExecutionPlan(printer: CliPrinter, ops: PendingOp[]): void {
+function printExecutionPlan(printer: CliPrinter, ops: PendingOp[], repo?: string): void {
+  const colorize = printer.mode === 'rich'
+
   if (ops.length === 0) {
     printer.info('No operations planned.')
     return
@@ -169,11 +250,12 @@ function printExecutionPlan(printer: CliPrinter, ops: PendingOp[]): void {
 
   printer.info(`Planned ${countNoun(ops.length, 'operation')}.`)
 
-  const previewLines = ops
+  const previewEntries = ops
     .slice(0, PLAN_PREVIEW_LIMIT)
-    .map((op, index) => `${index + 1}. ${describeAction(op.action, op.number)}`)
-
-  printer.print(previewLines)
+    .map((op, index) => [`#${index + 1}`, describeCliOperation(op, { tty: colorize, repo })] as const)
+  printer.table('Planned operations', previewEntries, {
+    dimKey: false,
+  })
 
   const remaining = ops.length - PLAN_PREVIEW_LIMIT
   if (remaining > 0)
@@ -186,18 +268,28 @@ function printReportSummary(printer: CliPrinter, result: ExecutionResult): void 
     printer.info('Run `ghfs execute --run` to execute these operations.')
 }
 
-function printFailedOperations(printer: CliPrinter, result: ExecutionResult): void {
+function printFailedOperations(printer: CliPrinter, result: ExecutionResult, repo?: string): void {
+  const colorize = printer.mode === 'rich'
   const failed = result.details.filter(detail => detail.status === 'failed')
   if (failed.length === 0)
     return
 
   printer.warn(`${countNoun(failed.length, 'operation')} failed:`)
   printer.print(
-    failed.map(detail => `${detail.op}. ${describeAction(detail.action, detail.number)}: ${detail.message}`),
+    failed.map(detail => `${detail.op}. ${describeCliOperation(detail, { tty: colorize, repo })}: ${detail.message}`),
   )
 }
 
 function printPostRunSyncSummary(printer: CliPrinter, summary: SyncSummary): void {
   const refreshed = summary.updatedIssues + summary.updatedPulls
   printer.info(`Post-run sync refreshed ${countNoun(refreshed, 'item')} in ${formatDuration(summary.durationMs)} (${summary.requestCount} requests).`)
+}
+
+function printExecutionSummary(printer: CliPrinter, result: ExecutionResult): void {
+  const summary = `Execution summary: planned ${result.planned}, applied ${result.applied}, failed ${result.failed}.`
+  if (result.failed > 0) {
+    printer.warn(summary)
+    return
+  }
+  printer.success(summary)
 }

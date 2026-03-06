@@ -1,4 +1,5 @@
 import type { PendingOp } from '../execute/types'
+import c from 'ansis'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createExecutePrompts } from './prompts'
 
@@ -30,10 +31,27 @@ describe('execute prompts', () => {
     const prompts = createExecutePrompts()
     await prompts.selectOperations(createOps())
 
-    expect(clackMocks.multiselect).toHaveBeenCalledWith(expect.objectContaining({
-      initialValues: [0, 1],
-      required: false,
-    }))
+    const call = clackMocks.multiselect.mock.calls[0][0] as {
+      options: Array<{ label: string, value: number }>
+      initialValues: number[]
+      required: boolean
+    }
+
+    expect(call.options.map(option => ({
+      ...option,
+      label: c.strip(option.label),
+    }))).toEqual([
+      {
+        label: '#123 add-labels pr-welcome',
+        value: 0,
+      },
+      {
+        label: '#124 close',
+        value: 1,
+      },
+    ])
+    expect(call.initialValues).toEqual([0, 1])
+    expect(call.required).toBe(false)
   })
 
   it('uses no as default for run confirmation', async () => {
@@ -52,12 +70,13 @@ describe('execute prompts', () => {
 function createOps(): PendingOp[] {
   return [
     {
-      action: 'close',
-      number: 1,
+      action: 'add-labels',
+      number: 123,
+      labels: ['pr-welcome'],
     },
     {
       action: 'close',
-      number: 2,
+      number: 124,
     },
   ]
 }

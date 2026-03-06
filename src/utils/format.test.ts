@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   countNoun,
-  describeAction,
   formatDuration,
   formatNumber,
   formatRelativeTime,
@@ -10,12 +9,6 @@ import {
 
 afterEach(() => {
   vi.useRealTimers()
-})
-
-describe('describeAction', () => {
-  it('formats action and issue number', () => {
-    expect(describeAction('close', 42)).toBe('close #42')
-  })
 })
 
 describe('formatValue', () => {

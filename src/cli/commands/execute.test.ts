@@ -1,4 +1,5 @@
 import type { ExecutePrompts } from '../../execute'
+import type { PendingOp } from '../../execute/types'
 import type { SyncSummary } from '../../sync'
 import type { ExecutionResult, GhfsResolvedConfig } from '../../types'
 import type { ExecuteCommandDependencies } from './execute'
@@ -19,6 +20,7 @@ describe('runExecuteCommand', () => {
     expect(context.dependencies.resolveAuthToken).toHaveBeenCalledTimes(1)
     expect(context.dependencies.appendExecutionResult).toHaveBeenCalledTimes(1)
     expect(context.dependencies.syncRepository).toHaveBeenCalledTimes(1)
+    expect(context.printer.success).toHaveBeenCalledWith('Execution summary: planned 1, applied 1, failed 0.')
   })
 
   it('reports only without --run in non-interactive mode and skips auth and state writes', async () => {
@@ -41,7 +43,15 @@ describe('runExecuteCommand', () => {
   it('runs report mode in interactive TTY when --run is not provided', async () => {
     const context = createContext({
       isTTY: vi.fn(() => true),
-      executePendingChanges: vi.fn(async options => options.apply ? createApplyResult() : createReportResult()),
+      executePendingChanges: vi.fn(async (options) => {
+        options.onPlan?.([
+          {
+            action: 'close',
+            number: 1,
+          },
+        ] as PendingOp[])
+        return options.apply ? createApplyResult() : createReportResult()
+      }),
     })
 
     await runExecuteCommand({}, context.dependencies)
@@ -52,6 +62,42 @@ describe('runExecuteCommand', () => {
       nonInteractive: false,
       prompts: context.prompts,
     }))
+    expect(context.printer.table).toHaveBeenCalledWith(
+      'Planned operations',
+      [['#1', '#1 close']],
+      { dimKey: false },
+    )
+    expect(context.prompts.confirmApply).toHaveBeenCalledWith(1)
+  })
+
+  it('executes selected operations directly when confirmed in interactive mode', async () => {
+    const context = createContext({
+      isTTY: vi.fn(() => true),
+      executePendingChanges: vi.fn(async options => options.apply ? createApplyResult() : createReportResult()),
+    })
+
+    vi.mocked(context.prompts.confirmApply).mockResolvedValue(true)
+
+    await runExecuteCommand({}, context.dependencies)
+
+    expect(context.dependencies.executePendingChanges).toHaveBeenCalledTimes(2)
+    expect(context.dependencies.executePendingChanges).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      apply: false,
+      nonInteractive: false,
+      prompts: context.prompts,
+    }))
+    expect(context.dependencies.executePendingChanges).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      apply: true,
+      selectedIndexes: [0],
+      nonInteractive: true,
+      prompts: context.prompts,
+    }))
+    expect(context.dependencies.resolveRepo).toHaveBeenCalledTimes(1)
+    expect(context.dependencies.resolveAuthToken).toHaveBeenCalledTimes(1)
+    expect(context.dependencies.appendExecutionResult).toHaveBeenCalledTimes(1)
+    expect(context.dependencies.syncRepository).toHaveBeenCalledTimes(1)
+    expect(context.printer.header).toHaveBeenCalledTimes(1)
+    expect(context.printer.success).toHaveBeenCalledWith('Execution summary: planned 1, applied 1, failed 0.')
   })
 
   it('cancels cleanly when operation selection is cancelled in interactive mode', async () => {
@@ -80,7 +126,7 @@ function createContext(
   const printer = createPrinter()
   const prompts: ExecutePrompts = {
     selectOperations: vi.fn(async (ops: Parameters<ExecutePrompts['selectOperations']>[0]) => ops.map((_, index) => index)),
-    confirmApply: vi.fn(async () => true),
+    confirmApply: vi.fn(async () => false),
   }
 
   const dependencies: ExecuteCommandDependencies = {

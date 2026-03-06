@@ -54,6 +54,64 @@ describe('loadPerItemSource', () => {
     ])
   })
 
+  it('generates add-labels when only label additions are needed', async () => {
+    const dir = await createTempDir()
+    await mkdir(join(dir, 'issues'), { recursive: true })
+    await saveSyncState(dir, createSyncState({
+      labels: [],
+    }))
+
+    await writeFile(join(dir, 'issues/00001-issue.md'), [
+      '---',
+      'title: Old title',
+      'state: open',
+      'labels: [enhancement]',
+      'assignees: []',
+      'milestone: null',
+      '---',
+      '',
+    ].join('\n'), 'utf8')
+
+    const source = await loadPerItemSource(dir)
+    expect(source.ops).toEqual([
+      {
+        action: 'add-labels',
+        number: 1,
+        labels: ['enhancement'],
+        ifUnchangedSince: '2026-01-01T00:00:00.000Z',
+      },
+    ])
+  })
+
+  it('generates set-labels when both additions and deletions are needed', async () => {
+    const dir = await createTempDir()
+    await mkdir(join(dir, 'issues'), { recursive: true })
+    await saveSyncState(dir, createSyncState({
+      labels: ['bug'],
+    }))
+
+    await writeFile(join(dir, 'issues/00001-issue.md'), [
+      '---',
+      'title: Old title',
+      'state: open',
+      'labels: [enhancement]',
+      'assignees: []',
+      'milestone: null',
+      '---',
+      '',
+    ].join('\n'), 'utf8')
+
+    const source = await loadPerItemSource(dir)
+    expect(source.ops).toEqual([
+      {
+        action: 'set-labels',
+        number: 1,
+        labels: ['enhancement'],
+        ifUnchangedSince: '2026-01-01T00:00:00.000Z',
+      },
+    ])
+  })
+
   it('emits warnings for missing markdown and invalid frontmatter', async () => {
     const dir = await createTempDir()
     await mkdir(join(dir, 'issues'), { recursive: true })

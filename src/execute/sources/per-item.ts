@@ -85,7 +85,10 @@ function computePerItemOps(input: PerItemCompareInput): PendingOp[] {
   }
 
   if (!sameStringSet(input.current.labels, input.desired.labels)) {
-    if (input.desired.labels.length > 0) {
+    const additions = diffStrings(input.desired.labels, input.current.labels)
+    const deletions = diffStrings(input.current.labels, input.desired.labels)
+
+    if (additions.length > 0 && deletions.length > 0) {
       ops.push({
         action: 'set-labels',
         number: input.number,
@@ -93,11 +96,19 @@ function computePerItemOps(input: PerItemCompareInput): PendingOp[] {
         ifUnchangedSince,
       })
     }
-    else if (input.current.labels.length > 0) {
+    else if (additions.length > 0) {
+      ops.push({
+        action: 'add-labels',
+        number: input.number,
+        labels: additions,
+        ifUnchangedSince,
+      })
+    }
+    else if (deletions.length > 0) {
       ops.push({
         action: 'remove-labels',
         number: input.number,
-        labels: input.current.labels,
+        labels: deletions,
         ifUnchangedSince,
       })
     }
@@ -214,4 +225,9 @@ function normalizeMilestone(value: unknown): string | null {
     return null
   const normalized = value.trim()
   return normalized.length > 0 ? normalized : null
+}
+
+function diffStrings(source: string[], target: string[]): string[] {
+  const targetSet = new Set(target)
+  return source.filter(value => !targetSet.has(value))
 }
