@@ -1,7 +1,17 @@
 import type { PendingOp, PendingSimpleOp } from '../types'
 
+export type ExecuteOpSource = 'execute.yml' | 'execute.md' | 'per-item'
+
+export interface ExecuteSourceEntry {
+  op: PendingOp
+  source: ExecuteOpSource
+  sourceIndex: number
+  mergedIndex: number
+}
+
 export interface ExecuteLoadResult {
   ops: PendingOp[]
+  entries: ExecuteSourceEntry[]
   warnings: string[]
   writeRemaining: (remainingIndexes: Set<number>) => Promise<void>
 }

@@ -2,5 +2,7 @@ shellEmulator: true
 
 trustPolicy: no-downgrade
 onlyBuiltDependencies:
+  - '@parcel/watcher'
   - esbuild
   - simple-git-hooks
+  - vue-demi

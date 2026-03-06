@@ -5,6 +5,11 @@ import { parse } from 'yaml'
 import { loadSyncState } from '../../sync/state'
 import { formatIssueNumber } from '../../utils/format'
 import { pathExists } from '../../utils/fs'
+import {
+  computeExecuteDiffOps,
+  normalizeMilestone as normalizeMilestoneInput,
+  normalizeStringArray as normalizeStringArrayInput,
+} from '../diff'
 
 export interface PerItemSourceResult {
   ops: PendingOp[]
@@ -66,94 +71,20 @@ interface PerItemCompareInput {
 }
 
 function computePerItemOps(input: PerItemCompareInput): PendingOp[] {
-  const ops: PendingOp[] = []
-  const ifUnchangedSince = input.updatedAt
-
-  if (input.current.title !== input.desired.title) {
-    ops.push({
-      action: 'set-title',
-      number: input.number,
-      title: input.desired.title,
-      ifUnchangedSince,
-    })
-  }
-
-  if (input.current.state !== input.desired.state) {
-    ops.push({
-      action: input.desired.state === 'closed' ? 'close' : 'reopen',
-      number: input.number,
-      ifUnchangedSince,
-    })
-  }
-
-  if (!sameStringSet(input.current.labels, input.desired.labels)) {
-    const additions = diffStrings(input.desired.labels, input.current.labels)
-    const deletions = diffStrings(input.current.labels, input.desired.labels)
-
-    if (additions.length > 0 && deletions.length > 0) {
-      ops.push({
-        action: 'set-labels',
-        number: input.number,
-        labels: input.desired.labels,
-        ifUnchangedSince,
-      })
-    }
-    else if (additions.length > 0) {
-      ops.push({
-        action: 'add-labels',
-        number: input.number,
-        labels: additions,
-        ifUnchangedSince,
-      })
-    }
-    else if (deletions.length > 0) {
-      ops.push({
-        action: 'remove-labels',
-        number: input.number,
-        labels: deletions,
-        ifUnchangedSince,
-      })
-    }
-  }
-
-  if (!sameStringSet(input.current.assignees, input.desired.assignees)) {
-    if (input.desired.assignees.length > 0) {
-      ops.push({
-        action: 'set-assignees',
-        number: input.number,
-        assignees: input.desired.assignees,
-        ifUnchangedSince,
-      })
-    }
-    else if (input.current.assignees.length > 0) {
-      ops.push({
-        action: 'remove-assignees',
-        number: input.number,
-        assignees: input.current.assignees,
-        ifUnchangedSince,
-      })
-    }
-  }
-
-  if (normalizeMilestone(input.current.milestone) !== normalizeMilestone(input.desired.milestone)) {
-    if (input.desired.milestone) {
-      ops.push({
-        action: 'set-milestone',
-        number: input.number,
-        milestone: input.desired.milestone,
-        ifUnchangedSince,
-      })
-    }
-    else {
-      ops.push({
-        action: 'clear-milestone',
-        number: input.number,
-        ifUnchangedSince,
-      })
-    }
-  }
-
-  return ops
+  return computeExecuteDiffOps({
+    number: input.number,
+    current: {
+      ...input.current,
+      body: null,
+      reviewers: [],
+    },
+    desired: {
+      ...input.desired,
+      body: null,
+      reviewers: [],
+    },
+    ifUnchangedSince: input.updatedAt,
+  })
 }
 
 function parseFrontmatter(raw: string): PerItemFields | undefined {
@@ -183,9 +114,9 @@ function parseFrontmatter(raw: string): PerItemFields | undefined {
   if (!title || !state)
     return undefined
 
-  const labels = normalizeStringArray(data.labels ?? data.tags)
-  const assignees = normalizeStringArray(data.assignees)
-  const milestone = normalizeMilestone(data.milestone)
+  const labels = normalizeStringArrayInput(data.labels ?? data.tags)
+  const assignees = normalizeStringArrayInput(data.assignees)
+  const milestone = normalizeMilestoneInput(data.milestone)
 
   return {
     title,
@@ -194,42 +125,4 @@ function parseFrontmatter(raw: string): PerItemFields | undefined {
     assignees,
     milestone,
   }
-}
-
-function normalizeStringArray(value: unknown): string[] {
-  if (!Array.isArray(value))
-    return []
-
-  const unique = new Set<string>()
-  for (const entry of value) {
-    if (typeof entry !== 'string')
-      continue
-    const normalized = entry.trim()
-    if (!normalized)
-      continue
-    unique.add(normalized)
-  }
-
-  return [...unique]
-}
-
-function sameStringSet(left: string[], right: string[]): boolean {
-  if (left.length !== right.length)
-    return false
-
-  const sortedLeft = [...left].sort()
-  const sortedRight = [...right].sort()
-  return sortedLeft.every((value, index) => value === sortedRight[index])
-}
-
-function normalizeMilestone(value: unknown): string | null {
-  if (typeof value !== 'string')
-    return null
-  const normalized = value.trim()
-  return normalized.length > 0 ? normalized : null
-}
-
-function diffStrings(source: string[], target: string[]): string[] {
-  const targetSet = new Set(target)
-  return source.filter(value => !targetSet.has(value))
 }

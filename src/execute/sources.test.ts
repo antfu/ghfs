@@ -33,6 +33,19 @@ describe('loadExecuteSources', () => {
       { action: 'add-labels', number: 5, labels: ['foo', 'bar'] },
       { action: 'close-with-comment', number: 6, body: 'done' },
     ])
+    expect(loaded.entries).toHaveLength(6)
+    expect(loaded.entries[0]).toMatchObject({
+      source: 'execute.yml',
+      sourceIndex: 0,
+      mergedIndex: 0,
+      op: { action: 'close', number: 1 },
+    })
+    expect(loaded.entries[5]).toMatchObject({
+      source: 'execute.md',
+      sourceIndex: 4,
+      mergedIndex: 5,
+      op: { action: 'close-with-comment', number: 6, body: 'done' },
+    })
   })
 
   it('keeps unrecognized lines and emits warnings', async () => {
