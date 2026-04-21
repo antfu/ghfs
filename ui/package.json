@@ -11,11 +11,13 @@
   },
   "dependencies": {
     "birpc": "catalog:",
+    "reka-ui": "catalog:",
     "structured-clone-es": "catalog:"
   },
   "devDependencies": {
     "@iconify-json/carbon": "catalog:",
     "@iconify-json/ph": "catalog:",
+    "@iconify-json/ri": "catalog:",
     "@unocss/nuxt": "catalog:",
     "@unocss/preset-web-fonts": "catalog:",
     "@vueuse/nuxt": "catalog:",

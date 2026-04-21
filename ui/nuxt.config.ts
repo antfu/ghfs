@@ -7,6 +7,7 @@ export default defineNuxtConfig({
   modules: [
     '@unocss/nuxt',
     '@vueuse/nuxt',
+    'reka-ui/nuxt',
   ],
 
   ssr: false,

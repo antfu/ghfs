@@ -13,6 +13,7 @@ catalog:
   '@clack/prompts': ^1.1.0
   '@iconify-json/carbon': ^1.2.4
   '@iconify-json/ph': ^1.2.0
+  '@iconify-json/ri': ^1.2.0
   '@octokit/plugin-retry': ^8.1.0
   '@octokit/plugin-throttling': ^11.0.3
   '@types/node': ^25.3.3
@@ -36,6 +37,7 @@ catalog:
   ohash: ^2.0.11
   open: ^10.2.0
   pathe: ^2.0.3
+  reka-ui: ^2.9.6
   simple-git-hooks: ^2.13.1
   structured-clone-es: ^1.0.0
   tsdown: ^0.20.3

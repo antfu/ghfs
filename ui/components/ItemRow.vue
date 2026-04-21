@@ -7,6 +7,16 @@ const rpc = useRpc()
 const state = useAppState()
 
 const relativeUpdated = computed(() => formatRelative(props.item.updatedAt))
+const stateBadge = computed(() => {
+  if (props.item.kind === 'pull')
+    return props.item.state === 'open' ? 'badge-color-green' : 'badge-color-purple'
+  return props.item.state === 'open' ? 'badge-color-green' : 'badge-color-purple'
+})
+const stateIcon = computed(() => {
+  if (props.item.kind === 'pull')
+    return 'i-ri-git-pull-request-fill'
+  return 'i-ri-bug-fill'
+})
 
 async function queueClose() {
   state.setError(null)
@@ -30,10 +40,8 @@ async function queueReopen() {
 
 function formatRelative(iso: string): string {
   try {
-    const then = new Date(iso).getTime()
-    const now = Date.now()
-    const diffMs = now - then
-    const seconds = Math.round(diffMs / 1000)
+    const diff = Date.now() - new Date(iso).getTime()
+    const seconds = Math.round(diff / 1000)
     const minutes = Math.round(seconds / 60)
     const hours = Math.round(minutes / 60)
     const days = Math.round(hours / 24)
@@ -52,69 +60,63 @@ function formatRelative(iso: string): string {
 </script>
 
 <template>
-  <div class="group flex items-start gap-3 px-4 py-2 border-b border-base hover:bg-secondary transition">
+  <div class="group flex items-start gap-3 px-4 py-2.5 border-b border-base hover:bg-active transition">
     <span
-      class="font-mono text-xs w-16 flex-none color-muted pt-0.5 tabular-nums"
-    >#{{ item.number }}</span>
+      :class="[stateIcon, props.item.state === 'open' ? 'color-green-500 dark:color-green-400' : 'color-purple-500 dark:color-purple-400']"
+      class="text-lg mt-0.5 flex-none"
+    />
+    <span class="font-mono text-xs w-14 flex-none color-muted pt-1 tabular-nums">#{{ item.number }}</span>
 
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 flex-wrap">
-        <span
-          :class="item.state === 'open' ? 'badge-open' : 'badge-closed'"
-        >
-          {{ item.kind === 'pull' ? `PR ${item.state}` : item.state }}
-        </span>
         <a
           v-if="item.url"
           :href="item.url"
           target="_blank"
           rel="noreferrer"
-          class="font-medium hover:underline"
+          class="font-medium hover:color-active truncate"
         >{{ item.title }}</a>
-        <span v-else class="font-medium">{{ item.title }}</span>
+        <span v-else class="font-medium truncate">{{ item.title }}</span>
       </div>
 
       <div class="flex items-center gap-2 flex-wrap text-xs color-muted mt-1">
+        <span
+          :class="stateBadge"
+        >{{ item.kind === 'pull' ? 'pr' : 'issue' }}/{{ item.state }}</span>
         <span v-if="item.author" class="font-mono">@{{ item.author }}</span>
         <span>{{ relativeUpdated }}</span>
         <template v-if="item.labels.length">
-          <span class="opacity-50">·</span>
+          <span class="color-faint">·</span>
           <span
             v-for="label in item.labels"
             :key="label"
-            class="badge-label"
+            class="badge-color-neutral"
           >{{ label }}</span>
         </template>
         <template v-if="item.assignees.length">
-          <span class="opacity-50">·</span>
+          <span class="color-faint">·</span>
           <span class="font-mono">{{ item.assignees.map(a => `@${a}`).join(', ') }}</span>
         </template>
         <template v-if="item.milestone">
-          <span class="opacity-50">·</span>
-          <span class="font-mono">{{ item.milestone }}</span>
+          <span class="color-faint">·</span>
+          <span class="font-mono italic">{{ item.milestone }}</span>
         </template>
       </div>
     </div>
 
-    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-      <button
-        v-if="item.state === 'open'"
-        class="btn-action !px-2 !py-1 text-xs"
-        title="Queue close"
-        @click="queueClose"
-      >
-        <span class="i-carbon-close" />
-        <span>close</span>
-      </button>
-      <button
-        v-else
-        class="btn-action !px-2 !py-1 text-xs"
-        title="Queue reopen"
-        @click="queueReopen"
-      >
-        <span class="i-carbon-restart" />
-        <span>reopen</span>
-      </button>
+    <div class="flex items-center gap-1 hover-fade">
+      <TooltipButton v-if="item.state === 'open'" tooltip="Queue close">
+        <button class="btn-action !px-2 !py-1 text-xs" @click="queueClose">
+          <span class="i-carbon-close" />
+          <span>close</span>
+        </button>
+      </TooltipButton>
+      <TooltipButton v-else tooltip="Queue reopen">
+        <button class="btn-action !px-2 !py-1 text-xs" @click="queueReopen">
+          <span class="i-carbon-restart" />
+          <span>reopen</span>
+        </button>
+      </TooltipButton>
     </div>
   </div>
 </template>
