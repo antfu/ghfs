@@ -6,13 +6,40 @@ import { eventHandler, serveStatic, setResponseHeader } from 'h3'
 import { dirname, resolve } from 'pathe'
 import { pathExists } from '../utils/fs'
 
+const MIME_TYPES: Record<string, string> = {
+  css: 'text/css; charset=utf-8',
+  html: 'text/html; charset=utf-8',
+  ico: 'image/x-icon',
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  js: 'application/javascript; charset=utf-8',
+  json: 'application/json; charset=utf-8',
+  map: 'application/json; charset=utf-8',
+  mjs: 'application/javascript; charset=utf-8',
+  png: 'image/png',
+  svg: 'image/svg+xml; charset=utf-8',
+  txt: 'text/plain; charset=utf-8',
+  webp: 'image/webp',
+  woff: 'font/woff',
+  woff2: 'font/woff2',
+  xml: 'application/xml; charset=utf-8',
+}
+
+function mimeTypeFor(id: string): string | undefined {
+  const dot = id.lastIndexOf('.')
+  if (dot < 0)
+    return undefined
+  const ext = id.slice(dot + 1).toLowerCase()
+  return MIME_TYPES[ext]
+}
+
 export function resolveDefaultStaticDir(importMetaUrl: string): string {
   const here = fileURLToPath(importMetaUrl)
   return resolve(dirname(here), '..', 'ui')
 }
 
 export async function createStaticHandler(staticDir: string): Promise<EventHandler> {
-  async function metaFor(id: string): Promise<{ mtime?: number, size?: number } | undefined> {
+  async function metaFor(id: string): Promise<{ mtime?: number, size?: number, type?: string } | undefined> {
     let stats: Stats
     try {
       stats = await stat(resolve(staticDir, `.${id}`))
@@ -22,7 +49,7 @@ export async function createStaticHandler(staticDir: string): Promise<EventHandl
     }
     if (!stats.isFile())
       return undefined
-    return { mtime: stats.mtimeMs, size: stats.size }
+    return { mtime: stats.mtimeMs, size: stats.size, type: mimeTypeFor(id) }
   }
 
   const spaFallback = await readFallback(staticDir)
