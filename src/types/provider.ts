@@ -94,6 +94,11 @@ export interface ProviderItemSnapshot {
   updatedAt: string | null
 }
 
+export interface ProviderUpdateCounts {
+  issues: number
+  pulls: number
+}
+
 export type ProviderLockReason = 'resolved' | 'off-topic' | 'too heated' | 'too-heated' | 'spam'
 
 export interface PaginateItemsOptions {
@@ -113,6 +118,7 @@ export interface RepositoryProvider {
   fetchRepository: () => Promise<ProviderRepository>
   fetchRepositoryLabels: () => Promise<ProviderLabel[]>
   fetchRepositoryMilestones: () => Promise<ProviderMilestone[]>
+  countUpdatedSince: (since: string) => Promise<ProviderUpdateCounts>
   getRequestCount: () => number
 
   actionClose: (number: number) => Promise<void>

@@ -11,3 +11,6 @@ dist
 node_modules
 .pnpm-store
 .ghfs
+.nuxt
+.output
+*/public/assets/fonts

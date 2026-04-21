@@ -1,6 +1,52 @@
 shellEmulator: true
 
 trustPolicy: no-downgrade
+packages:
+  - .
+  - ui
+
+overrides:
+  chokidar: ^5.0.0
+  semver: ^7.7.2
+catalog:
+  '@antfu/eslint-config': ^7.6.1
+  '@clack/prompts': ^1.1.0
+  '@iconify-json/carbon': ^1.2.4
+  '@iconify-json/ph': ^1.2.0
+  '@octokit/plugin-retry': ^8.1.0
+  '@octokit/plugin-throttling': ^11.0.3
+  '@types/node': ^25.3.3
+  '@types/ws': ^8.18.1
+  '@unocss/nuxt': ^66.5.3
+  '@unocss/preset-web-fonts': ^66.5.3
+  '@vitest/coverage-v8': 4.0.18
+  '@vueuse/nuxt': ^14.2.1
+  ansis: ^4.2.0
+  birpc: ^2.5.0
+  bumpp: ^10.4.1
+  cac: ^7.0.0
+  dotenv: ^17.3.1
+  eslint: ^10.0.2
+  h3: ^1.15.4
+  jiti: ^2.6.1
+  lint-staged: ^16.3.2
+  listhen: ^1.9.0
+  nuxt: ^3.18.0
+  octokit: ^5.0.5
+  ohash: ^2.0.11
+  open: ^10.2.0
+  pathe: ^2.0.3
+  simple-git-hooks: ^2.13.1
+  structured-clone-es: ^1.0.0
+  tsdown: ^0.20.3
+  tsx: ^4.21.0
+  typescript: ^5.9.3
+  unocss: ^66.5.3
+  valibot: ^1.1.0
+  vitest: ^4.0.18
+  vue-tsc: ^3.1.0
+  ws: ^8.18.3
+  yaml: ^2.8.2
 onlyBuiltDependencies:
   - esbuild
   - simple-git-hooks

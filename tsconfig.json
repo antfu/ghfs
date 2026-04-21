@@ -13,6 +13,8 @@
     "skipLibCheck": true
   },
   "exclude": [
-    "playgrounds/**"
+    "playgrounds/**",
+    "ui/**",
+    "dist/**"
   ]
 }
