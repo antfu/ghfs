@@ -12,11 +12,14 @@ export interface ProviderReactions {
   eyes: number
 }
 
+export type IssueStateReason = 'completed' | 'not_planned' | 'reopened'
+
 export interface ProviderItem {
   number: number
   kind: IssueKind
   url?: string
   state: IssueState
+  stateReason?: IssueStateReason | null
   updatedAt: string
   createdAt: string
   closedAt: string | null

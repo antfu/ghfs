@@ -1,7 +1,9 @@
+import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'pathe'
 
 const rootDir = dirname(fileURLToPath(import.meta.url))
+const isDev = process.env.NODE_ENV !== 'production'
 
 export default defineNuxtConfig({
   modules: [
@@ -10,14 +12,19 @@ export default defineNuxtConfig({
     'reka-ui/nuxt',
   ],
 
+  css: [
+    '@unocss/reset/tailwind.css',
+    '~/assets/markdown.css',
+  ],
+
   ssr: false,
 
   app: {
-    baseURL: './',
+    baseURL: isDev ? '/' : './',
     head: {
       title: 'ghfs',
       link: [
-        { rel: 'icon', href: './favicon.svg', type: 'image/svg+xml' },
+        { rel: 'icon', href: isDev ? '/favicon.svg' : './favicon.svg', type: 'image/svg+xml' },
       ],
     },
   },
@@ -39,8 +46,16 @@ export default defineNuxtConfig({
     },
     server: {
       proxy: {
-        '/__ws': { target: 'ws://localhost:7710', ws: true, changeOrigin: true },
-        '/api': { target: 'http://localhost:7710', changeOrigin: true },
+        // Dev-only HTTP passthrough for /api/*. The WebSocket at /__ws is
+        // connected to directly by the client (see useRpc) to avoid Vite's
+        // proxy layer crashing Nuxt on ECONNRESET during reconnects.
+        '/api': {
+          target: 'http://localhost:7710',
+          changeOrigin: true,
+          configure(proxy) {
+            proxy.on('error', () => {})
+          },
+        },
       },
     },
   },

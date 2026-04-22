@@ -11,15 +11,18 @@
   },
   "dependencies": {
     "birpc": "catalog:",
+    "marked": "catalog:",
     "reka-ui": "catalog:",
     "structured-clone-es": "catalog:"
   },
   "devDependencies": {
     "@iconify-json/carbon": "catalog:",
+    "@iconify-json/octicon": "catalog:",
     "@iconify-json/ph": "catalog:",
     "@iconify-json/ri": "catalog:",
     "@unocss/nuxt": "catalog:",
     "@unocss/preset-web-fonts": "catalog:",
+    "@unocss/reset": "catalog:",
     "@vueuse/nuxt": "catalog:",
     "nuxt": "catalog:",
     "typescript": "catalog:",

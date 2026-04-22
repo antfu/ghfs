@@ -83,4 +83,47 @@ describe('queue-writer', () => {
       removeQueueOp({ storageDirAbsolute: dir, executeFilePath }, 'missing-id'),
     ).rejects.toThrow('Queue entry not found')
   })
+
+  it('dedupes duplicate simple actions', async () => {
+    const { dir, executeFilePath } = await createFixture()
+    const opts = { storageDirAbsolute: dir, executeFilePath }
+    await addQueueOp(opts, { action: 'close', number: 5 })
+    const after = await addQueueOp(opts, { action: 'close', number: 5 })
+    expect(after.entries.filter(e => e.op.number === 5)).toHaveLength(1)
+  })
+
+  it('cancels an existing close when reopen is added for the same number', async () => {
+    const { dir, executeFilePath } = await createFixture()
+    const opts = { storageDirAbsolute: dir, executeFilePath }
+    await addQueueOp(opts, { action: 'close', number: 7 })
+    const after = await addQueueOp(opts, { action: 'reopen', number: 7 })
+    expect(after.entries.filter(e => e.op.number === 7)).toHaveLength(0)
+  })
+
+  it('cancels an existing reopen when close is added for the same number', async () => {
+    const { dir, executeFilePath } = await createFixture()
+    const opts = { storageDirAbsolute: dir, executeFilePath }
+    await addQueueOp(opts, { action: 'reopen', number: 8 })
+    const after = await addQueueOp(opts, { action: 'close', number: 8 })
+    expect(after.entries.filter(e => e.op.number === 8)).toHaveLength(0)
+  })
+
+  it('replaces an existing set-title with the latest value for the same number', async () => {
+    const { dir, executeFilePath } = await createFixture()
+    const opts = { storageDirAbsolute: dir, executeFilePath }
+    await addQueueOp(opts, { action: 'set-title', number: 3, title: 'First' })
+    const after = await addQueueOp(opts, { action: 'set-title', number: 3, title: 'Second' })
+    const ops = after.entries.filter(e => e.op.number === 3)
+    expect(ops).toHaveLength(1)
+    expect(ops[0].op).toMatchObject({ action: 'set-title', title: 'Second' })
+  })
+
+  it('appends independent add-comment operations', async () => {
+    const { dir, executeFilePath } = await createFixture()
+    const opts = { storageDirAbsolute: dir, executeFilePath }
+    await addQueueOp(opts, { action: 'add-comment', number: 11, body: 'first' })
+    const after = await addQueueOp(opts, { action: 'add-comment', number: 11, body: 'second' })
+    const ops = after.entries.filter(e => e.op.number === 11 && e.op.action === 'add-comment')
+    expect(ops).toHaveLength(2)
+  })
 })

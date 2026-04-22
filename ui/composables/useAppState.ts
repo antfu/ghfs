@@ -12,7 +12,7 @@ export interface ProgressState {
 
 export interface FilterState {
   state: 'all' | 'open' | 'closed'
-  kind: 'all' | 'issue' | 'pull'
+  kind: 'issue' | 'pull'
   search: string
 }
 
@@ -21,10 +21,11 @@ const syncing = ref(false)
 const executing = ref(false)
 const progress = shallowRef<ProgressState | null>(null)
 const queueOpen = ref(false)
+const selectedNumber = ref<number | null>(null)
 const lastError = ref<string | null>(null)
 const filters = reactive<FilterState>({
   state: 'open',
-  kind: 'all',
+  kind: 'issue',
   search: '',
 })
 
@@ -35,6 +36,7 @@ export function useAppState() {
     executing,
     progress,
     queueOpen,
+    selectedNumber,
     lastError,
     filters,
     setPayload(next: InitialPayload) {
@@ -63,6 +65,15 @@ export function useAppState() {
     },
     setError(next: string | null) {
       lastError.value = next
+    },
+    selectItem(number: number | null) {
+      selectedNumber.value = number
+    },
+    openQueue() {
+      queueOpen.value = true
+    },
+    closeQueue() {
+      queueOpen.value = false
     },
   }
 }

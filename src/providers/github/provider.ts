@@ -603,6 +603,7 @@ function mapIssue(issue: GitHubIssue): ProviderItem {
     kind: issue.pull_request ? 'pull' : 'issue',
     ...(issue.html_url ? { url: issue.html_url } : {}),
     state: issue.state === 'closed' ? 'closed' : 'open',
+    stateReason: normalizeStateReason(issue.state_reason),
     updatedAt: issue.updated_at,
     createdAt: issue.created_at,
     closedAt: issue.closed_at,
@@ -620,6 +621,12 @@ function mapIssue(issue: GitHubIssue): ProviderItem {
     milestone: issue.milestone?.title ?? null,
     reactions: mapReactions(issue.reactions),
   }
+}
+
+function normalizeStateReason(reason: string | null | undefined): ProviderItem['stateReason'] {
+  if (reason === 'completed' || reason === 'not_planned' || reason === 'reopened')
+    return reason
+  return null
 }
 
 function mapComment(comment: GitHubComment): ProviderComment {
@@ -650,6 +657,7 @@ function mapReactions(reactions: GitHubReactions | null | undefined): ProviderRe
 interface GitHubIssue {
   number: number
   state: 'open' | 'closed'
+  state_reason?: string | null
   html_url?: string
   updated_at: string
   created_at: string

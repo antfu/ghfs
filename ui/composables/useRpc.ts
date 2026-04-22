@@ -6,6 +6,7 @@ import { parse, stringify } from 'structured-clone-es'
 let singleton: BirpcReturn<ServerFunctions, ClientFunctions> | null = null
 let currentSocket: WebSocket | null = null
 let messageHandler: ((data: unknown) => void) | null = null
+let reconnectAttempts = 0
 
 export function useRpc(): BirpcReturn<ServerFunctions, ClientFunctions> {
   if (!singleton)
@@ -103,12 +104,11 @@ function connect(rpc: BirpcReturn<ServerFunctions, ClientFunctions>): void {
   if (typeof window === 'undefined')
     return
 
-  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const url = `${proto}//${window.location.host}/__ws`
-  const socket = new WebSocket(url)
+  const socket = new WebSocket(resolveWsUrl())
 
   socket.addEventListener('open', async () => {
     currentSocket = socket
+    reconnectAttempts = 0
     try {
       const initial = await rpc.getInitialPayload()
       useAppState().setPayload(initial)
@@ -125,10 +125,23 @@ function connect(rpc: BirpcReturn<ServerFunctions, ClientFunctions>): void {
   socket.addEventListener('close', () => {
     if (currentSocket === socket)
       currentSocket = null
-    window.setTimeout(() => connect(rpc), 1_000)
+    reconnectAttempts += 1
+    const delay = Math.min(1_000 * 2 ** Math.min(reconnectAttempts, 5), 30_000)
+    window.setTimeout(() => connect(rpc), delay)
   })
 
   socket.addEventListener('error', () => {
     // socket closes shortly after; reconnect handled via close handler
   })
+}
+
+function resolveWsUrl(): string {
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  // In dev, Nuxt serves the UI on :7711 but the ghfs server (with WS) is
+  // on :7710. Connect directly to avoid routing WS through Vite's proxy.
+  const devPort = import.meta.env?.DEV ? '7710' : ''
+  const host = devPort
+    ? `${window.location.hostname}:${devPort}`
+    : window.location.host
+  return `${proto}//${host}/__ws`
 }

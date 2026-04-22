@@ -4,6 +4,7 @@ import type { QueueState } from './types'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { EXECUTE_MD_FILE_NAME } from '../constants'
+import { compressOps } from '../execute/compress'
 import { ensureExecuteArtifacts } from '../execute/schema'
 import { readExecuteMdFile, stringifyExecuteMd } from '../execute/sources/execute-md'
 import { readAndValidateExecuteFileWithSource, writeExecuteFile } from '../execute/validate'
@@ -13,7 +14,8 @@ import { buildQueueState } from './queue-builder'
 export async function addQueueOp(options: BuildQueueStateOptions, op: PendingOp): Promise<QueueState> {
   await ensureExecuteArtifacts(options.executeFilePath)
   const current = await readAndValidateExecuteFileWithSource(options.executeFilePath)
-  await writeExecuteFile(options.executeFilePath, [...current.ops, op])
+  const next = compressOps([...current.ops, op])
+  await writeExecuteFile(options.executeFilePath, next)
   return buildQueueState(options)
 }
 
@@ -60,8 +62,8 @@ export async function updateQueueOp(options: BuildQueueStateOptions, id: string,
     throw new Error(`Cannot edit ${entry.source} ops from the queue panel`)
 
   const current = await readAndValidateExecuteFileWithSource(options.executeFilePath)
-  const next = current.ops.map((existing, index) => (index === entry.index ? op : existing))
-  await writeExecuteFile(options.executeFilePath, next)
+  const replaced = current.ops.map((existing, index) => (index === entry.index ? op : existing))
+  await writeExecuteFile(options.executeFilePath, compressOps(replaced))
   return buildQueueState(options)
 }
 

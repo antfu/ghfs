@@ -15,19 +15,19 @@ const visible = computed(() => state.progress.value !== null || state.lastError.
   >
     <div
       v-if="visible"
-      class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 min-w-80 max-w-lg bg-glass rounded-1em shadow-lg"
+      class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 min-w-80 max-w-lg bg-glass rounded-lg shadow-lg"
     >
       <div v-if="state.lastError.value" class="flex items-start gap-3 px-4 py-3">
-        <span class="i-carbon-warning text-red-500 mt-0.5 flex-none" />
+        <span class="i-octicon-alert-16 color-red-500 mt-0.5 flex-none" />
         <div class="flex-1 text-sm">{{ state.lastError.value }}</div>
         <TooltipButton tooltip="Dismiss">
-          <button class="btn-circle !w-7 !h-7 flex-none" aria-label="Dismiss" @click="state.setError(null)">
-            <span class="i-carbon-close text-sm" />
+          <button class="btn-icon shrink-0" aria-label="Dismiss" @click="state.setError(null)">
+            <span class="i-octicon-x-16" />
           </button>
         </TooltipButton>
       </div>
       <div v-else-if="state.progress.value" class="flex items-start gap-3 px-4 py-3">
-        <span class="i-carbon-renew animate-spin mt-0.5 color-active flex-none" />
+        <span class="i-octicon-sync-16 animate-spin mt-0.5 color-active flex-none" />
         <div class="flex-1">
           <div class="text-sm flex items-center gap-2">
             <span class="font-mono uppercase tracking-wide text-xs color-muted">{{ state.progress.value.kind }}</span>

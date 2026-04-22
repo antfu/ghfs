@@ -1,26 +1,31 @@
-import type { ProviderItem } from '../../src/types/provider'
+import type { SyncItemState } from '../../src/types/sync-state'
 
 export function useFilteredItems() {
   const state = useAppState()
 
-  const allItems = computed<ProviderItem[]>(() => {
+  const allEntries = computed<SyncItemState[]>(() => {
     const syncState = state.payload.value?.syncState
     if (!syncState)
       return []
     return Object.values(syncState.items)
-      .map(entry => entry.data.item)
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .sort((a, b) => b.data.item.updatedAt.localeCompare(a.data.item.updatedAt))
   })
 
-  const filteredItems = computed<ProviderItem[]>(() => {
+  const filteredEntries = computed<SyncItemState[]>(() => {
     const search = state.filters.search.trim().toLowerCase()
-    return allItems.value.filter((item) => {
+    const searching = search.length > 0
+    return allEntries.value.filter((entry) => {
+      const item = entry.data.item
       if (state.filters.state !== 'all' && item.state !== state.filters.state)
         return false
-      if (state.filters.kind !== 'all' && item.kind !== state.filters.kind)
+      // When not searching, restrict by kind tab; when searching, show both.
+      if (!searching && state.filters.kind !== item.kind)
         return false
-      if (search) {
-        const haystack = `${item.number} ${item.title} ${item.labels.join(' ')} ${item.assignees.join(' ')} ${item.author ?? ''}`.toLowerCase()
+      if (searching) {
+        const body = item.body ?? ''
+        const labels = (item.labels ?? []).join(' ')
+        const assignees = (item.assignees ?? []).join(' ')
+        const haystack = `${item.number} ${item.title} ${labels} ${assignees} ${item.author ?? ''} ${body}`.toLowerCase()
         if (!haystack.includes(search))
           return false
       }
@@ -28,8 +33,21 @@ export function useFilteredItems() {
     })
   })
 
+  const counts = computed(() => {
+    let issues = 0
+    let pulls = 0
+    for (const entry of allEntries.value) {
+      if (entry.data.item.kind === 'issue')
+        issues += 1
+      else
+        pulls += 1
+    }
+    return { issues, pulls }
+  })
+
   return {
-    allItems,
-    filteredItems,
+    allEntries,
+    filteredEntries,
+    counts,
   }
 }

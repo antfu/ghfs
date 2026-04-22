@@ -105,14 +105,17 @@ function normalizeItem(item: SyncItemState | undefined): SyncItemState | undefin
   if (!item.data || !item.data.item)
     return undefined
   const comments = Array.isArray(item.data.comments) ? item.data.comments : []
+  const rawItem = item.data.item
 
   return {
     ...item,
     data: {
       ...item.data,
       item: {
-        ...item.data.item,
-        reactions: normalizeReactions(item.data.item.reactions),
+        ...rawItem,
+        labels: Array.isArray(rawItem.labels) ? rawItem.labels.filter((v): v is string => typeof v === 'string') : [],
+        assignees: Array.isArray(rawItem.assignees) ? rawItem.assignees.filter((v): v is string => typeof v === 'string') : [],
+        reactions: normalizeReactions(rawItem.reactions),
       },
       comments: comments
         .filter(comment => comment && typeof comment === 'object')

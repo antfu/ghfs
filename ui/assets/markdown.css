@@ -1,0 +1,235 @@
+/*
+ * GitHub-flavored markdown styling, scoped to .markdown-body.
+ * Informed by github-markdown-css but trimmed and wired up to our UnoCSS tokens.
+ */
+
+.markdown-body {
+  --md-fg: #1f2328;
+  --md-muted: #59636e;
+  --md-accent: #0969da;
+  --md-border: #d1d9e0;
+  --md-border-strong: #afb8c1;
+  --md-bg: #ffffff;
+  --md-bg-alt: #f6f8fa;
+  --md-code-bg: rgba(175, 184, 193, 0.2);
+  --md-code-block-bg: #f6f8fa;
+
+  color: var(--md-fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "DM Sans", "Noto Sans", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.dark .markdown-body {
+  --md-fg: #e6edf3;
+  --md-muted: #8b949e;
+  --md-accent: #4493f8;
+  --md-border: #3d444d;
+  --md-border-strong: #6e7681;
+  --md-bg: #0d1117;
+  --md-bg-alt: #151b23;
+  --md-code-bg: rgba(110, 118, 129, 0.4);
+  --md-code-block-bg: #151b23;
+}
+
+.markdown-body > *:first-child {
+  margin-top: 0 !important;
+}
+.markdown-body > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+.markdown-body p {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.markdown-body a {
+  color: var(--md-accent);
+  text-decoration: none;
+}
+.markdown-body a:hover {
+  text-decoration: underline;
+}
+
+/* Headings */
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 20px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-body h1 {
+  font-size: 1.6em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--md-border);
+}
+.markdown-body h2 {
+  font-size: 1.35em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--md-border);
+}
+.markdown-body h3 { font-size: 1.15em; }
+.markdown-body h4 { font-size: 1em; }
+.markdown-body h5 { font-size: 0.9em; }
+.markdown-body h6 { font-size: 0.85em; color: var(--md-muted); }
+
+/* Inline code */
+.markdown-body code {
+  padding: 0.2em 0.4em;
+  font-size: 85%;
+  white-space: break-spaces;
+  background-color: var(--md-code-bg);
+  border-radius: 6px;
+  font-family: "DM Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, Liberation Mono, monospace;
+}
+
+/* Code blocks */
+.markdown-body pre {
+  margin-top: 0;
+  margin-bottom: 12px;
+  padding: 14px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: var(--md-code-block-bg);
+  border: 1px solid var(--md-border);
+  border-radius: 6px;
+}
+.markdown-body pre code {
+  padding: 0;
+  margin: 0;
+  font-size: 100%;
+  background: transparent;
+  border-radius: 0;
+  word-break: normal;
+  white-space: pre;
+}
+
+/* Blockquote */
+.markdown-body blockquote {
+  margin: 0 0 12px 0;
+  padding: 0 1em;
+  color: var(--md-muted);
+  border-left: 0.25em solid var(--md-border-strong);
+}
+.markdown-body blockquote > :first-child { margin-top: 0; }
+.markdown-body blockquote > :last-child { margin-bottom: 0; }
+
+/* Lists */
+.markdown-body ul,
+.markdown-body ol {
+  margin-top: 0;
+  margin-bottom: 12px;
+  padding-left: 2em;
+}
+.markdown-body ul { list-style: disc; }
+.markdown-body ol { list-style: decimal; }
+.markdown-body li + li { margin-top: 0.25em; }
+.markdown-body ul ul,
+.markdown-body ol ol,
+.markdown-body ul ol,
+.markdown-body ol ul {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Task lists (GFM) */
+.markdown-body li:has(> input[type="checkbox"]) {
+  list-style: none;
+  margin-left: -1.25em;
+}
+.markdown-body input[type="checkbox"] {
+  margin-right: 0.4em;
+  vertical-align: middle;
+  accent-color: var(--md-accent);
+}
+
+/* Tables */
+.markdown-body table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  margin-top: 0;
+  margin-bottom: 12px;
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow: auto;
+}
+.markdown-body table th,
+.markdown-body table td {
+  padding: 6px 12px;
+  border: 1px solid var(--md-border);
+}
+.markdown-body table th {
+  font-weight: 600;
+  background-color: var(--md-bg-alt);
+}
+.markdown-body table tr {
+  background-color: var(--md-bg);
+  border-top: 1px solid var(--md-border);
+}
+.markdown-body table tr:nth-child(2n) {
+  background-color: var(--md-bg-alt);
+}
+
+/* Images */
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+  border-style: none;
+  background-color: transparent;
+  box-sizing: content-box;
+}
+
+/* Horizontal rule */
+.markdown-body hr {
+  height: 2px;
+  padding: 0;
+  margin: 20px 0;
+  background-color: var(--md-border);
+  border: 0;
+}
+
+/* Keyboard */
+.markdown-body kbd {
+  display: inline-block;
+  padding: 3px 5px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, Liberation Mono, monospace;
+  font-size: 11px;
+  line-height: 10px;
+  color: var(--md-fg);
+  vertical-align: middle;
+  background-color: var(--md-bg-alt);
+  border: solid 1px var(--md-border);
+  border-bottom-color: var(--md-border-strong);
+  border-radius: 6px;
+  box-shadow: inset 0 -1px 0 var(--md-border);
+}
+
+/* Strong / em */
+.markdown-body strong { font-weight: 600; }
+.markdown-body em { font-style: italic; }
+
+/* Details */
+.markdown-body details {
+  display: block;
+  margin-bottom: 12px;
+}
+.markdown-body details summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Alerts (GFM note/tip/warning/caution/important). Marked with GFM renders
+ * them as blockquotes starting with [!NOTE] etc; without post-processing we
+ * can't detect the variant, so we keep them as styled blockquotes via the
+ * blockquote rules above.
+ */
