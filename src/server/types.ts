@@ -2,6 +2,9 @@ import type { PendingOp } from '../execute/types'
 import type { SyncProgressSnapshot, SyncStage, SyncSummary } from '../sync/contracts'
 import type { ExecutionResult } from '../types/execution'
 import type { SyncState } from '../types/sync-state'
+import type { UiState } from './ui-state'
+
+export type { UiState } from './ui-state'
 
 export type QueueSource = 'execute.yml' | 'execute.md' | 'per-item'
 
@@ -49,6 +52,7 @@ export interface InitialPayload {
   queue: QueueState
   remote: RemoteStatus
   recentExecutions: ExecutionResult[]
+  uiState: UiState
 }
 
 export interface SyncTriggerOptions {
@@ -89,6 +93,7 @@ export interface ServerFunctions {
   clearQueue: () => Promise<QueueState>
   checkRemote: () => Promise<RemoteStatus>
   openInEditor: (filePath: string) => Promise<void>
+  saveUiState: (state: UiState) => Promise<void>
 }
 
 export interface ClientFunctions {

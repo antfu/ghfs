@@ -112,6 +112,14 @@ function connect(rpc: BirpcReturn<ServerFunctions, ClientFunctions>): void {
     try {
       const initial = await rpc.getInitialPayload()
       useAppState().setPayload(initial)
+      try {
+        useUiState().hydrate(initial.uiState)
+      }
+      catch (error) {
+        // Older server builds may not return uiState; don't crash the app.
+        console.warn('[useRpc] uiState hydrate skipped:', error)
+        useUiState().hydrate(undefined)
+      }
     }
     catch (error) {
       useAppState().setError(`Failed to hydrate: ${(error as Error).message}`)

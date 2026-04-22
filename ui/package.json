@@ -13,6 +13,7 @@
     "birpc": "catalog:",
     "marked": "catalog:",
     "reka-ui": "catalog:",
+    "splitpanes": "catalog:",
     "structured-clone-es": "catalog:"
   },
   "devDependencies": {

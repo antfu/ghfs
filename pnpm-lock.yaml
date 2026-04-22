@@ -105,6 +105,9 @@ catalogs:
     simple-git-hooks:
       specifier: ^2.13.1
       version: 2.13.1
+    splitpanes:
+      specifier: ^4.0.4
+      version: 4.0.4
     structured-clone-es:
       specifier: ^2.0.0
       version: 2.0.0
@@ -253,6 +256,9 @@ importers:
       reka-ui:
         specifier: 'catalog:'
         version: 2.9.6(vue@3.5.32(typescript@6.0.3))
+      splitpanes:
+        specifier: 'catalog:'
+        version: 4.0.4(vue@3.5.32(typescript@6.0.3))
       structured-clone-es:
         specifier: 'catalog:'
         version: 2.0.0
@@ -4928,6 +4934,11 @@ packages:
 
   spdx-license-ids@3.0.23:
     resolution: {integrity: sha512-CWLcCCH7VLu13TgOH+r8p1O/Znwhqv/dbb6lqWy67G+pT1kHmeD/+V36AVb/vq8QMIQwVShJ6Ssl5FPh0fuSdw==}
+
+  splitpanes@4.0.4:
+    resolution: {integrity: sha512-RbysugZhjbCw5fgplvk3hOXr41stahQDtZhHVkhnnJI6H4wlGDhM2kIpbehy7v92duy9GnMa8zIhHigIV1TWtg==}
+    peerDependencies:
+      vue: ^3.2.0
 
   srvx@0.11.15:
     resolution: {integrity: sha512-iXsux0UcOjdvs0LCMa2Ws3WwcDUozA3JN3BquNXkaFPP7TpRqgunKdEgoZ/uwb1J6xaYHfxtz9Twlh6yzwM6Tg==}
@@ -10961,6 +10972,10 @@ snapshots:
       spdx-license-ids: 3.0.23
 
   spdx-license-ids@3.0.23: {}
+
+  splitpanes@4.0.4(vue@3.5.32(typescript@6.0.3)):
+    dependencies:
+      vue: 3.5.32(typescript@6.0.3)
 
   srvx@0.11.15: {}
 

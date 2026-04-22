@@ -41,6 +41,7 @@ catalog:
   pathe: ^2.0.3
   reka-ui: ^2.9.6
   simple-git-hooks: ^2.13.1
+  splitpanes: ^4.0.4
   structured-clone-es: ^2.0.0
   tsdown: ^0.21.9
   tsx: ^4.21.0

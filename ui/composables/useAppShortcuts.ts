@@ -56,18 +56,10 @@ export function createAppShortcuts(): Shortcut[] {
       state.setSyncing(false)
     }
   }
-  async function runQueue() {
+  function askExecute() {
     if (state.executing.value) return
     if (upCount.value === 0) return
-    state.setExecuting(true)
-    state.setError(null)
-    try {
-      await rpc.executeQueue({ continueOnError: true })
-    }
-    catch (error) {
-      state.setError(`Execute failed: ${(error as Error).message}`)
-      state.setExecuting(false)
-    }
+    state.askExecute()
   }
   function toggleQueue() {
     if (state.queueOpen.value) state.closeQueue()
@@ -131,7 +123,7 @@ export function createAppShortcuts(): Shortcut[] {
     },
     {
       id: 'list.open',
-      keys: ['Enter'],
+      keys: ['g'],
       description: 'Open on GitHub',
       enabled: () => !!activeItem.value?.url,
       run: () => {
@@ -177,7 +169,7 @@ export function createAppShortcuts(): Shortcut[] {
       keys: ['x'],
       description: 'Execute queue',
       enabled: () => hasToken.value && upCount.value > 0 && !state.executing.value,
-      run: runQueue,
+      run: askExecute,
     },
     {
       id: 'action.theme',
@@ -189,8 +181,12 @@ export function createAppShortcuts(): Shortcut[] {
       id: 'panel.close',
       keys: ['Escape'],
       description: 'Close queue',
-      enabled: () => state.queueOpen.value,
+      enabled: () => state.queueOpen.value || state.executeConfirmOpen.value,
       run: () => {
+        if (state.executeConfirmOpen.value) {
+          state.executeConfirmOpen.value = false
+          return
+        }
         if (state.queueOpen.value) state.closeQueue()
       },
     },

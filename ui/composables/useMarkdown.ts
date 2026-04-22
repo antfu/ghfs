@@ -1,4 +1,5 @@
 import { Marked } from 'marked'
+import { EMOJI_MAP } from './emojiMap'
 
 const marked = new Marked({
   gfm: true,
@@ -20,6 +21,30 @@ marked.use({
       return `<img src="${escapeAttr(href)}" alt="${escapeAttr(text)}"${titleAttr} loading="lazy">`
     },
   },
+  extensions: [{
+    name: 'emoji',
+    level: 'inline',
+    start(src: string) {
+      const match = src.match(/:[a-z0-9_+-]+:/i)
+      return match?.index
+    },
+    tokenizer(src: string) {
+      const match = /^:([a-z0-9_+-]+):/i.exec(src)
+      if (!match)
+        return
+      const emoji = EMOJI_MAP[match[1].toLowerCase()]
+      if (!emoji)
+        return
+      return {
+        type: 'emoji',
+        raw: match[0],
+        emoji,
+      }
+    },
+    renderer(token: { emoji?: string }) {
+      return `<g-emoji class="emoji">${token.emoji ?? ''}</g-emoji>`
+    },
+  }],
 })
 
 export function renderMarkdown(source: string | null | undefined): string {
@@ -27,6 +52,17 @@ export function renderMarkdown(source: string | null | undefined): string {
     return ''
   try {
     return marked.parse(source, { async: false }) as string
+  }
+  catch {
+    return escapeHtml(source)
+  }
+}
+
+export function renderMarkdownInline(source: string | null | undefined): string {
+  if (!source)
+    return ''
+  try {
+    return marked.parseInline(source, { async: false }) as string
   }
   catch {
     return escapeHtml(source)

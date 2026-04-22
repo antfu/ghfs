@@ -1,14 +1,16 @@
 import type { ServerContext } from '../context'
-import type { InitialPayload, QueueState, RepoMeta } from '../types'
+import type { InitialPayload, QueueState, RepoMeta, UiState } from '../types'
 import { GHFS_VERSION } from '../../meta'
 import { loadSyncState } from '../../sync/state'
 import { buildQueueState } from '../queue-builder'
+import { loadUiState, saveUiState } from '../ui-state'
 
 export function createStateHandlers(ctx: ServerContext): {
   getInitialPayload: () => Promise<InitialPayload>
   getSyncState: () => Promise<InitialPayload['syncState']>
   getQueue: () => Promise<QueueState>
   getRepoMeta: () => Promise<RepoMeta>
+  saveUiState: (state: UiState) => Promise<void>
 } {
   async function getRepoMeta(): Promise<RepoMeta> {
     const syncState = await loadSyncState(ctx.storageDirAbsolute)
@@ -42,10 +44,11 @@ export function createStateHandlers(ctx: ServerContext): {
   }
 
   async function getInitialPayload(): Promise<InitialPayload> {
-    const [repo, syncState, queue] = await Promise.all([
+    const [repo, syncState, queue, uiState] = await Promise.all([
       getRepoMeta(),
       getSyncState(),
       getQueue(),
+      loadUiState(ctx.storageDirAbsolute),
     ])
     return {
       repo,
@@ -53,6 +56,7 @@ export function createStateHandlers(ctx: ServerContext): {
       queue,
       remote: ctx.poller.getCurrent(),
       recentExecutions: syncState.executions ?? [],
+      uiState,
     }
   }
 
@@ -61,5 +65,6 @@ export function createStateHandlers(ctx: ServerContext): {
     getSyncState,
     getQueue,
     getRepoMeta,
+    saveUiState: (state: UiState) => saveUiState(ctx.storageDirAbsolute, state),
   }
 }

@@ -23,5 +23,6 @@ export function createServerFunctions(ctx: ServerContext): ServerFunctions {
     clearQueue: queue.clearQueue,
     checkRemote: createRemoteHandler(ctx),
     openInEditor: createEditorHandler(ctx),
+    saveUiState: state.saveUiState,
   }
 }

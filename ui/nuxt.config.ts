@@ -19,6 +19,14 @@ export default defineNuxtConfig({
 
   ssr: false,
 
+  experimental: {
+    payloadExtraction: false,
+  },
+
+  features: {
+    inlineStyles: false,
+  },
+
   app: {
     baseURL: isDev ? '/' : './',
     head: {

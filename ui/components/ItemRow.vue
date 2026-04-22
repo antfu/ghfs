@@ -17,7 +17,11 @@ const titleText = computed(() => pending.pendingTitle.value?.op.action === 'set-
   ? (pending.pendingTitle.value.op as { title: string }).title
   : item.value.title,
 )
-const titleHtml = computed(() => highlight(titleText.value, search.value))
+const titleHtml = computed(() => {
+  if (search.value.trim())
+    return highlight(titleText.value, search.value)
+  return renderMarkdownInline(titleText.value)
+})
 const bodySnippetHtml = computed(() => {
   const q = search.value.trim()
   if (!q)
@@ -63,6 +67,7 @@ watch(
           :href="item.url || `#${item.number}`"
           target="_blank"
           rel="noreferrer"
+          tabindex="-1"
           class="font-mono text-xs color-muted hover:color-active tabular-nums"
           :aria-label="`Open #${item.number} on GitHub`"
           @click.stop

@@ -7,7 +7,17 @@ const rpc = useRpc()
 
 const entries = computed<QueueEntry[]>(() => state.payload.value?.queue.entries ?? [])
 const warnings = computed<string[]>(() => state.payload.value?.queue.warnings ?? [])
+const hasToken = computed<boolean>(() => state.payload.value?.repo.hasToken ?? false)
 const clearDialogOpen = ref(false)
+
+const executeConfirmOpen = computed({
+  get() {
+    return state.executeConfirmOpen.value
+  },
+  set(value: boolean) {
+    state.executeConfirmOpen.value = value
+  },
+})
 
 function sourceLabel(source: QueueEntry['source']): string {
   if (source === 'execute.yml') return 'yml'
@@ -66,6 +76,27 @@ async function confirmClear() {
     state.setError(`${(error as Error).message}`)
   }
 }
+
+function askExecute() {
+  if (!hasToken.value || entries.value.length === 0 || state.executing.value)
+    return
+  executeConfirmOpen.value = true
+}
+
+async function confirmExecute() {
+  executeConfirmOpen.value = false
+  if (entries.value.length === 0)
+    return
+  state.setError(null)
+  state.setExecuting(true)
+  try {
+    await rpc.executeQueue({ continueOnError: true })
+  }
+  catch (error) {
+    state.setError(`Execute failed: ${(error as Error).message}`)
+    state.setExecuting(false)
+  }
+}
 </script>
 
 <template>
@@ -79,7 +110,7 @@ async function confirmClear() {
   >
     <aside
       v-if="state.queueOpen.value"
-      class="fixed top-18 right-4 bottom-4 w-[28rem] max-w-[calc(100vw-2rem)] bg-glass rounded-lg shadow-xl z-40 flex flex-col overflow-hidden"
+      class="fixed top-18 right-4 bottom-4 w-[30rem] max-w-[calc(100vw-2rem)] bg-glass rounded-lg shadow-xl z-40 flex flex-col overflow-hidden"
     >
       <header class="flex items-center gap-2 px-4 py-3 border-b border-base">
         <span class="i-octicon-list-unordered-16 color-active" />
@@ -146,6 +177,22 @@ async function confirmClear() {
           </div>
         </div>
       </div>
+
+      <footer class="border-t border-base px-4 py-3 bg-base/50 flex items-center gap-2">
+        <div class="text-xs color-muted flex-1">
+          Runs every op against GitHub.
+        </div>
+        <button
+          class="btn-primary text-sm"
+          :disabled="entries.length === 0 || state.executing.value || !hasToken"
+          :title="!hasToken ? 'No GitHub token available' : undefined"
+          @click="askExecute"
+        >
+          <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-octicon-play-16'" />
+          <span>Execute {{ entries.length }} op{{ entries.length === 1 ? '' : 's' }}</span>
+          <Kbd shortcut-id="action.execute" />
+        </button>
+      </footer>
     </aside>
   </Transition>
 
@@ -165,6 +212,32 @@ async function confirmClear() {
             <button class="btn-action">Cancel</button>
           </DialogClose>
           <button class="btn-primary" @click="confirmClear">Clear</button>
+        </div>
+      </DialogContent>
+    </DialogPortal>
+  </DialogRoot>
+
+  <DialogRoot v-model:open="executeConfirmOpen">
+    <DialogPortal>
+      <DialogOverlay class="fixed inset-0 bg-black/40 backdrop-blur-sm z-60" />
+      <DialogContent
+        class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-base border border-base rounded-lg shadow-xl p-6 w-[min(92vw,28rem)] z-60"
+      >
+        <DialogTitle class="font-medium text-base mb-2 flex items-center gap-2">
+          <span class="i-octicon-play-16 color-primary-500" />
+          Execute {{ entries.length }} operation{{ entries.length === 1 ? '' : 's' }}?
+        </DialogTitle>
+        <DialogDescription class="text-sm color-muted mb-4">
+          These changes will be applied to GitHub immediately. This cannot be undone from here — you'll need to revert on GitHub if needed.
+        </DialogDescription>
+        <div class="flex justify-end gap-2">
+          <DialogClose as-child>
+            <button class="btn-action">Cancel</button>
+          </DialogClose>
+          <button class="btn-primary" :disabled="state.executing.value" @click="confirmExecute">
+            <span class="i-octicon-play-16" />
+            Execute
+          </button>
         </div>
       </DialogContent>
     </DialogPortal>

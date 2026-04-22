@@ -4,6 +4,7 @@ import type { SyncItemState } from '../../src/types/sync-state'
 
 const state = useAppState()
 const rpc = useRpc()
+const ui = useUiState()
 
 const selected = computed<SyncItemState | null>(() => {
   const num = state.selectedNumber.value
@@ -52,20 +53,41 @@ const titleText = computed(() => {
   return item.value?.title ?? ''
 })
 const titleIsPending = computed(() => !!pending.pendingTitle.value)
+const titleHtml = computed(() => renderMarkdownInline(titleText.value))
 
 const renderedBody = computed(() => renderMarkdown(item.value?.body))
 
-const commentDraft = ref('')
 const closeWithComment = ref(false)
 const submitting = ref(false)
 const editingCommentId = ref<string | null>(null)
+const editingDraft = ref('')
+
+// Persistent draft for NEW comments — routed through .ghfs/.ui.json.
+// While editing a pending comment, we bind to `editingDraft` instead so
+// the edit doesn't clobber the persisted draft.
+const commentDraft = computed<string>({
+  get() {
+    if (editingCommentId.value)
+      return editingDraft.value
+    return ui.getDraft(item.value?.number)
+  },
+  set(value: string) {
+    if (editingCommentId.value) {
+      editingDraft.value = value
+      return
+    }
+    if (item.value?.number == null)
+      return
+    ui.setDraft(item.value.number, value)
+  },
+})
 
 const scrollContainer = ref<HTMLElement | null>(null)
 
 watch(() => state.selectedNumber.value, () => {
-  commentDraft.value = ''
   closeWithComment.value = false
   editingCommentId.value = null
+  editingDraft.value = ''
   nextTick(() => {
     if (scrollContainer.value)
       scrollContainer.value.scrollTop = 0
@@ -97,11 +119,13 @@ async function queueReopen() {
 }
 
 async function submitComment() {
-  if (!item.value || !commentDraft.value.trim())
+  if (!item.value)
+    return
+  const body = (editingCommentId.value ? editingDraft.value : ui.getDraft(item.value.number)).trim()
+  if (!body)
     return
   submitting.value = true
   state.setError(null)
-  const body = commentDraft.value.trim()
   try {
     if (editingCommentId.value) {
       const entry = pending.pendingComments.value.find(e => e.id === editingCommentId.value)
@@ -109,6 +133,8 @@ async function submitComment() {
         const op = entry.op as { action: string, number: number, body: string }
         await rpc.updateQueueOp(entry.id, { ...op, body } as typeof op)
       }
+      editingCommentId.value = null
+      editingDraft.value = ''
     }
     else if (closeWithComment.value && effectiveState.value === 'open') {
       await rpc.addQueueOp({
@@ -116,6 +142,8 @@ async function submitComment() {
         number: item.value.number,
         body,
       })
+      ui.clearDraft(item.value.number)
+      closeWithComment.value = false
     }
     else {
       await rpc.addQueueOp({
@@ -123,10 +151,8 @@ async function submitComment() {
         number: item.value.number,
         body,
       })
+      ui.clearDraft(item.value.number)
     }
-    commentDraft.value = ''
-    closeWithComment.value = false
-    editingCommentId.value = null
   }
   catch (error) {
     state.setError((error as Error).message)
@@ -138,7 +164,7 @@ async function submitComment() {
 
 function startEditingPendingComment(entry: QueueEntry) {
   const op = entry.op as { body?: string }
-  commentDraft.value = op.body ?? ''
+  editingDraft.value = op.body ?? ''
   editingCommentId.value = entry.id
   closeWithComment.value = false
   nextTick(() => {
@@ -148,9 +174,8 @@ function startEditingPendingComment(entry: QueueEntry) {
 }
 
 function cancelEditing() {
-  commentDraft.value = ''
   editingCommentId.value = null
-  closeWithComment.value = false
+  editingDraft.value = ''
 }
 
 async function removePendingComment(entry: QueueEntry) {
@@ -216,12 +241,17 @@ async function discardThisItem() {
       <ItemStateIcon :item="item" :pull="pullMeta" :pending="pending.direction.value" size="lg" class="mt-0.5 shrink-0" />
       <div class="flex-1 min-w-0">
         <div class="flex items-baseline gap-2 flex-wrap">
-          <h2 class="font-medium text-xl leading-tight" :class="{ italic: titleIsPending }">{{ titleText }}</h2>
+          <h2
+            class="font-medium text-xl leading-tight"
+            :class="{ italic: titleIsPending }"
+            v-html="titleHtml"
+          />
           <a
             v-if="item.url"
             :href="item.url"
             target="_blank"
             rel="noreferrer"
+            tabindex="-1"
             class="font-mono text-base color-muted hover:color-active tabular-nums"
             :aria-label="`Open #${item.number} on GitHub`"
           >#{{ item.number }}</a>
@@ -240,16 +270,20 @@ async function discardThisItem() {
           <span v-if="item.updatedAt !== item.createdAt">updated {{ formatRelative(item.updatedAt) }}</span>
         </div>
       </div>
-      <a
-        v-if="item.url"
-        :href="item.url"
-        target="_blank"
-        rel="noreferrer"
-        class="btn-icon shrink-0"
-        aria-label="Open on GitHub"
-      >
-        <span class="i-octicon-link-external-16" />
-      </a>
+      <div class="flex items-center gap-1 shrink-0">
+        <TooltipButton v-if="item.url" tooltip="Open on GitHub">
+          <a
+            :href="item.url"
+            target="_blank"
+            rel="noreferrer"
+            class="btn-icon"
+            aria-label="Open on GitHub"
+          >
+            <span class="i-octicon-link-external-16" />
+          </a>
+        </TooltipButton>
+        <Kbd shortcut-id="list.open" />
+      </div>
     </header>
 
     <div v-if="labels.length || assignees.length || item.milestone" class="px-6 py-2 border-b border-base flex items-center gap-2 flex-wrap text-xs">

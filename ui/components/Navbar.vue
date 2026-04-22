@@ -36,20 +36,6 @@ async function checkRemote() {
   }
 }
 
-async function runQueue() {
-  if (upCount.value === 0)
-    return
-  state.setError(null)
-  state.setExecuting(true)
-  try {
-    await rpc.executeQueue({ continueOnError: true })
-  }
-  catch (error) {
-    state.setError(`Execute failed: ${(error as Error).message}`)
-    state.setExecuting(false)
-  }
-}
-
 function toggleQueue() {
   if (state.queueOpen.value)
     state.closeQueue()
@@ -134,7 +120,7 @@ function toggleQueue() {
     <div class="flex items-center gap-0.5 flex-none">
       <TooltipButton :tooltip="hasToken ? 'Sync from GitHub' : 'No GitHub token available'">
         <button class="btn-icon" :disabled="state.syncing.value || !hasToken" @click="triggerSync">
-          <span :class="state.syncing.value ? 'i-octicon-sync-16 animate-spin' : 'i-octicon-download-16'" />
+          <span class="i-octicon-sync-16" :class="{ 'animate-spin': state.syncing.value }" />
         </button>
       </TooltipButton>
       <Kbd shortcut-id="action.sync" />
@@ -151,15 +137,6 @@ function toggleQueue() {
         </button>
       </TooltipButton>
       <Kbd shortcut-id="action.queue" />
-    </div>
-
-    <div class="flex items-center gap-0.5 flex-none">
-      <TooltipButton :tooltip="hasToken ? `Execute ${upCount} queued op${upCount === 1 ? '' : 's'}` : 'No GitHub token available'">
-        <button class="btn-icon" :disabled="upCount === 0 || state.executing.value || !hasToken" @click="runQueue">
-          <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-octicon-play-16'" />
-        </button>
-      </TooltipButton>
-      <Kbd shortcut-id="action.execute" />
     </div>
 
     <div class="flex items-center gap-0.5 flex-none">

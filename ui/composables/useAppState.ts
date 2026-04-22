@@ -21,6 +21,7 @@ const syncing = ref(false)
 const executing = ref(false)
 const progress = shallowRef<ProgressState | null>(null)
 const queueOpen = ref(false)
+const executeConfirmOpen = ref(false)
 const selectedNumber = ref<number | null>(null)
 const lastError = ref<string | null>(null)
 const filters = reactive<FilterState>({
@@ -36,6 +37,7 @@ export function useAppState() {
     executing,
     progress,
     queueOpen,
+    executeConfirmOpen,
     selectedNumber,
     lastError,
     filters,
@@ -74,6 +76,10 @@ export function useAppState() {
     },
     closeQueue() {
       queueOpen.value = false
+    },
+    askExecute() {
+      queueOpen.value = true
+      executeConfirmOpen.value = true
     },
   }
 }
