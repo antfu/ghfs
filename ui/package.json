@@ -1,0 +1,33 @@
+{
+  "name": "@ghfs/ui",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "nuxi dev --port 7711",
+    "build": "nuxi generate",
+    "preview": "nuxi preview",
+    "typecheck": "nuxi typecheck"
+  },
+  "dependencies": {
+    "birpc": "catalog:",
+    "marked": "catalog:",
+    "reka-ui": "catalog:",
+    "splitpanes": "catalog:",
+    "structured-clone-es": "catalog:"
+  },
+  "devDependencies": {
+    "@iconify-json/carbon": "catalog:",
+    "@iconify-json/octicon": "catalog:",
+    "@iconify-json/ph": "catalog:",
+    "@iconify-json/ri": "catalog:",
+    "@unocss/nuxt": "catalog:",
+    "@unocss/preset-web-fonts": "catalog:",
+    "@unocss/reset": "catalog:",
+    "@vueuse/nuxt": "catalog:",
+    "nuxt": "catalog:",
+    "typescript": "catalog:",
+    "unocss": "catalog:",
+    "vue-tsc": "catalog:"
+  }
+}

@@ -355,7 +355,7 @@ describe('executePendingChanges', () => {
     const provider = createMockProvider({
       fetchItemSnapshot: vi.fn(async (number: number) => ({
         number,
-        kind: 'issue',
+        kind: 'issue' as const,
         updatedAt: '2026-01-02T00:00:00.000Z',
       })),
       actionClose,
@@ -392,7 +392,7 @@ describe('executePendingChanges', () => {
     const provider = createMockProvider({
       fetchItemSnapshot: vi.fn(async number => ({
         number,
-        kind: 'issue',
+        kind: 'issue' as const,
         updatedAt: '2026-01-01T00:00:00.000Z',
       })),
       actionRequestReviewers,
@@ -597,6 +597,7 @@ function createMockProvider(overrides: Partial<RepositoryProvider> = {}): Reposi
     })),
     fetchRepositoryLabels: vi.fn(async () => []),
     fetchRepositoryMilestones: vi.fn(async () => []),
+    countUpdatedSince: vi.fn(async () => ({ issues: 0, pulls: 0 })),
     getRequestCount: vi.fn(() => 0),
     actionClose: vi.fn(async () => {}),
     actionReopen: vi.fn(async () => {}),

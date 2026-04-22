@@ -10,6 +10,7 @@ import type {
   ProviderPullMetadata,
   ProviderReactions,
   ProviderRepository,
+  ProviderUpdateCounts,
   RepositoryProvider,
 } from '../../types/provider'
 import { randomHexColor } from '../../utils/color'
@@ -46,6 +47,7 @@ export function createGitHubProvider(options: CreateGitHubProviderOptions): Repo
     fetchRepository: () => fetchRepository(octokit, owner, repo, bumpRequestCount),
     fetchRepositoryLabels: () => fetchRepositoryLabels(octokit, owner, repo, bumpRequestCount),
     fetchRepositoryMilestones: () => fetchRepositoryMilestones(octokit, owner, repo, bumpRequestCount),
+    countUpdatedSince: since => countUpdatedSince(octokit, owner, repo, since, bumpRequestCount),
     getRequestCount: () => requestCount,
 
     actionClose: number => actionClose(octokit, owner, repo, number, bumpRequestCount),
@@ -246,6 +248,41 @@ async function fetchRepositoryMilestones(octokit: Octokit, owner: string, repo: 
     state: 'all',
     per_page: 100,
   }) as ProviderMilestone[]
+}
+
+async function countUpdatedSince(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  since: string,
+  bumpRequestCount: BumpRequestCount,
+): Promise<ProviderUpdateCounts> {
+  bumpRequestCount()
+  const sinceQuery = normalizeSinceForSearch(since)
+  const result = await octokit.graphql<{
+    issues: { issueCount: number }
+    pulls: { issueCount: number }
+  }>(
+    `query CountsUpdated($issuesQuery: String!, $pullsQuery: String!) {
+      issues: search(query: $issuesQuery, type: ISSUE, first: 0) { issueCount }
+      pulls: search(query: $pullsQuery, type: ISSUE, first: 0) { issueCount }
+    }`,
+    {
+      issuesQuery: `repo:${owner}/${repo} is:issue updated:>=${sinceQuery}`,
+      pullsQuery: `repo:${owner}/${repo} is:pr updated:>=${sinceQuery}`,
+    },
+  )
+  return {
+    issues: result.issues.issueCount,
+    pulls: result.pulls.issueCount,
+  }
+}
+
+function normalizeSinceForSearch(since: string): string {
+  const date = new Date(since)
+  if (Number.isNaN(date.getTime()))
+    return since
+  return date.toISOString()
 }
 
 async function actionClose(octokit: Octokit, owner: string, repo: string, number: number, bumpRequestCount: BumpRequestCount): Promise<void> {
@@ -566,6 +603,7 @@ function mapIssue(issue: GitHubIssue): ProviderItem {
     kind: issue.pull_request ? 'pull' : 'issue',
     ...(issue.html_url ? { url: issue.html_url } : {}),
     state: issue.state === 'closed' ? 'closed' : 'open',
+    stateReason: normalizeStateReason(issue.state_reason),
     updatedAt: issue.updated_at,
     createdAt: issue.created_at,
     closedAt: issue.closed_at,
@@ -583,6 +621,12 @@ function mapIssue(issue: GitHubIssue): ProviderItem {
     milestone: issue.milestone?.title ?? null,
     reactions: mapReactions(issue.reactions),
   }
+}
+
+function normalizeStateReason(reason: string | null | undefined): ProviderItem['stateReason'] {
+  if (reason === 'completed' || reason === 'not_planned' || reason === 'reopened')
+    return reason
+  return null
 }
 
 function mapComment(comment: GitHubComment): ProviderComment {
@@ -613,6 +657,7 @@ function mapReactions(reactions: GitHubReactions | null | undefined): ProviderRe
 interface GitHubIssue {
   number: number
   state: 'open' | 'closed'
+  state_reason?: string | null
   html_url?: string
   updated_at: string
   created_at: string
