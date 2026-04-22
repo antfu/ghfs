@@ -1,7 +1,7 @@
 {
   "name": "@ghfs/cli",
   "type": "module",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "packageManager": "pnpm@10.33.0",
   "description": "GitHub issues/PRs as filesystem, for offline view and operations in batch. Designed for human and agents.",
   "author": "Anthony Fu <anthonyfu117@hotmail.com>",
