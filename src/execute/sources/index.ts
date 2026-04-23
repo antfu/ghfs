@@ -2,6 +2,7 @@ import type { ExecuteLoadResult } from './types'
 import { writeFile } from 'node:fs/promises'
 import { dirname, join } from 'pathe'
 import { EXECUTE_MD_FILE_NAME } from '../../constants'
+import { CodedError, log } from '../../logger'
 import { pathExists } from '../../utils/fs'
 import { readAndValidateExecuteFileWithSource, validateExecuteRules, writeExecuteFile } from '../validate'
 import { readExecuteMdFile, stringifyExecuteMd } from './execute-md'
@@ -19,7 +20,7 @@ export async function loadExecuteSources(executeFilePath: string): Promise<Execu
   const mergedOps = [...ymlOps, ...executeMd.ops, ...perItem.ops]
   const customErrors = validateExecuteRules(mergedOps)
   if (customErrors.length)
-    throw new Error(`Invalid execute file: ${customErrors.join('; ')}`)
+    throw new CodedError(log.GHFS_E0108({ detail: customErrors.join('; ') }))
 
   return {
     ops: mergedOps,

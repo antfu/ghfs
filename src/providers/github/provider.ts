@@ -17,6 +17,7 @@ import type {
   ProviderUpdateCounts,
   RepositoryProvider,
 } from '../../types/provider'
+import { CodedError, log } from '../../logger'
 import { randomHexColor } from '../../utils/color'
 import { formatIssueNumber } from '../../utils/format'
 import { normalizeReactions } from '../../utils/reactions'
@@ -206,7 +207,9 @@ async function fetchPullPatch(
   if (typeof result.data === 'string')
     return result.data
 
-  throw new Error(`Unexpected patch response for pull ${formatIssueNumber(number, { repo: `${owner}/${repo}`, kind: 'pull' })}`)
+  throw new CodedError(log.GHFS_E0300({
+    issue: formatIssueNumber(number, { repo: `${owner}/${repo}`, kind: 'pull' }),
+  }))
 }
 
 async function fetchPullCommits(
@@ -632,7 +635,7 @@ async function resolveMilestone(
 
   const matched = milestones.find(item => item.title === value)
   if (!matched)
-    throw new Error(`Milestone not found: ${value}`)
+    throw new CodedError(log.GHFS_E0301({ value }))
 
   return matched.number
 }

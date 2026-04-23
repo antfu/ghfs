@@ -2,6 +2,7 @@ import type { ExecutionResult } from '../../types/execution'
 import type { ServerContext } from '../context'
 import type { ExecuteTriggerOptions } from '../types'
 import { executePendingChanges } from '../../execute'
+import { CodedError, log } from '../../logger'
 import { buildQueueState } from '../queue-builder'
 
 export function createExecuteHandler(ctx: ServerContext): (options: ExecuteTriggerOptions) => Promise<ExecutionResult> {
@@ -9,7 +10,7 @@ export function createExecuteHandler(ctx: ServerContext): (options: ExecuteTrigg
 
   return async function executeQueue(options) {
     if (running)
-      throw new Error('An execute is already in progress')
+      throw new CodedError(log.GHFS_E0201())
     running = true
     try {
       const token = await ctx.getToken()

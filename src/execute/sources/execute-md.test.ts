@@ -160,14 +160,14 @@ describe('parseExecuteMdLine', () => {
   it('returns warning for malformed quoted text', () => {
     expect(parseExecuteMdLine('set-title #1 "oops')).toEqual({
       kind: 'warning',
-      message: 'invalid quoted string syntax',
+      message: '[GHFS_W0150] invalid quoted string syntax',
     })
   })
 
   it('returns warning for unknown command', () => {
     expect(parseExecuteMdLine('unknown #1')).toEqual({
       kind: 'warning',
-      message: 'unrecognized action pattern: unknown',
+      message: '[GHFS_W0151] unrecognized action pattern: unknown',
     })
   })
 
@@ -191,7 +191,7 @@ describe('stringifyExecuteMd', () => {
     ].join('\n'))
 
     expect(parsed.warnings).toEqual([
-      'execute-md line 5: unrecognized action pattern: unknown',
+      'execute-md line 5: [GHFS_W0151] unrecognized action pattern: unknown',
     ])
 
     const output = stringifyExecuteMd(parsed, new Set([1, 3, 4]))

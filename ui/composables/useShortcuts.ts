@@ -1,3 +1,5 @@
+import { log } from '../utils/logger'
+
 export interface Shortcut {
   id: string
   /** Sequence of key values that must be pressed in order to trigger. Uses KeyboardEvent.key (e.g. 'j', 'G', '/', 'Escape'). */
@@ -59,11 +61,11 @@ export function useShortcutsHandler(): void {
         const result = sc.run()
         if (result && typeof result === 'object' && 'catch' in result)
           void (result as Promise<unknown>).catch((err: unknown) => {
-            console.error('[shortcut]', sc.id, err)
+            log.GHFS_E0901({ shortcut: sc.id, detail: String((err as Error)?.message ?? err) }, { cause: err }).error()
           })
       }
       catch (err) {
-        console.error('[shortcut]', sc.id, err)
+        log.GHFS_E0901({ shortcut: sc.id, detail: String((err as Error)?.message ?? err) }, { cause: err }).error()
       }
       return
     }

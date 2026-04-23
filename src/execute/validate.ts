@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'pathe'
 import * as v from 'valibot'
 import { parse, stringify } from 'yaml'
+import { CodedError, log } from '../logger'
 import { resolveActionName } from './actions'
 
 const LOCK_REASONS = ['resolved', 'off-topic', 'too heated', 'too-heated', 'spam'] as const
@@ -39,7 +40,7 @@ export async function readAndValidateExecuteFileWithSource(path: string): Promis
     parsed = parse(raw || '[]') || []
   }
   catch (error) {
-    throw new Error(`Failed to parse execute YAML: ${(error as Error).message}`)
+    throw new CodedError(log.GHFS_E0105({ detail: (error as Error).message }, { cause: error }))
   }
 
   const parsedResult = v.safeParse(executeFileSchema, parsed)
@@ -50,16 +51,16 @@ export async function readAndValidateExecuteFileWithSource(path: string): Promis
         return `${path ? `${path}: ` : ''}${issue.message}`
       })
       .join('; ')
-    throw new Error(`Invalid execute file: ${message}`)
+    throw new CodedError(log.GHFS_E0106({ detail: message }))
   }
 
   const { pending, sourceActions, actionErrors } = normalizeActionInputs(parsedResult.output as ExecuteInputFile)
   if (actionErrors.length)
-    throw new Error(`Invalid execute file: ${actionErrors.join('; ')}`)
+    throw new CodedError(log.GHFS_E0107({ detail: actionErrors.join('; ') }))
 
   const customErrors = validateExecuteRules(pending)
   if (customErrors.length)
-    throw new Error(`Invalid execute file: ${customErrors.join('; ')}`)
+    throw new CodedError(log.GHFS_E0108({ detail: customErrors.join('; ') }))
 
   return {
     ops: pending,

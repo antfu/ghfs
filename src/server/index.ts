@@ -21,6 +21,7 @@ import { parse, stringify } from 'structured-clone-es'
 import { WebSocketServer } from 'ws'
 import { getExecuteFile } from '../config/load'
 import { distDir } from '../dir'
+import { CodedError, log } from '../logger'
 import { GHFS_VERSION } from '../meta'
 import { createRepositoryProvider } from '../providers/factory'
 import { loadSyncState } from '../sync/state'
@@ -102,7 +103,7 @@ export async function createUiServer(options: CreateUiServerOptions): Promise<Ui
       cachedToken = await options.onRequestToken()
       return cachedToken
     }
-    throw new Error('Missing GitHub token')
+    throw new CodedError(log.GHFS_E0001())
   }
 
   let cachedProvider: RepositoryProvider | undefined

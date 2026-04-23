@@ -2,6 +2,7 @@ import type { ClientFunctions, ServerFunctions, SyncProgressPayload } from '#ghf
 import type { BirpcReturn } from 'birpc'
 import { createBirpc } from 'birpc'
 import { parse, stringify } from 'structured-clone-es'
+import { log } from '../utils/logger'
 
 let singleton: BirpcReturn<ServerFunctions, ClientFunctions> | null = null
 let currentSocket: WebSocket | null = null
@@ -117,7 +118,7 @@ function connect(rpc: BirpcReturn<ServerFunctions, ClientFunctions>): void {
       }
       catch (error) {
         // Older server builds may not return uiState; don't crash the app.
-        console.warn('[useRpc] uiState hydrate skipped:', error)
+        log.GHFS_W0950({ detail: String((error as Error)?.message ?? error) }, { cause: error }).warn()
         useUiState().hydrate(undefined)
       }
     }
