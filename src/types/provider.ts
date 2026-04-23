@@ -50,6 +50,65 @@ export interface ProviderPullMetadata {
   requestedReviewers: string[]
 }
 
+export interface ProviderCommit {
+  sha: string
+  message: string
+  authorLogin: string | null
+  authorName: string | null
+  authorDate: string
+  committerLogin: string | null
+  committerDate: string
+  url?: string
+}
+
+export type ProviderTimelineEventKind
+  = | 'committed'
+    | 'closed'
+    | 'reopened'
+    | 'merged'
+    | 'labeled'
+    | 'unlabeled'
+    | 'assigned'
+    | 'unassigned'
+    | 'review_requested'
+    | 'review_request_removed'
+    | 'reviewed'
+    | 'commented'
+    | 'renamed'
+    | 'head_ref_force_pushed'
+    | 'head_ref_deleted'
+    | 'head_ref_restored'
+    | 'locked'
+    | 'unlocked'
+    | 'ready_for_review'
+    | 'convert_to_draft'
+    | 'referenced'
+    | 'cross-referenced'
+    | 'unknown'
+
+export type ProviderReviewState = 'approved' | 'changes_requested' | 'commented' | 'dismissed' | 'pending'
+
+export interface ProviderTimelineEvent {
+  id: string
+  kind: ProviderTimelineEventKind
+  createdAt: string
+  actor: string | null
+  sha?: string
+  commitMessage?: string
+  label?: { name: string, color: string }
+  assignee?: string
+  requestedReviewer?: string
+  review?: {
+    state: ProviderReviewState
+    body: string | null
+    submittedAt: string
+  }
+  commentId?: number
+  body?: string | null
+  rename?: { from: string, to: string }
+  stateReason?: string | null
+}
+
 export interface ProviderRepository {
   name: string
   full_name: string
@@ -117,6 +176,8 @@ export interface RepositoryProvider {
   fetchComments: (number: number) => Promise<ProviderComment[]>
   fetchPullMetadata: (number: number) => Promise<ProviderPullMetadata>
   fetchPullPatch: (number: number) => Promise<string>
+  fetchPullCommits: (number: number) => Promise<ProviderCommit[]>
+  fetchTimeline: (number: number) => Promise<ProviderTimelineEvent[]>
   fetchItemSnapshot: (number: number) => Promise<ProviderItemSnapshot>
   fetchRepository: () => Promise<ProviderRepository>
   fetchRepositoryLabels: () => Promise<ProviderLabel[]>

@@ -14,7 +14,7 @@ import {
   resolveMoveSourcePath,
   updateTrackedItem,
 } from './sync-repository-storage'
-import { relativeToStorage, resolvePatchPlan } from './sync-repository-utils'
+import { relativeToStorage, resolvePatchPlan, shouldSyncPrDetails } from './sync-repository-utils'
 
 export async function prepareIssueCandidateSync(context: SyncContext, issue: ProviderItem): Promise<PreparedIssueCandidate> {
   const number = issue.number
@@ -49,7 +49,12 @@ export async function prepareIssueCandidateSync(context: SyncContext, issue: Pro
     }
   }
 
-  const hasCanonicalData = Boolean(tracked?.data && (kind !== 'pull' || tracked.data.pull))
+  const needsDetails = shouldSyncPrDetails(context.config.sync, kind, state)
+  const hasCanonicalData = Boolean(
+    tracked?.data
+    && (kind !== 'pull' || tracked.data.pull)
+    && (!needsDetails || (tracked.data.timeline && (kind !== 'pull' || tracked.data.commits))),
+  )
   const shouldRefetch = !tracked || tracked.lastUpdatedAt !== issue.updatedAt || !hasCanonicalData
   const data = shouldRefetch
     ? await fetchCanonicalData(context, issue)
@@ -227,14 +232,25 @@ function resolveSyncAction(shouldRefetch: boolean, paths: PreparedIssueCandidate
 }
 
 async function fetchCanonicalData(context: SyncContext, issue: ProviderItem) {
-  const comments = await context.provider.fetchComments(issue.number)
-  const pull = issue.kind === 'pull'
-    ? await context.provider.fetchPullMetadata(issue.number)
-    : undefined
+  const includeDetails = shouldSyncPrDetails(context.config.sync, issue.kind, issue.state)
+  const [comments, pull, commits, timeline] = await Promise.all([
+    context.provider.fetchComments(issue.number),
+    issue.kind === 'pull'
+      ? context.provider.fetchPullMetadata(issue.number)
+      : Promise.resolve(undefined),
+    issue.kind === 'pull' && includeDetails
+      ? context.provider.fetchPullCommits(issue.number)
+      : Promise.resolve(undefined),
+    includeDetails
+      ? context.provider.fetchTimeline(issue.number)
+      : Promise.resolve(undefined),
+  ])
   return {
     item: issue,
     comments,
     pull,
+    commits,
+    timeline,
   }
 }
 

@@ -40,6 +40,7 @@
     "dev": "pnpm run dev:server & pnpm run dev:ui & wait",
     "dev:server": "GHFS_UI_DEV=1 tsx src/cli.ts ui --no-open --port 7710",
     "dev:ui": "pnpm --filter @ghfs/ui dev",
+    "dev:at": "trap 'kill 0' EXIT INT TERM; pnpm run dev:ui & GHFS_UI_DEV=1 tsx src/cli.ts ui --no-open --port 7710 --cwd",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
@@ -47,7 +48,7 @@
     "release": "bumpp",
     "prepublishOnly": "pnpm run build",
     "play": "cd playgrounds/ni && tsx ../../src/cli.ts",
-    "prepare": "git submodule update --init --recursive && simple-git-hooks"
+    "prepare": "git submodule update --init --recursive && simple-git-hooks && skills-npm"
   },
   "dependencies": {
     "@clack/prompts": "catalog:",
@@ -61,6 +62,7 @@
     "h3": "catalog:",
     "jiti": "catalog:",
     "listhen": "catalog:",
+    "logs-sdk": "catalog:",
     "octokit": "catalog:",
     "ohash": "catalog:",
     "open": "catalog:",
@@ -80,6 +82,7 @@
     "eslint": "catalog:",
     "lint-staged": "catalog:",
     "simple-git-hooks": "catalog:",
+    "skills-npm": "catalog:",
     "tsdown": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",

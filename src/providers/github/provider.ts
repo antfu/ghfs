@@ -2,6 +2,7 @@ import type { Octokit } from 'octokit'
 import type {
   PaginateItemsOptions,
   ProviderComment,
+  ProviderCommit,
   ProviderItem,
   ProviderItemSnapshot,
   ProviderLabel,
@@ -10,6 +11,9 @@ import type {
   ProviderPullMetadata,
   ProviderReactions,
   ProviderRepository,
+  ProviderReviewState,
+  ProviderTimelineEvent,
+  ProviderTimelineEventKind,
   ProviderUpdateCounts,
   RepositoryProvider,
 } from '../../types/provider'
@@ -43,6 +47,8 @@ export function createGitHubProvider(options: CreateGitHubProviderOptions): Repo
     fetchComments: number => fetchComments(octokit, owner, repo, number, bumpRequestCount),
     fetchPullMetadata: number => fetchPullMetadata(octokit, owner, repo, number, bumpRequestCount),
     fetchPullPatch: number => fetchPullPatch(octokit, owner, repo, number, bumpRequestCount),
+    fetchPullCommits: number => fetchPullCommits(octokit, owner, repo, number, bumpRequestCount),
+    fetchTimeline: number => fetchTimeline(octokit, owner, repo, number, bumpRequestCount),
     fetchItemSnapshot: number => fetchItemSnapshot(octokit, owner, repo, number, bumpRequestCount),
     fetchRepository: () => fetchRepository(octokit, owner, repo, bumpRequestCount),
     fetchRepositoryLabels: () => fetchRepositoryLabels(octokit, owner, repo, bumpRequestCount),
@@ -201,6 +207,48 @@ async function fetchPullPatch(
     return result.data
 
   throw new Error(`Unexpected patch response for pull ${formatIssueNumber(number, { repo: `${owner}/${repo}`, kind: 'pull' })}`)
+}
+
+async function fetchPullCommits(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  number: number,
+  bumpRequestCount: BumpRequestCount,
+): Promise<ProviderCommit[]> {
+  bumpRequestCount()
+  const commits = await octokit.paginate(octokit.rest.pulls.listCommits, {
+    owner,
+    repo,
+    pull_number: number,
+    per_page: 100,
+  }) as GitHubPullCommit[]
+
+  return commits.map(mapPullCommit)
+}
+
+async function fetchTimeline(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  number: number,
+  bumpRequestCount: BumpRequestCount,
+): Promise<ProviderTimelineEvent[]> {
+  bumpRequestCount()
+  const events = await octokit.paginate(octokit.rest.issues.listEventsForTimeline, {
+    owner,
+    repo,
+    issue_number: number,
+    per_page: 100,
+  }) as GitHubTimelineEvent[]
+
+  const out: ProviderTimelineEvent[] = []
+  for (const event of events) {
+    const mapped = mapTimelineEvent(event)
+    if (mapped)
+      out.push(mapped)
+  }
+  return out
 }
 
 async function fetchItemSnapshot(
@@ -640,6 +688,133 @@ function mapComment(comment: GitHubComment): ProviderComment {
   }
 }
 
+function mapPullCommit(commit: GitHubPullCommit): ProviderCommit {
+  return {
+    sha: commit.sha,
+    message: commit.commit.message,
+    authorLogin: commit.author?.login ?? null,
+    authorName: commit.commit.author?.name ?? null,
+    authorDate: commit.commit.author?.date ?? commit.commit.committer?.date ?? '',
+    committerLogin: commit.committer?.login ?? null,
+    committerDate: commit.commit.committer?.date ?? commit.commit.author?.date ?? '',
+    ...(commit.html_url ? { url: commit.html_url } : {}),
+  }
+}
+
+function mapTimelineEvent(event: GitHubTimelineEvent): ProviderTimelineEvent | null {
+  const eventName = event.event
+  if (!eventName)
+    return null
+
+  // `committed` events use commit shape (no id/created_at/actor).
+  if (eventName === 'committed' && event.sha) {
+    const createdAt = event.committer?.date ?? event.author?.date
+    if (!createdAt)
+      return null
+    const fullMessage = event.message ?? ''
+    const firstLine = fullMessage.split('\n', 1)[0] ?? ''
+    return {
+      id: `commit:${event.sha}`,
+      kind: 'committed',
+      createdAt,
+      actor: event.author?.name ?? event.committer?.name ?? null,
+      sha: event.sha,
+      commitMessage: firstLine,
+      body: fullMessage,
+    }
+  }
+
+  const createdAt = event.created_at ?? event.submitted_at
+  if (!createdAt)
+    return null
+
+  const id = event.id != null ? String(event.id) : `${eventName}:${createdAt}`
+  const actor = event.actor?.login ?? event.user?.login ?? null
+  const base: ProviderTimelineEvent = {
+    id,
+    kind: 'unknown',
+    createdAt,
+    actor,
+  }
+
+  switch (eventName) {
+    case 'closed':
+    case 'reopened':
+    case 'merged':
+    case 'locked':
+    case 'unlocked':
+    case 'ready_for_review':
+    case 'convert_to_draft':
+    case 'head_ref_deleted':
+    case 'head_ref_restored':
+    case 'head_ref_force_pushed':
+      return { ...base, kind: eventName as ProviderTimelineEventKind, ...(event.state_reason ? { stateReason: event.state_reason } : {}) }
+    case 'labeled':
+    case 'unlabeled':
+      if (!event.label)
+        return null
+      return {
+        ...base,
+        kind: eventName,
+        label: { name: event.label.name, color: event.label.color ?? '' },
+      }
+    case 'assigned':
+    case 'unassigned':
+      if (!event.assignee?.login)
+        return null
+      return { ...base, kind: eventName, assignee: event.assignee.login }
+    case 'review_requested':
+    case 'review_request_removed': {
+      const reviewer = event.requested_reviewer?.login ?? event.requested_team?.name
+      if (!reviewer)
+        return null
+      return { ...base, kind: eventName, requestedReviewer: reviewer }
+    }
+    case 'reviewed': {
+      const rawState = event.state ?? 'commented'
+      return {
+        ...base,
+        kind: 'reviewed',
+        review: {
+          state: normalizeReviewState(rawState),
+          body: event.body ?? null,
+          submittedAt: event.submitted_at ?? createdAt,
+        },
+        body: event.body ?? null,
+      }
+    }
+    case 'commented':
+      return {
+        ...base,
+        kind: 'commented',
+        commentId: typeof event.id === 'number' ? event.id : undefined,
+        body: event.body ?? null,
+      }
+    case 'renamed':
+      if (!event.rename)
+        return null
+      return {
+        ...base,
+        kind: 'renamed',
+        rename: { from: event.rename.from, to: event.rename.to },
+      }
+    case 'referenced':
+    case 'cross-referenced':
+      return { ...base, kind: eventName }
+    default:
+      if (!actor)
+        return null
+      return { ...base, kind: 'unknown' }
+  }
+}
+
+function normalizeReviewState(state: string): ProviderReviewState {
+  const lower = state.toLowerCase()
+  if (lower === 'approved' || lower === 'changes_requested' || lower === 'commented' || lower === 'dismissed' || lower === 'pending')
+    return lower
+  return 'commented'
+}
+
 function mapReactions(reactions: GitHubReactions | null | undefined): ProviderReactions {
   return normalizeReactions({
     totalCount: reactions?.total_count,
@@ -710,4 +885,46 @@ interface GitHubReactions {
   'heart'?: number
   'rocket'?: number
   'eyes'?: number
+}
+
+interface GitHubPullCommit {
+  sha: string
+  html_url?: string
+  commit: {
+    message: string
+    author?: {
+      name?: string | null
+      email?: string | null
+      date?: string | null
+    } | null
+    committer?: {
+      name?: string | null
+      email?: string | null
+      date?: string | null
+    } | null
+  }
+  author?: { login: string } | null
+  committer?: { login: string } | null
+}
+
+interface GitHubTimelineEvent {
+  id?: number | string
+  event?: string
+  created_at?: string
+  submitted_at?: string
+  actor?: { login: string } | null
+  user?: { login: string } | null
+  label?: { name: string, color?: string | null }
+  assignee?: { login: string } | null
+  requested_reviewer?: { login: string } | null
+  requested_team?: { name: string } | null
+  rename?: { from: string, to: string }
+  state?: string
+  state_reason?: string | null
+  body?: string | null
+  // committed shape
+  sha?: string
+  message?: string
+  author?: { name?: string | null, date?: string | null } | null
+  committer?: { name?: string | null, date?: string | null } | null
 }

@@ -18,6 +18,7 @@ export interface UiCommandOptions {
   open?: boolean
   portless?: boolean
   subdomain?: string
+  cwd?: string
 }
 
 export function registerUiCommand(cli: CAC): void {
@@ -29,9 +30,12 @@ export function registerUiCommand(cli: CAC): void {
     .option('--no-open', 'Do not open the browser automatically')
     .option('--no-portless', 'Do not expose the UI through the portless reverse proxy')
     .option('--subdomain <slug>', 'Override the portless subdomain (defaults to the repository name)')
+    .option('--cwd <cwd>', 'Project root directory (defaults to current directory)')
     .action(withErrorHandling(async (options: UiCommandOptions) => {
       const printer = createCliPrinter('ui')
-      const config = await resolveConfig()
+      const config = await resolveConfig({
+        cwd: options.cwd ? resolve(options.cwd) : undefined,
+      })
       await ensureExecuteArtifacts(resolve(config.cwd, getExecuteFile(config)))
 
       const repo = await resolveRepo({

@@ -106,6 +106,8 @@ function normalizeItem(item: SyncItemState | undefined): SyncItemState | undefin
     return undefined
   const comments = Array.isArray(item.data.comments) ? item.data.comments : []
   const rawItem = item.data.item
+  const commits = Array.isArray(item.data.commits) ? item.data.commits : undefined
+  const timeline = Array.isArray(item.data.timeline) ? item.data.timeline : undefined
 
   return {
     ...item,
@@ -123,6 +125,8 @@ function normalizeItem(item: SyncItemState | undefined): SyncItemState | undefin
           ...comment,
           reactions: normalizeReactions(comment.reactions),
         })),
+      ...(commits ? { commits } : {}),
+      ...(timeline ? { timeline } : {}),
     },
   }
 }
