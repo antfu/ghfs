@@ -49,7 +49,6 @@ export default defineConfig({
       'border-muted': 'border-[#d1d9e0b3] dark:border-[#3d444db3]',
       'border-active': 'border-primary-500/40 dark:border-primary-400/40',
       'bg-glass': 'bg-white/80 dark:bg-[#0d1117]/80 backdrop-blur-8 border border-base',
-      'row-selected': 'bg-primary-50 dark:bg-primary-500/15 border-l-2 border-l-primary-500',
       'btn-action': 'border border-base rounded flex gap-2 items-center px2 py1 op75 hover:op100 hover:bg-active disabled:pointer-events-none disabled:op30!',
       'btn-icon': 'w-8 h-8 rounded flex items-center justify-center op75 hover:op100 hover:bg-active transition disabled:pointer-events-none disabled:op30',
       'btn-circle': 'w-10 h-10 rounded-full flex items-center justify-center op75 hover:op100 hover:bg-active transition disabled:pointer-events-none disabled:op30',

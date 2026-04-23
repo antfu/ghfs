@@ -51,7 +51,7 @@ watch(
     ref="rowRef"
     type="button"
     class="group w-full text-left flex items-start gap-3 px-4 py-3 border-b border-base transition"
-    :class="props.selected ? 'row-selected' : 'hover:bg-subtle'"
+    :class="props.selected ? 'bg-active' : 'hover:bg-subtle'"
     @click="selectItem"
   >
     <ItemStateIcon :item="item" :pull="pull" :pending="pending.direction.value" class="mt-0.5 shrink-0" />
