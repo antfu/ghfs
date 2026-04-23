@@ -1,9 +1,8 @@
 import type { EventHandler } from 'h3'
 import type { Stats } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
 import { eventHandler, serveStatic, setResponseHeader } from 'h3'
-import { dirname, resolve } from 'pathe'
+import { resolve } from 'pathe'
 import { pathExists } from '../utils/fs'
 
 const MIME_TYPES: Record<string, string> = {
@@ -31,11 +30,6 @@ function mimeTypeFor(id: string): string | undefined {
     return undefined
   const ext = id.slice(dot + 1).toLowerCase()
   return MIME_TYPES[ext]
-}
-
-export function resolveDefaultStaticDir(importMetaUrl: string): string {
-  const here = fileURLToPath(importMetaUrl)
-  return resolve(dirname(here), '..', 'ui')
 }
 
 export async function createStaticHandler(staticDir: string): Promise<EventHandler> {

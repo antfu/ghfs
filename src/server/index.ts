@@ -1,5 +1,4 @@
 import type { BirpcReturn } from 'birpc'
-import type { Server } from 'node:http'
 import type { WebSocket } from 'ws'
 import type { GhfsResolvedConfig } from '../types'
 import type { RepositoryProvider } from '../types/provider'
@@ -7,8 +6,8 @@ import type { ServerContext } from './context'
 import type { ClientFunctions, ServerFunctions } from './types'
 import { Buffer } from 'node:buffer'
 import { createServer as createHttpServer } from 'node:http'
-import process from 'node:process'
 import { createBirpc } from 'birpc'
+import { getPort } from 'get-port-please'
 import {
   createApp,
   createRouter,
@@ -17,17 +16,18 @@ import {
   setResponseStatus,
   toNodeListener,
 } from 'h3'
-import { resolve } from 'pathe'
+import { join, resolve } from 'pathe'
 import { parse, stringify } from 'structured-clone-es'
 import { WebSocketServer } from 'ws'
 import { getExecuteFile } from '../config/load'
+import { distDir } from '../dir'
 import { GHFS_VERSION } from '../meta'
 import { createRepositoryProvider } from '../providers/factory'
 import { loadSyncState } from '../sync/state'
 import { createRemotePoller } from './poller'
 import { buildQueueState } from './queue-builder'
 import { createServerFunctions } from './rpc'
-import { createStaticHandler, resolveDefaultStaticDir } from './static'
+import { createStaticHandler } from './static'
 import { createGhfsWatcher } from './watcher'
 
 export type { ClientFunctions, InitialPayload, QueueEntry, QueueState, RemoteStatus, RepoMeta, ServerFunctions } from './types'
@@ -157,9 +157,15 @@ export async function createUiServer(options: CreateUiServerOptions): Promise<Ui
     }))
   }
   else {
-    const staticDir = options.staticDir ?? resolveDefaultStaticDir(import.meta.url)
+    const staticDir = join(distDir, 'ui')
     app.use('/', await createStaticHandler(staticDir))
   }
+
+  const port = await getPort({
+    port: options.port,
+    portRange: [options.port, options.port + 19],
+    host: options.host,
+  })
 
   const httpServer = createHttpServer(toNodeListener(app))
   const wss = new WebSocketServer({ server: httpServer, path: '/__ws' })
@@ -184,7 +190,13 @@ export async function createUiServer(options: CreateUiServerOptions): Promise<Ui
     })
   })
 
-  const port = await bindToPort(httpServer, options.port, options.host)
+  await new Promise<void>((resolvePromise, rejectPromise) => {
+    httpServer.once('error', rejectPromise)
+    httpServer.listen(port, options.host, () => {
+      httpServer.off('error', rejectPromise)
+      resolvePromise()
+    })
+  })
   const urlHost = options.host === '0.0.0.0' ? 'localhost' : options.host
   const url = `http://${urlHost}:${port}`
 
@@ -222,46 +234,6 @@ function createBroadcast(
         }
       }
     },
-  })
-}
-
-async function bindToPort(server: Server, preferred: number, host: string): Promise<number> {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    const candidate = preferred + attempt
-    const bound = await tryBind(server, candidate, host)
-    if (bound)
-      return candidate
-  }
-  throw new Error(`Could not bind to a port near ${preferred} on ${host}`)
-}
-
-function tryBind(server: Server, port: number, host: string): Promise<boolean> {
-  return new Promise<boolean>((resolvePromise) => {
-    let settled = false
-    function settle(value: boolean) {
-      if (settled)
-        return
-      settled = true
-      server.off('error', handleError)
-      server.off('listening', handleListening)
-      resolvePromise(value)
-    }
-    function handleListening() {
-      settle(true)
-    }
-    function handleError(error: NodeJS.ErrnoException) {
-      if (error.code === 'EADDRINUSE') {
-        settle(false)
-        return
-      }
-      settle(false)
-      process.nextTick(() => {
-        throw error
-      })
-    }
-    server.once('error', handleError)
-    server.once('listening', handleListening)
-    server.listen(port, host)
   })
 }
 

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "birpc": "catalog:",
+    "floating-vue": "catalog:",
     "marked": "catalog:",
     "reka-ui": "catalog:",
     "splitpanes": "catalog:",

@@ -20,6 +20,7 @@
   "exports": {
     ".": "./dist/index.mjs",
     "./cli": "./dist/cli.mjs",
+    "./dir": "./dist/dir.mjs",
     "./server": "./dist/server/index.mjs",
     "./package.json": "./package.json"
   },
@@ -56,6 +57,7 @@
     "birpc": "catalog:",
     "cac": "catalog:",
     "dotenv": "catalog:",
+    "get-port-please": "catalog:",
     "h3": "catalog:",
     "jiti": "catalog:",
     "listhen": "catalog:",

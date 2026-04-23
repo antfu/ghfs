@@ -19,6 +19,7 @@ export default defineConfig({
   entry: [
     'src/index.ts',
     'src/cli.ts',
+    'src/dir.ts',
     'src/server/index.ts',
   ],
   format: ['esm'],

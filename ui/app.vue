@@ -34,32 +34,30 @@ watch(filteredEntries, (entries) => {
 </script>
 
 <template>
-  <TooltipProvider :delay-duration="200">
-    <div class="h-screen flex flex-col bg-base color-base font-sans overflow-hidden">
-      <Navbar />
+  <div class="h-screen flex flex-col bg-base color-base font-sans overflow-hidden">
+    <Navbar />
 
-      <main class="flex-1 min-h-0">
-        <Splitpanes class="h-full w-full ghfs-splitpanes" :dbl-click-splitter="false" @resize="onResize">
-          <Pane :size="listPaneSize" min-size="20" max-size="60" class="overflow-y-auto bg-base">
-            <div v-if="!state.payload.value" class="flex flex-col items-center justify-center py-32 color-muted">
-              <span class="i-octicon-sync-16 animate-spin text-2xl mb-3 color-active" />
-              <p class="text-sm">Connecting…</p>
-            </div>
-            <template v-else>
-              <ItemList :entries="filteredEntries" />
-            </template>
-          </Pane>
+    <main class="flex-1 min-h-0">
+      <Splitpanes class="h-full w-full ghfs-splitpanes" :dbl-click-splitter="false" @resize="onResize">
+        <Pane :size="listPaneSize" min-size="20" max-size="60" class="overflow-y-auto bg-base">
+          <div v-if="!state.payload.value" class="flex flex-col items-center justify-center py-32 color-muted">
+            <span class="i-octicon-sync-16 animate-spin text-2xl mb-3 color-active" />
+            <p class="text-sm">Connecting…</p>
+          </div>
+          <template v-else>
+            <ItemList :entries="filteredEntries" />
+          </template>
+        </Pane>
 
-          <Pane :size="100 - listPaneSize" class="overflow-y-auto bg-secondary/30">
-            <DetailPanel />
-          </Pane>
-        </Splitpanes>
-      </main>
+        <Pane :size="100 - listPaneSize" class="overflow-y-auto bg-secondary/30">
+          <DetailPanel />
+        </Pane>
+      </Splitpanes>
+    </main>
 
-      <QueuePanel />
-      <ProgressToast />
-    </div>
-  </TooltipProvider>
+    <QueuePanel />
+    <ProgressToast />
+  </div>
 </template>
 
 <style>
