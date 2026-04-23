@@ -1,6 +1,8 @@
 import type { UiState } from '#ghfs/server-types'
 import { useDebounceFn } from '@vueuse/core'
 
+type PrTabId = 'conversation' | 'commits' | 'changes'
+
 const uiState = reactive<UiState>({ drafts: {} })
 let hydrated = false
 let saveFn: (() => void) | null = null
@@ -12,11 +14,21 @@ function ensureSaver() {
   saveFn = useDebounceFn(() => {
     if (!hydrated)
       return
-    rpc.saveUiState({ drafts: { ...uiState.drafts }, listPaneSize: uiState.listPaneSize }).catch((error) => {
+    rpc.saveUiState({
+      drafts: { ...uiState.drafts },
+      listPaneSize: uiState.listPaneSize,
+      lastPrTab: uiState.lastPrTab,
+    }).catch((error) => {
       console.error('[useUiState] saveUiState failed:', error)
     })
   }, 700)
   return saveFn
+}
+
+function normalizePrTab(value: unknown): PrTabId | undefined {
+  if (value === 'conversation' || value === 'commits' || value === 'changes')
+    return value
+  return undefined
 }
 
 export function useUiState() {
@@ -26,6 +38,7 @@ export function useUiState() {
       : {}
     uiState.drafts = drafts
     uiState.listPaneSize = typeof next?.listPaneSize === 'number' ? next.listPaneSize : undefined
+    uiState.lastPrTab = normalizePrTab(next?.lastPrTab)
     hydrated = true
   }
 
@@ -63,6 +76,13 @@ export function useUiState() {
     ensureSaver()()
   }
 
+  function setLastPrTab(tab: PrTabId): void {
+    if (uiState.lastPrTab === tab)
+      return
+    uiState.lastPrTab = tab
+    ensureSaver()()
+  }
+
   return {
     uiState,
     hydrate,
@@ -70,5 +90,6 @@ export function useUiState() {
     setDraft,
     clearDraft,
     setListPaneSize,
+    setLastPrTab,
   }
 }

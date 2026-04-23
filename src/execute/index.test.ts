@@ -570,6 +570,8 @@ function createMockProvider(overrides: Partial<RepositoryProvider> = {}): Reposi
       requestedReviewers: [],
     })),
     fetchPullPatch: vi.fn(async () => ''),
+    fetchPullCommits: vi.fn(async () => []),
+    fetchTimeline: vi.fn(async () => []),
     fetchItemSnapshot: vi.fn(async number => ({
       number,
       kind: 'issue' as const,

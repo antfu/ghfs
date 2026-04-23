@@ -13,6 +13,7 @@
     "birpc": "catalog:",
     "floating-vue": "catalog:",
     "marked": "catalog:",
+    "parse-diff": "catalog:",
     "reka-ui": "catalog:",
     "splitpanes": "catalog:",
     "structured-clone-es": "catalog:"

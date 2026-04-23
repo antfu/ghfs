@@ -16,8 +16,22 @@ const selected = computed<SyncItemState | null>(() => {
 const item = computed(() => selected.value?.data.item ?? null)
 const comments = computed(() => selected.value?.data.comments ?? [])
 const pullMeta = computed(() => selected.value?.data.pull)
+const commits = computed(() => selected.value?.data.commits ?? [])
+const timeline = computed(() => selected.value?.data.timeline ?? [])
+const hasPatch = computed(() => Boolean(selected.value?.patchPath))
 const labels = computed(() => item.value?.labels ?? [])
 const assignees = computed(() => item.value?.assignees ?? [])
+const labelMap = useLabelColorMap()
+
+type PrTab = 'conversation' | 'commits' | 'changes'
+const prTab = computed<PrTab>({
+  get() {
+    return ui.uiState.lastPrTab ?? 'conversation'
+  },
+  set(next: PrTab) {
+    ui.setLastPrTab(next)
+  },
+})
 
 const pending = usePendingOps(computed(() => item.value?.number ?? null))
 
@@ -54,8 +68,6 @@ const titleText = computed(() => {
 })
 const titleIsPending = computed(() => !!pending.pendingTitle.value)
 const titleHtml = computed(() => renderMarkdownInline(titleText.value))
-
-const renderedBody = computed(() => renderMarkdown(item.value?.body))
 
 const closeWithComment = ref(false)
 const submitting = ref(false)
@@ -289,7 +301,13 @@ async function discardThisItem() {
     <div v-if="labels.length || assignees.length || item.milestone" class="px-6 py-2 border-b border-base flex items-center gap-2 flex-wrap text-xs">
       <template v-if="labels.length">
         <span class="i-octicon-tag-16 color-muted" />
-        <span v-for="label in labels" :key="label" class="badge-color-neutral">{{ label }}</span>
+        <span
+          v-for="label in labels"
+          :key="label"
+          class="badge border"
+          :style="labelMap.get(label) ? labelStyle(labelMap.get(label)!.color) : undefined"
+          :class="{ 'badge-color-neutral border-transparent': !labelMap.get(label) }"
+        >{{ label }}</span>
       </template>
       <template v-if="assignees.length">
         <span class="i-octicon-person-16 color-muted ml-2" />
@@ -335,86 +353,65 @@ async function discardThisItem() {
       </button>
     </div>
 
-    <div ref="scrollContainer" class="flex-1 overflow-y-auto">
-      <section class="px-6 py-5">
-        <div class="rounded-lg border border-base bg-base overflow-hidden">
-          <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-subtle">
-            <Avatar :login="item.author" :size="20" />
-            <span class="text-sm">
-              <span class="font-medium">@{{ item.author || 'ghost' }}</span>
-              <span class="color-muted"> commented {{ formatRelative(item.createdAt) }}</span>
-            </span>
-          </div>
-          <div class="px-4 py-4">
-            <div v-if="item.body" class="markdown-body text-sm" v-html="renderedBody" />
-            <p v-else class="text-sm color-muted italic">No description provided.</p>
-          </div>
-        </div>
-      </section>
-
-      <section v-if="comments.length || pending.pendingComments.value.length" class="px-6 pb-6">
-        <div class="text-xs color-muted uppercase tracking-wide font-medium mb-3 flex items-center gap-1.5">
+    <TabsRoot
+      v-if="item.kind === 'pull'"
+      v-model="prTab"
+      class="flex-1 flex flex-col min-h-0"
+    >
+      <TabsList class="flex items-stretch gap-1 px-4 pt-3 border-b border-base">
+        <TabsTrigger
+          value="conversation"
+          class="tab-trigger"
+        >
           <span class="i-octicon-comment-discussion-16" />
-          {{ comments.length }} comment{{ comments.length === 1 ? '' : 's' }}
-          <span v-if="pending.pendingComments.value.length" class="color-faint">
-            · {{ pending.pendingComments.value.length }} pending
-          </span>
-        </div>
-        <div class="space-y-4">
-          <div v-for="comment in comments" :key="`real-${comment.id}`" class="border border-base rounded-lg bg-base overflow-hidden">
-            <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-subtle">
-              <Avatar :login="comment.author" :size="20" />
-              <span class="text-sm">
-                <span class="font-medium">@{{ comment.author || 'ghost' }}</span>
-                <span class="color-muted"> commented {{ formatRelative(comment.createdAt) }}</span>
-              </span>
-            </div>
-            <div class="px-4 py-3">
-              <div v-if="comment.body" class="markdown-body text-sm" v-html="renderMarkdown(comment.body)" />
-              <p v-else class="text-sm color-muted italic">Empty comment.</p>
-            </div>
-          </div>
+          Conversation
+          <span v-if="comments.length + timeline.length" class="tab-count">{{ comments.length + timeline.length }}</span>
+        </TabsTrigger>
+        <TabsTrigger
+          value="commits"
+          class="tab-trigger"
+        >
+          <span class="i-octicon-git-commit-16" />
+          Commits
+          <span v-if="commits.length" class="tab-count">{{ commits.length }}</span>
+        </TabsTrigger>
+        <TabsTrigger
+          value="changes"
+          class="tab-trigger"
+        >
+          <span class="i-octicon-file-diff-16" />
+          Changes
+        </TabsTrigger>
+      </TabsList>
+      <div ref="scrollContainer" class="flex-1 overflow-y-auto">
+        <TabsContent value="conversation">
+          <ConversationTab
+            :item="item"
+            :comments="comments"
+            :timeline="timeline"
+            :pending-comments="pending.pendingComments.value"
+            @edit-pending="startEditingPendingComment"
+            @remove-pending="removePendingComment"
+          />
+        </TabsContent>
+        <TabsContent value="commits">
+          <PrCommitsTab :commits="commits" />
+        </TabsContent>
+        <TabsContent value="changes">
+          <PrChangesTab :number="item.number" :has-patch="hasPatch" />
+        </TabsContent>
+      </div>
+    </TabsRoot>
 
-          <div
-            v-for="entry in pending.pendingComments.value"
-            :key="`pending-${entry.id}`"
-            class="rounded-lg border-2 border-dashed border-yellow-500/60 bg-yellow-500/5"
-            :class="{ 'ring-2 ring-yellow-500/60': editingCommentId === entry.id }"
-          >
-            <div class="flex items-center gap-2 px-4 py-2 border-b border-dashed border-yellow-500/40">
-              <span class="i-octicon-hourglass-16 color-yellow-600 dark:color-yellow-400" />
-              <span class="text-sm">
-                <span class="font-medium">Pending comment</span>
-                <span v-if="entry.op.action === 'close-with-comment'" class="color-muted"> · will also close</span>
-              </span>
-              <div class="flex-1" />
-              <TooltipButton tooltip="Edit">
-                <button
-                  type="button"
-                  class="btn-icon !w-7 !h-7"
-                  aria-label="Edit pending comment"
-                  @click="startEditingPendingComment(entry)"
-                >
-                  <span class="i-octicon-pencil-16 text-sm" />
-                </button>
-              </TooltipButton>
-              <TooltipButton tooltip="Remove">
-                <button
-                  type="button"
-                  class="btn-icon !w-7 !h-7"
-                  aria-label="Remove pending comment"
-                  @click="removePendingComment(entry)"
-                >
-                  <span class="i-octicon-trash-16 text-sm" />
-                </button>
-              </TooltipButton>
-            </div>
-            <div class="px-4 py-3">
-              <p class="text-sm whitespace-pre-wrap font-sans">{{ (entry.op as { body?: string }).body || '(empty)' }}</p>
-            </div>
-          </div>
-        </div>
-      </section>
+    <div v-else ref="scrollContainer" class="flex-1 overflow-y-auto">
+      <ConversationTab
+        :item="item"
+        :comments="comments"
+        :timeline="timeline"
+        :pending-comments="pending.pendingComments.value"
+        @edit-pending="startEditingPendingComment"
+        @remove-pending="removePendingComment"
+      />
     </div>
 
     <footer class="border-t border-base px-6 py-3 bg-base flex flex-col gap-3">
