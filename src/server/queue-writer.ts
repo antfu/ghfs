@@ -8,6 +8,7 @@ import { compressOps } from '../execute/compress'
 import { ensureExecuteArtifacts } from '../execute/schema'
 import { readExecuteMdFile, stringifyExecuteMd } from '../execute/sources/execute-md'
 import { readAndValidateExecuteFileWithSource, writeExecuteFile } from '../execute/validate'
+import { CodedError, log } from '../logger'
 import { pathExists } from '../utils/fs'
 import { buildQueueState } from './queue-builder'
 
@@ -23,12 +24,12 @@ export async function removeQueueOp(options: BuildQueueStateOptions, id: string)
   const queue = await buildQueueState(options)
   const entry = queue.entries.find(e => e.id === id)
   if (!entry)
-    throw new Error(`Queue entry not found: ${id}`)
+    throw new CodedError(log.GHFS_E0202({ id }))
 
   if (entry.source === 'per-item') {
-    throw new Error(
-      `Cannot remove a per-item edit from the queue. Edit ${entry.filePath ?? 'the markdown file'} directly to adjust it.`,
-    )
+    throw new CodedError(log.GHFS_E0203({
+      target: entry.filePath ?? 'the markdown file',
+    }))
   }
 
   if (entry.source === 'execute.yml') {
@@ -40,7 +41,7 @@ export async function removeQueueOp(options: BuildQueueStateOptions, id: string)
 
   const mdPath = join(options.storageDirAbsolute, EXECUTE_MD_FILE_NAME)
   if (!await pathExists(mdPath))
-    throw new Error('execute.md not found; cannot remove op')
+    throw new CodedError(log.GHFS_E0204())
 
   const parsed = await readExecuteMdFile(mdPath)
   const remaining = new Set<number>()
@@ -56,10 +57,10 @@ export async function updateQueueOp(options: BuildQueueStateOptions, id: string,
   const queue = await buildQueueState(options)
   const entry = queue.entries.find(e => e.id === id)
   if (!entry)
-    throw new Error(`Queue entry not found: ${id}`)
+    throw new CodedError(log.GHFS_E0202({ id }))
 
   if (entry.source !== 'execute.yml')
-    throw new Error(`Cannot edit ${entry.source} ops from the queue panel`)
+    throw new CodedError(log.GHFS_E0205({ source: entry.source }))
 
   const current = await readAndValidateExecuteFileWithSource(options.executeFilePath)
   const replaced = current.ops.map((existing, index) => (index === entry.index ? op : existing))

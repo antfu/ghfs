@@ -4,7 +4,7 @@ import type { SyncSummary } from '../../sync'
 import type { ExecutionResult, GhfsResolvedConfig } from '../../types'
 import type { ExecuteCommandDependencies } from './execute'
 import { describe, expect, it, vi } from 'vitest'
-import { ExecuteCancelledError } from '../../execute'
+import { createCancelledError } from '../../execute'
 import { runExecuteCommand } from './execute'
 
 describe('runExecuteCommand', () => {
@@ -104,7 +104,7 @@ describe('runExecuteCommand', () => {
     const context = createContext({
       isTTY: vi.fn(() => true),
       executePendingChanges: vi.fn(async () => {
-        throw new ExecuteCancelledError()
+        throw createCancelledError()
       }),
     })
 

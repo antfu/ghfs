@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import process from 'node:process'
 import { promisify } from 'node:util'
+import { CodedError, log } from '../logger'
 
 const execFileAsync = promisify(execFile)
 
@@ -24,16 +25,16 @@ export async function resolveAuthToken(options: ResolveTokenOptions): Promise<st
     return envToken
 
   if (!options.interactive || !process.stdin.isTTY)
-    throw new Error('Missing GitHub token. Set GH_TOKEN/GITHUB_TOKEN or run gh auth login.')
+    throw new CodedError(log.GHFS_E0001())
 
   if (!options.promptForToken)
-    throw new Error('Missing GitHub token. Set GH_TOKEN/GITHUB_TOKEN or run gh auth login.')
+    throw new CodedError(log.GHFS_E0001())
 
   const promptedToken = await options.promptForToken()
   if (promptedToken?.trim())
     return promptedToken.trim()
 
-  throw new Error('Token prompt cancelled')
+  throw new CodedError(log.GHFS_E0002())
 }
 
 async function readTokenFromGhCli(): Promise<string | undefined> {

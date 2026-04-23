@@ -2,6 +2,7 @@ import type { ExecutionResult, GhfsResolvedConfig, IssueKind } from '../types'
 import type { RepositoryProvider } from '../types/provider'
 import type { PendingOp } from './types'
 import process from 'node:process'
+import { CodedError, log } from '../logger'
 import { createRepositoryProvider } from '../providers/factory'
 import { ensureExecuteArtifacts } from './schema'
 import { loadExecuteSources } from './sources'
@@ -58,15 +59,12 @@ export interface ExecuteReporter {
   onError?: (event: ExecuteReporterErrorEvent) => void
 }
 
-export class ExecuteCancelledError extends Error {
-  constructor() {
-    super('Execution cancelled')
-    this.name = 'ExecuteCancelledError'
-  }
+export function createCancelledError(): CodedError {
+  return new CodedError(log.GHFS_E0102())
 }
 
-export function isExecuteCancelledError(error: unknown): error is ExecuteCancelledError {
-  return error instanceof ExecuteCancelledError
+export function isExecuteCancelledError(error: unknown): error is CodedError {
+  return error instanceof CodedError && error.diagnostic.code === 'GHFS_E0102'
 }
 
 export async function executePendingChanges(options: ExecuteOptions): Promise<ExecutionResult> {
@@ -92,7 +90,7 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
 
     const interactive = process.stdin.isTTY && !options.nonInteractive
     if (interactive && !options.prompts)
-      throw new Error('Interactive execute prompts are unavailable. Use --non-interactive or provide prompts.')
+      throw new CodedError(log.GHFS_E0100())
 
     const selected = Array.isArray(options.selectedIndexes)
       ? selectOperationsByIndexes(allOps, options.selectedIndexes)
@@ -151,7 +149,7 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
     if (interactive) {
       const confirmed = await confirmApply(selected.length, options.prompts!)
       if (!confirmed)
-        throw new ExecuteCancelledError()
+        throw createCancelledError()
     }
 
     const provider = options.provider ?? createRepositoryProvider({
@@ -249,7 +247,7 @@ async function applyOperation(provider: RepositoryProvider, op: PendingOp): Prom
   if (op.ifUnchangedSince) {
     const remoteUpdatedAt = item.updatedAt
     if (remoteUpdatedAt && new Date(remoteUpdatedAt).getTime() > new Date(op.ifUnchangedSince).getTime())
-      throw new Error(`Operation conflict: remote updated_at=${remoteUpdatedAt}`)
+      throw new CodedError(log.GHFS_E0101({ remoteUpdatedAt }))
   }
 
   switch (op.action) {
@@ -339,7 +337,7 @@ async function applyOperation(provider: RepositoryProvider, op: PendingOp): Prom
       break
 
     default:
-      throw new Error(`Unsupported action: ${String((op as { action: string }).action)}`)
+      throw new CodedError(log.GHFS_E0103({ action: String((op as { action: string }).action) }))
   }
 
   return item.kind
@@ -357,7 +355,7 @@ async function selectOperations(
 ): Promise<Array<{ op: PendingOp, index: number }>> {
   const selectedIndexes = await prompts.selectOperations(ops)
   if (!selectedIndexes)
-    throw new ExecuteCancelledError()
+    throw createCancelledError()
 
   const selectedIndexesSet = new Set(selectedIndexes)
   return ops
@@ -389,7 +387,7 @@ function selectOperationsByIndexes(
 
 function ensurePullAction(action: PendingOp['action'], number: number, isPull: boolean): void {
   if (!isPull)
-    throw new Error(`Action ${action} requires #${number} to be a pull request`)
+    throw new CodedError(log.GHFS_E0104({ action, issue: `#${number}` }))
 }
 
 function describeExecutionAction(action: string, number: number): string {

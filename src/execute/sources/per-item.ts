@@ -2,6 +2,7 @@ import type { PendingOp } from '../types'
 import { readFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { parse } from 'yaml'
+import { diagnostics, formatInline } from '../../logger'
 import { loadSyncState } from '../../sync/state'
 import { formatIssueNumber } from '../../utils/format'
 import { pathExists } from '../../utils/fs'
@@ -20,14 +21,19 @@ export async function loadPerItemSource(storageDir: string): Promise<PerItemSour
   for (const tracked of Object.values(syncState.items)) {
     const markdownPath = join(storageDir, tracked.filePath)
     if (!await pathExists(markdownPath)) {
-      warnings.push(`per-item: missing markdown for ${formatIssueNumber(tracked.number, { repo })} (${tracked.filePath})`)
+      warnings.push(formatInline(diagnostics.GHFS_W0160({
+        issue: formatIssueNumber(tracked.number, { repo }),
+        path: tracked.filePath,
+      })))
       continue
     }
 
     const raw = await readFile(markdownPath, 'utf8')
     const frontmatter = parseFrontmatter(raw)
     if (!frontmatter) {
-      warnings.push(`per-item: invalid or missing frontmatter for ${formatIssueNumber(tracked.number, { repo })}`)
+      warnings.push(formatInline(diagnostics.GHFS_W0161({
+        issue: formatIssueNumber(tracked.number, { repo }),
+      })))
       continue
     }
 

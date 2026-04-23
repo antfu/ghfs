@@ -1,5 +1,6 @@
 import type { UiState } from '#ghfs/server-types'
 import { useDebounceFn } from '@vueuse/core'
+import { log } from '../utils/logger'
 
 type PrTabId = 'conversation' | 'commits' | 'changes'
 
@@ -19,7 +20,7 @@ function ensureSaver() {
       listPaneSize: uiState.listPaneSize,
       lastPrTab: uiState.lastPrTab,
     }).catch((error) => {
-      console.error('[useUiState] saveUiState failed:', error)
+      log.GHFS_E0900({ detail: String((error as Error)?.message ?? error) }, { cause: error }).error()
     })
   }, 700)
   return saveFn

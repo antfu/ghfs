@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import process from 'node:process'
 import { join } from 'pathe'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ExecuteCancelledError, executePendingChanges } from './index'
+import { executePendingChanges, isExecuteCancelledError } from './index'
 import { readAndValidateExecuteFile, writeExecuteFile } from './validate'
 
 describe('executePendingChanges', () => {
@@ -109,7 +109,7 @@ describe('executePendingChanges', () => {
         prompts,
         nonInteractive: false,
         continueOnError: false,
-      })).rejects.toBeInstanceOf(ExecuteCancelledError)
+      })).rejects.toSatisfy(isExecuteCancelledError)
     })
 
     expect(prompts.selectOperations).toHaveBeenCalledTimes(1)

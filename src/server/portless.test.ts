@@ -95,9 +95,9 @@ describe('registerPortlessRoute', () => {
 
   it('throws PortlessUnavailableError with stderr detail on failure', async () => {
     const execFileMock = mockExecFileErr('hostname already registered')
-    const { registerPortlessRoute, PortlessUnavailableError } = await loadPortlessModule(execFileMock)
+    const { registerPortlessRoute, isPortlessUnavailableError } = await loadPortlessModule(execFileMock)
 
-    await expect(registerPortlessRoute({ subdomain: 'ghfs', port: 7710 })).rejects.toBeInstanceOf(PortlessUnavailableError)
+    await expect(registerPortlessRoute({ subdomain: 'ghfs', port: 7710 })).rejects.toSatisfy(isPortlessUnavailableError)
     await expect(registerPortlessRoute({ subdomain: 'ghfs', port: 7710 })).rejects.toThrow(/hostname already registered/)
   })
 

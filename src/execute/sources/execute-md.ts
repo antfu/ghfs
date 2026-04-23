@@ -1,6 +1,7 @@
 import type { PendingSimpleOp } from '../types'
 import type { ExecuteMdLineParseResult, ExecuteMdParsed } from './types'
 import { readFile } from 'node:fs/promises'
+import { diagnostics, formatInline } from '../../logger'
 import { pathExists } from '../../utils/fs'
 import { resolveActionName } from '../actions'
 
@@ -20,14 +21,14 @@ export function parseExecuteMdLine(line: string): ExecuteMdLineParseResult {
 
   const tokens = tokenizeCommand(trimmed)
   if (!tokens)
-    return { kind: 'warning', message: 'invalid quoted string syntax' }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0150()) }
   if (tokens.length === 0)
     return undefined
 
   const [commandInput, ...args] = tokens
   const command = resolveActionName(commandInput)
   if (!command)
-    return { kind: 'warning', message: `unrecognized action pattern: ${commandInput}` }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0151({ command: commandInput })) }
 
   if (command === 'set-title')
     return parseSetTitle(args)
@@ -47,7 +48,7 @@ export function parseExecuteMdLine(line: string): ExecuteMdLineParseResult {
   if (MULTI_SIMPLE_ACTIONS.has(command as PendingSimpleOp['action']))
     return parseMultiSimpleAction(command as PendingSimpleOp['action'], args, commandInput)
 
-  return { kind: 'warning', message: `unrecognized action pattern: ${commandInput}` }
+  return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0151({ command: commandInput })) }
 }
 
 export async function readExecuteMdFile(path: string): Promise<ExecuteMdParsed> {
@@ -140,11 +141,11 @@ export function stringifyExecuteMd(parsed: ExecuteMdParsed, remainingOpIndexes: 
 
 function parseSetTitle(args: string[]): ExecuteMdLineParseResult {
   if (args.length !== 2)
-    return { kind: 'warning', message: 'set-title expects: set-title #<number> "<title>"' }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0152({ command: 'set-title', syntax: 'set-title #<number> "<title>"' })) }
 
   const number = parseIssueRef(args[0])
   if (!number)
-    return { kind: 'warning', message: 'set-title expects a single issue reference (#123)' }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0153({ command: 'set-title' })) }
 
   return {
     kind: 'single',
@@ -158,11 +159,11 @@ function parseSetTitle(args: string[]): ExecuteMdLineParseResult {
 
 function parseAddLabels(args: string[], command: string): ExecuteMdLineParseResult {
   if (args.length < 2)
-    return { kind: 'warning', message: `${command} expects: ${command} #<number> <label1, label2>` }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0152({ command, syntax: `${command} #<number> <label1, label2>` })) }
 
   const number = parseIssueRef(args[0])
   if (!number)
-    return { kind: 'warning', message: `${command} expects a single issue reference (#123)` }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0153({ command })) }
 
   const labels = args
     .slice(1)
@@ -171,7 +172,7 @@ function parseAddLabels(args: string[], command: string): ExecuteMdLineParseResu
     .filter(Boolean)
 
   if (labels.length === 0)
-    return { kind: 'warning', message: `${command} requires at least one label` }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0154({ command })) }
 
   return {
     kind: 'single',
@@ -185,11 +186,11 @@ function parseAddLabels(args: string[], command: string): ExecuteMdLineParseResu
 
 function parseAddAssignees(args: string[], command: string): ExecuteMdLineParseResult {
   if (args.length < 2)
-    return { kind: 'warning', message: `${command} expects: ${command} #<number> <assignee1, assignee2>` }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0152({ command, syntax: `${command} #<number> <assignee1, assignee2>` })) }
 
   const number = parseIssueRef(args[0])
   if (!number)
-    return { kind: 'warning', message: `${command} expects a single issue reference (#123)` }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0153({ command })) }
 
   const assignees = args
     .slice(1)
@@ -198,7 +199,7 @@ function parseAddAssignees(args: string[], command: string): ExecuteMdLineParseR
     .filter(Boolean)
 
   if (assignees.length === 0)
-    return { kind: 'warning', message: `${command} requires at least one assignee` }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0155({ command })) }
 
   return {
     kind: 'single',
@@ -212,15 +213,15 @@ function parseAddAssignees(args: string[], command: string): ExecuteMdLineParseR
 
 function parseAddComment(args: string[], command: string): ExecuteMdLineParseResult {
   if (args.length < 2)
-    return { kind: 'warning', message: `${command} expects: ${command} #<number> "<comment>"` }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0152({ command, syntax: `${command} #<number> "<comment>"` })) }
 
   const number = parseIssueRef(args[0])
   if (!number)
-    return { kind: 'warning', message: `${command} expects a single issue reference (#123)` }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0153({ command })) }
 
   const body = args.slice(1).join(' ').trim()
   if (!body)
-    return { kind: 'warning', message: `${command} requires a non-empty comment` }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0156({ command })) }
 
   return {
     kind: 'single',
@@ -234,15 +235,15 @@ function parseAddComment(args: string[], command: string): ExecuteMdLineParseRes
 
 function parseCloseWithComment(args: string[], command: string): ExecuteMdLineParseResult {
   if (args.length < 2)
-    return { kind: 'warning', message: `${command} expects: ${command} #<number> "<comment>"` }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0152({ command, syntax: `${command} #<number> "<comment>"` })) }
 
   const number = parseIssueRef(args[0])
   if (!number)
-    return { kind: 'warning', message: `${command} expects a single issue reference (#123)` }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0153({ command })) }
 
   const body = args.slice(1).join(' ').trim()
   if (!body)
-    return { kind: 'warning', message: `${command} requires a non-empty comment` }
+    return { kind: 'warning', message: formatInline(diagnostics.GHFS_W0156({ command })) }
 
   return {
     kind: 'single',
@@ -259,7 +260,7 @@ function parseMultiSimpleAction(action: PendingSimpleOp['action'], args: string[
   if (numbers.length === 0 || numbers.some(number => !number)) {
     return {
       kind: 'warning',
-      message: `${command} expects one or more issue references (#123 #456)`,
+      message: formatInline(diagnostics.GHFS_W0157({ command })),
     }
   }
 

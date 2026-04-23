@@ -1,5 +1,6 @@
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
+import { logsSDK, logsSDKServer } from 'logs-sdk/unplugin'
 import { dirname, resolve } from 'pathe'
 
 const rootDir = dirname(fileURLToPath(import.meta.url))
@@ -48,6 +49,10 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    plugins: [
+      logsSDK.vite(),
+      logsSDKServer.vite({ logFile: resolve(rootDir, '../.diagnostics.log') }),
+    ],
     resolve: {
       alias: {
         '#ghfs/server-types': resolve(rootDir, '../src/server/types.ts'),

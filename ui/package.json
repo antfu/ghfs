@@ -12,6 +12,7 @@
   "dependencies": {
     "birpc": "catalog:",
     "floating-vue": "catalog:",
+    "logs-sdk": "catalog:",
     "marked": "catalog:",
     "parse-diff": "catalog:",
     "reka-ui": "catalog:",

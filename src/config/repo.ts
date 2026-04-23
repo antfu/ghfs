@@ -3,6 +3,7 @@ import { execFile } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import process from 'node:process'
 import { promisify } from 'node:util'
+import { CodedError, log } from '../logger'
 import { pathExists } from '../utils/fs'
 
 const execFileAsync = promisify(execFile)
@@ -19,7 +20,7 @@ export async function resolveRepo(options: ResolveRepoOptions): Promise<RepoReso
   if (options.cliRepo) {
     const repo = normalizeRepo(options.cliRepo)
     if (!repo)
-      throw new Error(`Invalid --repo value: ${options.cliRepo}`)
+      throw new CodedError(log.GHFS_E0010({ value: options.cliRepo }))
     return {
       repo,
       source: 'cli',
@@ -30,7 +31,7 @@ export async function resolveRepo(options: ResolveRepoOptions): Promise<RepoReso
   if (options.configRepo) {
     const repo = normalizeRepo(options.configRepo)
     if (!repo)
-      throw new Error(`Invalid repo in ghfs.config.ts: ${options.configRepo}`)
+      throw new CodedError(log.GHFS_E0011({ value: options.configRepo }))
     return {
       repo,
       source: 'config',
@@ -51,11 +52,11 @@ export async function resolveRepo(options: ResolveRepoOptions): Promise<RepoReso
     if (options.interactive && process.stdin.isTTY && options.selectRepoChoice) {
       const repo = await options.selectRepoChoice(gitCandidate, pkgCandidate)
       if (!repo)
-        throw new Error('Repository selection cancelled')
+        throw new CodedError(log.GHFS_E0012())
 
       const normalizedRepo = normalizeRepo(repo)
       if (!normalizedRepo || (normalizedRepo !== gitCandidate.repo && normalizedRepo !== pkgCandidate.repo))
-        throw new Error(`Invalid repository selection: ${repo}`)
+        throw new CodedError(log.GHFS_E0013({ value: repo }))
 
       return {
         repo: normalizedRepo,
@@ -63,7 +64,7 @@ export async function resolveRepo(options: ResolveRepoOptions): Promise<RepoReso
         candidates,
       }
     }
-    throw new Error(`Repo mismatch detected. git=${gitCandidate.repo} package.json=${pkgCandidate.repo}. Use --repo to disambiguate.`)
+    throw new CodedError(log.GHFS_E0014({ gitRepo: gitCandidate.repo, pkgRepo: pkgCandidate.repo }))
   }
 
   if (gitCandidate) {
@@ -82,7 +83,7 @@ export async function resolveRepo(options: ResolveRepoOptions): Promise<RepoReso
     }
   }
 
-  throw new Error('Could not resolve repository. Provide --repo or set repo in ghfs.config.ts.')
+  throw new CodedError(log.GHFS_E0015())
 }
 
 export function normalizeRepo(input: string): string | undefined {

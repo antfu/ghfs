@@ -1,6 +1,7 @@
 import type { SyncSummary } from '../../sync/contracts'
 import type { ServerContext } from '../context'
 import type { SyncTriggerOptions } from '../types'
+import { CodedError, log } from '../../logger'
 import { syncRepository } from '../../sync'
 
 export function createSyncHandler(ctx: ServerContext): (options: SyncTriggerOptions) => Promise<SyncSummary> {
@@ -8,7 +9,7 @@ export function createSyncHandler(ctx: ServerContext): (options: SyncTriggerOpti
 
   return async function triggerSync(options) {
     if (running)
-      throw new Error('A sync is already in progress')
+      throw new CodedError(log.GHFS_E0200())
     running = true
     try {
       const token = await ctx.getToken()
