@@ -1,6 +1,7 @@
 import type { ServerContext } from '../context'
 import type { InitialPayload, QueueState, RepoMeta, UiState } from '../types'
 import { GHFS_VERSION } from '../../meta'
+import { loadRepoSnapshot } from '../../sync/repo-snapshot'
 import { loadSyncState } from '../../sync/state'
 import { buildQueueState } from '../queue-builder'
 import { loadUiState, saveUiState } from '../ui-state'
@@ -44,12 +45,18 @@ export function createStateHandlers(ctx: ServerContext): {
   }
 
   async function getInitialPayload(): Promise<InitialPayload> {
-    const [repo, syncState, queue, uiState] = await Promise.all([
+    const [repo, syncState, queue, uiState, snapshot] = await Promise.all([
       getRepoMeta(),
       getSyncState(),
       getQueue(),
       loadUiState(ctx.storageDirAbsolute),
+      loadRepoSnapshot(ctx.storageDirAbsolute),
     ])
+    const repositoryLabels = (snapshot?.labels ?? []).map(label => ({
+      name: label.name,
+      color: label.color,
+      description: label.description,
+    }))
     return {
       repo,
       syncState,
@@ -57,6 +64,7 @@ export function createStateHandlers(ctx: ServerContext): {
       remote: ctx.poller.getCurrent(),
       recentExecutions: syncState.executions ?? [],
       uiState,
+      repositoryLabels,
     }
   }
 

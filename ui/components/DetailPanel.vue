@@ -18,6 +18,7 @@ const comments = computed(() => selected.value?.data.comments ?? [])
 const pullMeta = computed(() => selected.value?.data.pull)
 const labels = computed(() => item.value?.labels ?? [])
 const assignees = computed(() => item.value?.assignees ?? [])
+const labelMap = useLabelColorMap()
 
 const pending = usePendingOps(computed(() => item.value?.number ?? null))
 
@@ -289,7 +290,13 @@ async function discardThisItem() {
     <div v-if="labels.length || assignees.length || item.milestone" class="px-6 py-2 border-b border-base flex items-center gap-2 flex-wrap text-xs">
       <template v-if="labels.length">
         <span class="i-octicon-tag-16 color-muted" />
-        <span v-for="label in labels" :key="label" class="badge-color-neutral">{{ label }}</span>
+        <span
+          v-for="label in labels"
+          :key="label"
+          class="badge border"
+          :style="labelMap.get(label) ? labelStyle(labelMap.get(label)!.color) : undefined"
+          :class="{ 'badge-color-neutral border-transparent': !labelMap.get(label) }"
+        >{{ label }}</span>
       </template>
       <template v-if="assignees.length">
         <span class="i-octicon-person-16 color-muted ml-2" />
