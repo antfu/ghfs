@@ -15,6 +15,7 @@ export interface UiCommandOptions {
   port?: number
   host?: string
   open?: boolean
+  cwd?: string
 }
 
 export function registerUiCommand(cli: CAC): void {
@@ -24,9 +25,12 @@ export function registerUiCommand(cli: CAC): void {
     .option('--port <port>', 'Port to listen on', { default: 7710 })
     .option('--host <host>', 'Host to bind', { default: '127.0.0.1' })
     .option('--no-open', 'Do not open the browser automatically')
+    .option('--cwd <cwd>', 'Project root directory (defaults to current directory)')
     .action(withErrorHandling(async (options: UiCommandOptions) => {
       const printer = createCliPrinter('ui')
-      const config = await resolveConfig()
+      const config = await resolveConfig({
+        cwd: options.cwd ? resolve(options.cwd) : undefined,
+      })
       await ensureExecuteArtifacts(resolve(config.cwd, getExecuteFile(config)))
 
       const repo = await resolveRepo({
