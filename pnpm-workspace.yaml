@@ -35,6 +35,7 @@ catalog:
   jiti: ^2.6.1
   lint-staged: ^16.4.0
   listhen: ^1.9.1
+  logs-sdk: ^0.0.6
   marked: ^18.0.2
   nuxt: ^4.4.2
   octokit: ^5.0.5
@@ -44,6 +45,7 @@ catalog:
   pathe: ^2.0.3
   reka-ui: ^2.9.6
   simple-git-hooks: ^2.13.1
+  skills-npm: ^1.1.1
   splitpanes: ^4.0.4
   structured-clone-es: ^2.0.0
   tsdown: ^0.21.9

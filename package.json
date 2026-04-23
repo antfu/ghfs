@@ -48,7 +48,7 @@
     "release": "bumpp",
     "prepublishOnly": "pnpm run build",
     "play": "cd playgrounds/ni && tsx ../../src/cli.ts",
-    "prepare": "git submodule update --init --recursive && simple-git-hooks"
+    "prepare": "git submodule update --init --recursive && simple-git-hooks && skills-npm"
   },
   "dependencies": {
     "@clack/prompts": "catalog:",
@@ -62,6 +62,7 @@
     "h3": "catalog:",
     "jiti": "catalog:",
     "listhen": "catalog:",
+    "logs-sdk": "catalog:",
     "octokit": "catalog:",
     "ohash": "catalog:",
     "open": "catalog:",
@@ -80,6 +81,7 @@
     "eslint": "catalog:",
     "lint-staged": "catalog:",
     "simple-git-hooks": "catalog:",
+    "skills-npm": "catalog:",
     "tsdown": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
