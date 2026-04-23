@@ -24,5 +24,6 @@ export function createServerFunctions(ctx: ServerContext): ServerFunctions {
     checkRemote: createRemoteHandler(ctx),
     openInEditor: createEditorHandler(ctx),
     saveUiState: state.saveUiState,
+    getPullPatch: state.getPullPatch,
   }
 }

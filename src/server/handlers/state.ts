@@ -1,5 +1,7 @@
 import type { ServerContext } from '../context'
 import type { InitialPayload, QueueState, RepoMeta, UiState } from '../types'
+import { readFile } from 'node:fs/promises'
+import { join } from 'pathe'
 import { GHFS_VERSION } from '../../meta'
 import { loadRepoSnapshot } from '../../sync/repo-snapshot'
 import { loadSyncState } from '../../sync/state'
@@ -12,6 +14,7 @@ export function createStateHandlers(ctx: ServerContext): {
   getQueue: () => Promise<QueueState>
   getRepoMeta: () => Promise<RepoMeta>
   saveUiState: (state: UiState) => Promise<void>
+  getPullPatch: (number: number) => Promise<string | null>
 } {
   async function getRepoMeta(): Promise<RepoMeta> {
     const syncState = await loadSyncState(ctx.storageDirAbsolute)
@@ -68,11 +71,27 @@ export function createStateHandlers(ctx: ServerContext): {
     }
   }
 
+  async function getPullPatch(number: number): Promise<string | null> {
+    const syncState = await loadSyncState(ctx.storageDirAbsolute)
+    const tracked = syncState.items[String(number)]
+    if (!tracked?.patchPath)
+      return null
+    try {
+      return await readFile(join(ctx.storageDirAbsolute, tracked.patchPath), 'utf8')
+    }
+    catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT')
+        return null
+      throw err
+    }
+  }
+
   return {
     getInitialPayload,
     getSyncState,
     getQueue,
     getRepoMeta,
     saveUiState: (state: UiState) => saveUiState(ctx.storageDirAbsolute, state),
+    getPullPatch,
   }
 }

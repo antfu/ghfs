@@ -101,6 +101,7 @@ export interface ServerFunctions {
   checkRemote: () => Promise<RemoteStatus>
   openInEditor: (filePath: string) => Promise<void>
   saveUiState: (state: UiState) => Promise<void>
+  getPullPatch: (number: number) => Promise<string | null>
 }
 
 export interface ClientFunctions {
