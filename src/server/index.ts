@@ -25,6 +25,7 @@ import { GHFS_VERSION } from '../meta'
 import { createRepositoryProvider } from '../providers/factory'
 import { loadSyncState } from '../sync/state'
 import { createRemotePoller } from './poller'
+import { registerPortlessRoute } from './portless'
 import { buildQueueState } from './queue-builder'
 import { createServerFunctions } from './rpc'
 import { createStaticHandler } from './static'
@@ -47,6 +48,17 @@ const EVENT_NAMES: (keyof ClientFunctions)[] = [
   'onRemoteStatusChange',
 ]
 
+export interface UiServerLogger {
+  info?: (message: string) => void
+  warn?: (message: string) => void
+}
+
+export interface PortlessServerOptions {
+  enabled: boolean
+  subdomain: string
+  namespace?: string
+}
+
 export interface CreateUiServerOptions {
   config: GhfsResolvedConfig
   repo: string
@@ -60,10 +72,19 @@ export interface CreateUiServerOptions {
   devMode?: boolean
   /** Poller tick interval; default 60_000. */
   pollerIntervalMs?: number
+  /** When provided and enabled, expose the UI through portless at https://<subdomain>.<namespace>.localhost. */
+  portless?: PortlessServerOptions
+  /** Logger for non-fatal notices (e.g. portless fallback). */
+  logger?: UiServerLogger
 }
 
 export interface UiServerHandle {
+  /** The preferred URL to open — the portless URL when available, otherwise the direct URL. */
   url: string
+  /** The raw `http://host:port` URL, always available. */
+  directUrl: string
+  /** The portless URL when the reverse proxy was set up successfully. */
+  portlessUrl?: string
   port: number
   host: string
   close: () => Promise<void>
@@ -198,13 +219,35 @@ export async function createUiServer(options: CreateUiServerOptions): Promise<Ui
     })
   })
   const urlHost = options.host === '0.0.0.0' ? 'localhost' : options.host
-  const url = `http://${urlHost}:${port}`
+  const directUrl = `http://${urlHost}:${port}`
+
+  let portlessUrl: string | undefined
+  let portlessUnregister: (() => Promise<void>) | undefined
+  if (options.portless?.enabled) {
+    try {
+      const route = await registerPortlessRoute({
+        subdomain: options.portless.subdomain,
+        namespace: options.portless.namespace,
+        port,
+      })
+      portlessUrl = route.url
+      portlessUnregister = route.unregister
+    }
+    catch (error) {
+      const message = (error as Error).message || String(error)
+      options.logger?.info?.(`portless unavailable (${message}); falling back to ${directUrl}`)
+    }
+  }
 
   return {
-    url,
+    url: portlessUrl ?? directUrl,
+    directUrl,
+    portlessUrl,
     port,
     host: options.host,
     close: async () => {
+      if (portlessUnregister)
+        await portlessUnregister()
       poller.close()
       await watcher.close()
       await new Promise<void>(resolveClose => wss.close(() => resolveClose()))

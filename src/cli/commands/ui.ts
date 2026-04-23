@@ -6,6 +6,7 @@ import { getExecuteFile, resolveConfig } from '../../config/load'
 import { resolveRepo } from '../../config/repo'
 import { ensureExecuteArtifacts } from '../../execute/schema'
 import { createUiServer } from '../../server'
+import { slugifyRepoName } from '../../server/portless'
 import { withErrorHandling } from '../errors'
 import { createCliPrinter } from '../printer'
 import { promptForToken, promptRepoChoice } from '../prompts'
@@ -15,6 +16,8 @@ export interface UiCommandOptions {
   port?: number
   host?: string
   open?: boolean
+  portless?: boolean
+  subdomain?: string
 }
 
 export function registerUiCommand(cli: CAC): void {
@@ -24,6 +27,8 @@ export function registerUiCommand(cli: CAC): void {
     .option('--port <port>', 'Port to listen on', { default: 7710 })
     .option('--host <host>', 'Host to bind', { default: '127.0.0.1' })
     .option('--no-open', 'Do not open the browser automatically')
+    .option('--no-portless', 'Do not expose the UI through the portless reverse proxy')
+    .option('--subdomain <slug>', 'Override the portless subdomain (defaults to the repository name)')
     .action(withErrorHandling(async (options: UiCommandOptions) => {
       const printer = createCliPrinter('ui')
       const config = await resolveConfig()
@@ -47,6 +52,8 @@ export function registerUiCommand(cli: CAC): void {
 
       const port = typeof options.port === 'number' ? options.port : Number(options.port ?? 7710)
       const host = options.host ?? '127.0.0.1'
+      const portlessEnabled = options.portless !== false
+      const subdomain = options.subdomain?.trim() || slugifyRepoName(repo.repo)
 
       const server = await createUiServer({
         config,
@@ -55,6 +62,11 @@ export function registerUiCommand(cli: CAC): void {
         port,
         host,
         devMode: process.env.GHFS_UI_DEV === '1',
+        portless: portlessEnabled ? { enabled: true, subdomain } : undefined,
+        logger: {
+          info: message => printer.info(message),
+          warn: message => printer.warn(message),
+        },
         onRequestToken: async () => resolveAuthToken({
           token: config.auth.token,
           interactive: Boolean(process.stdin.isTTY),
@@ -62,7 +74,13 @@ export function registerUiCommand(cli: CAC): void {
         }),
       })
 
-      printer.info(`ghfs UI running at ${server.url}`)
+      if (server.portlessUrl) {
+        printer.info(`ghfs UI running at ${server.portlessUrl}`)
+        printer.info(`  direct: ${server.directUrl}`)
+      }
+      else {
+        printer.info(`ghfs UI running at ${server.directUrl}`)
+      }
       if (!initialToken)
         printer.info('No GitHub token yet; sync/execute will prompt or fail until one is available.')
 

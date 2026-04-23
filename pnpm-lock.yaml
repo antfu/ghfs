@@ -105,6 +105,9 @@ catalogs:
     pathe:
       specifier: ^2.0.3
       version: 2.0.3
+    portless:
+      specifier: ^0.10.3
+      version: 0.10.3
     reka-ui:
       specifier: ^2.9.6
       version: 2.9.6
@@ -201,6 +204,9 @@ importers:
       pathe:
         specifier: 'catalog:'
         version: 2.0.3
+      portless:
+        specifier: 'catalog:'
+        version: 0.10.3
       structured-clone-es:
         specifier: 'catalog:'
         version: 2.0.0
@@ -4496,6 +4502,12 @@ packages:
 
   pnpm-workspace-yaml@1.6.0:
     resolution: {integrity: sha512-uUy4dK3E11sp7nK+hnT7uAWfkBMe00KaUw8OG3NuNlYQoTk4sc9pcdIy1+XIP85v9Tvr02mK3JPaNNrP0QyRaw==}
+
+  portless@0.10.3:
+    resolution: {integrity: sha512-lXbVUsNiwWMKJGMi49HhTMW0lS7u0EzawonDZQ+yglSnHioiQK18Y4Fe0Ilk+TuXej71E/nTOHIFIBjUGvTm9w==}
+    engines: {node: '>=20'}
+    os: [darwin, linux, win32]
+    hasBin: true
 
   postcss-calc@10.1.1:
     resolution: {integrity: sha512-NYEsLHh8DgG/PRH2+G9BTuUdtf9ViS+vdoQ0YA5OQdGsfN4ztiwtDWNtBl9EKeqNMFnIu8IKZ0cLxEQ5r5KVMw==}
@@ -10524,6 +10536,8 @@ snapshots:
   pnpm-workspace-yaml@1.6.0:
     dependencies:
       yaml: 2.8.3
+
+  portless@0.10.3: {}
 
   postcss-calc@10.1.1(postcss@8.5.8):
     dependencies:
