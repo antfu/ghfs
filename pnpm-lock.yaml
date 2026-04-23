@@ -102,6 +102,9 @@ catalogs:
     open:
       specifier: ^11.0.0
       version: 11.0.0
+    parse-diff:
+      specifier: ^0.11.1
+      version: 0.11.1
     pathe:
       specifier: ^2.0.3
       version: 2.0.3
@@ -265,6 +268,9 @@ importers:
       marked:
         specifier: 'catalog:'
         version: 18.0.2
+      parse-diff:
+        specifier: 'catalog:'
+        version: 0.11.1
       reka-ui:
         specifier: 'catalog:'
         version: 2.9.6(vue@3.5.32(typescript@6.0.3))
@@ -4423,6 +4429,9 @@ packages:
 
   package-manager-detector@1.6.0:
     resolution: {integrity: sha512-61A5ThoTiDG/C8s8UMZwSorAGwMJ0ERVGj2OjoW5pAalsNOg15+iQiPzrLJ4jhZ1HJzmC2PIHT2oEiH3R5fzNA==}
+
+  parse-diff@0.11.1:
+    resolution: {integrity: sha512-Oq4j8LAOPOcssanQkIjxosjATBIEJhCxMCxPhMu+Ci4wdNmAEdx0O+a7gzbR2PyKXgKPvRLIN5g224+dJAsKHA==}
 
   parse-gitignore@2.0.0:
     resolution: {integrity: sha512-RmVuCHWsfu0QPNW+mraxh/xjQVw/lhUCUru8Zni3Ctq3AoMhpDTq0OVdKS6iesd6Kqb7viCV3isAL43dciOSog==}
@@ -10464,6 +10473,8 @@ snapshots:
   package-json-from-dist@1.0.1: {}
 
   package-manager-detector@1.6.0: {}
+
+  parse-diff@0.11.1: {}
 
   parse-gitignore@2.0.0: {}
 

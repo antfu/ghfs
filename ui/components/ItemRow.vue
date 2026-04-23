@@ -10,6 +10,7 @@ const pull = computed(() => props.entry.data.pull)
 const search = computed(() => state.filters.search)
 const labels = computed(() => item.value.labels ?? [])
 const assignees = computed(() => item.value.assignees ?? [])
+const labelMap = useLabelColorMap()
 
 const pending = usePendingOps(computed(() => item.value.number))
 
@@ -50,7 +51,7 @@ watch(
   <button
     ref="rowRef"
     type="button"
-    class="group w-full text-left flex items-start gap-3 px-4 py-3 border-b border-base transition"
+    class="group w-full text-left flex items-start gap-2.5 px-3 py-2 text-sm border-b border-base transition"
     :class="props.selected ? 'bg-active' : 'hover:bg-subtle'"
     @click="selectItem"
   >
@@ -82,20 +83,22 @@ watch(
         </span>
       </div>
 
-      <div v-if="labels.length" class="flex items-center gap-1 flex-wrap mt-1">
+      <div v-if="labels.length" class="flex items-center gap-1 flex-wrap mt-0.5">
         <span
           v-for="label in labels.slice(0, 5)"
           :key="label"
-          class="badge-color-neutral text-[10px]"
+          class="badge text-[10px] border"
+          :style="labelMap.get(label) ? labelStyle(labelMap.get(label)!.color) : undefined"
+          :class="{ 'badge-color-neutral border-transparent': !labelMap.get(label) }"
         >{{ label }}</span>
         <span v-if="labels.length > 5" class="text-[10px] color-faint">+{{ labels.length - 5 }}</span>
       </div>
 
-      <div v-if="bodySnippetHtml" class="text-xs color-muted mt-1.5 leading-relaxed" v-html="bodySnippetHtml" />
+      <div v-if="bodySnippetHtml" class="text-xs color-muted mt-1 leading-relaxed" v-html="bodySnippetHtml" />
 
-      <div class="flex items-center gap-2 flex-wrap text-xs color-muted mt-1.5">
+      <div class="flex items-center gap-2 flex-wrap text-xs color-muted mt-1">
         <template v-if="item.author">
-          <Avatar :login="item.author" :size="16" />
+          <Avatar :login="item.author" :size="14" />
           <span class="font-mono">@{{ item.author }}</span>
         </template>
         <span class="color-faint">·</span>
@@ -107,7 +110,7 @@ watch(
               v-for="a in assignees.slice(0, 3)"
               :key="a"
               :login="a"
-              :size="16"
+              :size="14"
             />
             <span v-if="assignees.length > 3" class="font-mono">+{{ assignees.length - 3 }}</span>
           </span>

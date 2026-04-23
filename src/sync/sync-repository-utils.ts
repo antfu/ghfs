@@ -47,6 +47,16 @@ export function resolvePatchPlan(patchesMode: GhfsResolvedConfig['sync']['patche
   }
 }
 
+export function shouldSyncPrDetails(
+  sync: GhfsResolvedConfig['sync'],
+  kind: IssueKind,
+  state: IssueState,
+): boolean {
+  if (kind === 'issue')
+    return true
+  return sync.patches === 'all' || (sync.patches === 'open' && state === 'open')
+}
+
 export function relativeToStorage(storageDirAbsolute: string, absolutePath: string): string {
   if (absolutePath.startsWith(storageDirAbsolute))
     return absolutePath.slice(storageDirAbsolute.length + 1)

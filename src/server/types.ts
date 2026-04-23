@@ -46,6 +46,12 @@ export interface RepoMeta {
   hasToken: boolean
 }
 
+export interface RepoLabel {
+  name: string
+  color: string
+  description: string | null
+}
+
 export interface InitialPayload {
   repo: RepoMeta
   syncState: SyncState
@@ -53,6 +59,7 @@ export interface InitialPayload {
   remote: RemoteStatus
   recentExecutions: ExecutionResult[]
   uiState: UiState
+  repositoryLabels: RepoLabel[]
 }
 
 export interface SyncTriggerOptions {
@@ -94,6 +101,7 @@ export interface ServerFunctions {
   checkRemote: () => Promise<RemoteStatus>
   openInEditor: (filePath: string) => Promise<void>
   saveUiState: (state: UiState) => Promise<void>
+  getPullPatch: (number: number) => Promise<string | null>
 }
 
 export interface ClientFunctions {
