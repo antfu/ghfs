@@ -40,6 +40,7 @@
     "dev": "pnpm run dev:server & pnpm run dev:ui & wait",
     "dev:server": "GHFS_UI_DEV=1 tsx src/cli.ts ui --no-open --port 7710",
     "dev:ui": "pnpm --filter @ghfs/ui dev",
+    "dev:at": "trap 'kill 0' EXIT INT TERM; pnpm run dev:ui & GHFS_UI_DEV=1 tsx src/cli.ts ui --no-open --port 7710 --cwd",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
