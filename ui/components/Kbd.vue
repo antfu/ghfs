@@ -13,6 +13,8 @@ const props = withDefaults(defineProps<Props>(), {
   tone: 'default',
 })
 
+const inputFocused = useInputFocus()
+
 const binding = computed(() => {
   if (!props.shortcutId)
     return null
@@ -34,13 +36,19 @@ const isActive = computed<boolean>(() => {
     return binding.value.active.value
   return props.active
 })
+
+const fadeClass = computed(() => {
+  if (!isActive.value || inputFocused.value)
+    return 'op30'
+  return props.tone === 'muted' ? 'op60' : ''
+})
 </script>
 
 <template>
   <span
     v-if="displayKeys.length"
     class="inline-flex items-center gap-0.5 align-middle transition-opacity"
-    :class="[isActive ? '' : 'op30', tone === 'muted' ? 'op60' : '']"
+    :class="fadeClass"
   >
     <kbd v-for="(k, i) in displayKeys" :key="i" class="kbd">{{ k }}</kbd>
   </span>

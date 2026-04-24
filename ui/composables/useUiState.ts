@@ -5,6 +5,7 @@ import { log } from '../utils/logger'
 type PrTabId = 'conversation' | 'commits' | 'changes'
 
 const uiState = reactive<UiState>({ drafts: {} })
+const helpOpen = ref(false)
 let hydrated = false
 let saveFn: (() => void) | null = null
 
@@ -86,6 +87,7 @@ export function useUiState() {
 
   return {
     uiState,
+    helpOpen,
     hydrate,
     getDraft,
     setDraft,

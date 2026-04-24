@@ -16,6 +16,7 @@
     "marked": "catalog:",
     "parse-diff": "catalog:",
     "reka-ui": "catalog:",
+    "shiki": "catalog:",
     "splitpanes": "catalog:",
     "structured-clone-es": "catalog:"
   },

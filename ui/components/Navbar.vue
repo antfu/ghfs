@@ -3,17 +3,11 @@ const state = useAppState()
 const rpc = useRpc()
 const isDark = useDark()
 const { counts } = useFilteredItems()
+const { upCount } = useQueue()
 
 const repoName = computed(() => state.payload.value?.repo.repo ?? 'connecting…')
-const upCount = computed(() => state.payload.value?.queue.upCount ?? 0)
 const hasToken = computed(() => state.payload.value?.repo.hasToken ?? false)
 const searching = computed(() => state.filters.search.trim().length > 0)
-
-const stateOptions = [
-  { value: 'open', label: 'Open' },
-  { value: 'closed', label: 'Closed' },
-  { value: 'all', label: 'All' },
-] as const
 
 async function triggerSync() {
   state.setError(null)
@@ -83,19 +77,7 @@ function toggleQueue() {
 
     <div class="h-6 w-px bg-neutral-200 dark:bg-neutral-800 mx-1 flex-none" />
 
-    <div class="flex items-center gap-0.5 bg-secondary rounded p-0.5 flex-none">
-      <button
-        v-for="opt in stateOptions"
-        :key="opt.value"
-        class="px-2 py-1 rounded text-xs transition"
-        :class="state.filters.state === opt.value ? 'bg-base shadow-sm color-active font-medium' : 'color-muted hover:color-base'"
-        @click="state.filters.state = opt.value"
-      >
-        {{ opt.label }}
-      </button>
-    </div>
-
-    <label class="flex-1 min-w-40 flex items-center gap-2 border border-base rounded bg-base px-2 py-1 focus-within:border-active transition max-w-xl">
+    <label class="flex-1 min-w-40 flex items-center gap-2 border border-base rounded bg-base px-2 py-1 transition max-w-xl focus-within:border-active focus-within:ring-2 focus-within:ring-primary-500/30">
       <span class="i-octicon-search-16 color-muted shrink-0" />
       <input
         v-model="state.filters.search"

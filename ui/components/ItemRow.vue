@@ -10,7 +10,6 @@ const pull = computed(() => props.entry.data.pull)
 const search = computed(() => state.filters.search)
 const labels = computed(() => item.value.labels ?? [])
 const assignees = computed(() => item.value.assignees ?? [])
-const labelMap = useLabelColorMap()
 
 const pending = usePendingOps(computed(() => item.value.number))
 
@@ -52,7 +51,7 @@ watch(
     ref="rowRef"
     type="button"
     class="group w-full text-left flex items-start gap-2.5 px-3 py-2 text-sm border-b border-base transition"
-    :class="props.selected ? 'bg-active' : 'hover:bg-subtle'"
+    :class="props.selected ? 'bg-selected' : 'hover:bg-subtle'"
     @click="selectItem"
   >
     <ItemStateIcon :item="item" :pull="pull" :pending="pending.direction.value" class="mt-0.5 shrink-0" />
@@ -84,13 +83,7 @@ watch(
       </div>
 
       <div v-if="labels.length" class="flex items-center gap-1 flex-wrap mt-0.5">
-        <span
-          v-for="label in labels.slice(0, 5)"
-          :key="label"
-          class="badge text-[10px] border"
-          :style="labelMap.get(label) ? labelStyle(labelMap.get(label)!.color) : undefined"
-          :class="{ 'badge-color-neutral border-transparent': !labelMap.get(label) }"
-        >{{ label }}</span>
+        <Label v-for="label in labels.slice(0, 5)" :key="label" :name="label" />
         <span v-if="labels.length > 5" class="text-[10px] color-faint">+{{ labels.length - 5 }}</span>
       </div>
 

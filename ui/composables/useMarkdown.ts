@@ -1,5 +1,6 @@
 import { Marked } from 'marked'
 import { EMOJI_MAP } from './emojiMap'
+import { getHighlighter, shikiVersion } from './useShiki'
 
 const marked = new Marked({
   gfm: true,
@@ -19,6 +20,21 @@ marked.use({
     image({ href, title, text }) {
       const titleAttr = title ? ` title="${escapeAttr(title)}"` : ''
       return `<img src="${escapeAttr(href)}" alt="${escapeAttr(text)}"${titleAttr} loading="lazy">`
+    },
+    code({ text, lang }) {
+      const hl = getHighlighter()
+      const language = (lang ?? '').trim().toLowerCase()
+      if (hl && language && hl.getLoadedLanguages().includes(language)) {
+        try {
+          return hl.codeToHtml(text, {
+            lang: language,
+            themes: { light: 'github-light', dark: 'github-dark' },
+            defaultColor: false,
+          })
+        }
+        catch {}
+      }
+      return `<pre><code>${escapeHtml(text)}</code></pre>`
     },
   },
   extensions: [{
@@ -48,6 +64,8 @@ marked.use({
 })
 
 export function renderMarkdown(source: string | null | undefined): string {
+  // Track shiki readiness so computed callers re-render once the highlighter loads.
+  void shikiVersion.value
   if (!source)
     return ''
   try {
@@ -59,6 +77,7 @@ export function renderMarkdown(source: string | null | undefined): string {
 }
 
 export function renderMarkdownInline(source: string | null | undefined): string {
+  void shikiVersion.value
   if (!source)
     return ''
   try {

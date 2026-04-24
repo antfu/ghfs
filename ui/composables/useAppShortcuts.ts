@@ -4,7 +4,10 @@ export function createAppShortcuts(): Shortcut[] {
   const state = useAppState()
   const rpc = useRpc()
   const isDark = useDark()
+  const ui = useUiState()
   const { filteredEntries } = useFilteredItems()
+  const { upCount } = useQueue()
+  const { activePanel, setPanel } = useActivePanel()
 
   const activeItem = computed(() => {
     const num = state.selectedNumber.value
@@ -13,8 +16,23 @@ export function createAppShortcuts(): Shortcut[] {
   })
   const searching = computed(() => state.filters.search.trim().length > 0)
   const hasToken = computed(() => state.payload.value?.repo.hasToken ?? false)
-  const upCount = computed(() => state.payload.value?.queue.upCount ?? 0)
   const hasEntries = computed(() => filteredEntries.value.length > 0)
+
+  const SCROLL_STEP = 120
+  function navDown() {
+    if (activePanel.value === 'detail') {
+      scrollDetail(SCROLL_STEP)
+      return
+    }
+    moveFocus(1)
+  }
+  function navUp() {
+    if (activePanel.value === 'detail') {
+      scrollDetail(-SCROLL_STEP)
+      return
+    }
+    moveFocus(-1)
+  }
 
   function moveFocus(delta: number) {
     const entries = filteredEntries.value
@@ -44,6 +62,12 @@ export function createAppShortcuts(): Shortcut[] {
     el.select()
   }
 
+  function focusComment() {
+    const el = document.querySelector<HTMLTextAreaElement>('[data-shortcut="comment-draft"]')
+    if (!el) return
+    el.focus()
+  }
+
   async function triggerSync() {
     if (state.syncing.value) return
     state.setSyncing(true)
@@ -68,7 +92,16 @@ export function createAppShortcuts(): Shortcut[] {
   async function queueClose() {
     const num = activeItem.value?.number
     if (num == null) return
-    try { await rpc.addQueueOp({ action: 'close', number: num }) }
+    const body = ui.getDraft(num).trim()
+    try {
+      if (body) {
+        await rpc.addQueueOp({ action: 'close-with-comment', number: num, body })
+        ui.clearDraft(num)
+      }
+      else {
+        await rpc.addQueueOp({ action: 'close', number: num })
+      }
+    }
     catch (error) { state.setError((error as Error).message) }
   }
   async function queueReopen() {
@@ -80,45 +113,73 @@ export function createAppShortcuts(): Shortcut[] {
 
   return [
     {
-      id: 'list.next',
+      id: 'nav.down',
       keys: ['j'],
-      description: 'Next item',
-      enabled: () => hasEntries.value,
-      run: () => moveFocus(1),
+      description: 'Next item / scroll down',
+      enabled: () => activePanel.value === 'list' ? hasEntries.value : true,
+      run: navDown,
     },
     {
-      id: 'list.prev',
+      id: 'nav.up',
       keys: ['k'],
-      description: 'Previous item',
-      enabled: () => hasEntries.value,
-      run: () => moveFocus(-1),
+      description: 'Previous item / scroll up',
+      enabled: () => activePanel.value === 'list' ? hasEntries.value : true,
+      run: navUp,
     },
     {
-      id: 'list.next-arrow',
+      id: 'nav.down-arrow',
       keys: ['ArrowDown'],
+      description: 'Next item / scroll down',
+      enabled: () => activePanel.value === 'list' ? hasEntries.value : true,
+      run: navDown,
+    },
+    {
+      id: 'nav.up-arrow',
+      keys: ['ArrowUp'],
+      description: 'Previous item / scroll up',
+      enabled: () => activePanel.value === 'list' ? hasEntries.value : true,
+      run: navUp,
+    },
+    {
+      id: 'nav.next-tab',
+      keys: ['Tab'],
+      label: ['Tab'],
       description: 'Next item',
       enabled: () => hasEntries.value,
       run: () => moveFocus(1),
     },
     {
-      id: 'list.prev-arrow',
-      keys: ['ArrowUp'],
+      id: 'nav.prev-tab',
+      keys: ['Shift+Tab'],
+      label: ['⇧', 'Tab'],
       description: 'Previous item',
       enabled: () => hasEntries.value,
       run: () => moveFocus(-1),
+    },
+    {
+      id: 'panel.focus-list',
+      keys: ['ArrowLeft'],
+      description: 'Focus list panel',
+      run: () => setPanel('list'),
+    },
+    {
+      id: 'panel.focus-detail',
+      keys: ['ArrowRight'],
+      description: 'Focus detail panel',
+      run: () => setPanel('detail'),
     },
     {
       id: 'list.first',
       keys: ['g', 'g'],
       description: 'First item',
-      enabled: () => hasEntries.value,
+      enabled: () => activePanel.value === 'list' && hasEntries.value,
       run: focusFirst,
     },
     {
       id: 'list.last',
       keys: ['G'],
       description: 'Last item',
-      enabled: () => hasEntries.value,
+      enabled: () => activePanel.value === 'list' && hasEntries.value,
       run: focusLast,
     },
     {
@@ -180,9 +241,13 @@ export function createAppShortcuts(): Shortcut[] {
     {
       id: 'panel.close',
       keys: ['Escape'],
-      description: 'Close queue',
-      enabled: () => state.queueOpen.value || state.executeConfirmOpen.value,
+      description: 'Close overlay',
+      enabled: () => ui.helpOpen.value || state.queueOpen.value || state.executeConfirmOpen.value,
       run: () => {
+        if (ui.helpOpen.value) {
+          ui.helpOpen.value = false
+          return
+        }
         if (state.executeConfirmOpen.value) {
           state.executeConfirmOpen.value = false
           return
@@ -203,6 +268,40 @@ export function createAppShortcuts(): Shortcut[] {
       description: 'Queue reopen',
       enabled: () => !!activeItem.value && activeItem.value.state === 'closed',
       run: queueReopen,
+    },
+    {
+      id: 'comment.focus',
+      keys: ['n'],
+      description: 'Focus comment',
+      enabled: () => !!activeItem.value,
+      run: focusComment,
+    },
+    {
+      id: 'pr.tab.conversation',
+      keys: ['v'],
+      description: 'Conversation tab',
+      enabled: () => activeItem.value?.kind === 'pull',
+      run: () => ui.setLastPrTab('conversation'),
+    },
+    {
+      id: 'pr.tab.commits',
+      keys: ['m'],
+      description: 'Commits tab',
+      enabled: () => activeItem.value?.kind === 'pull',
+      run: () => ui.setLastPrTab('commits'),
+    },
+    {
+      id: 'pr.tab.changes',
+      keys: ['f'],
+      description: 'Changes tab',
+      enabled: () => activeItem.value?.kind === 'pull',
+      run: () => ui.setLastPrTab('changes'),
+    },
+    {
+      id: 'help.open',
+      keys: ['?'],
+      description: 'Keyboard shortcuts',
+      run: () => { ui.helpOpen.value = true },
     },
   ]
 }

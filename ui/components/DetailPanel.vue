@@ -21,7 +21,6 @@ const timeline = computed(() => selected.value?.data.timeline ?? [])
 const hasPatch = computed(() => Boolean(selected.value?.patchPath))
 const labels = computed(() => item.value?.labels ?? [])
 const assignees = computed(() => item.value?.assignees ?? [])
-const labelMap = useLabelColorMap()
 
 type PrTab = 'conversation' | 'commits' | 'changes'
 const prTab = computed<PrTab>({
@@ -69,7 +68,6 @@ const titleText = computed(() => {
 const titleIsPending = computed(() => !!pending.pendingTitle.value)
 const titleHtml = computed(() => renderMarkdownInline(titleText.value))
 
-const closeWithComment = ref(false)
 const submitting = ref(false)
 const editingCommentId = ref<string | null>(null)
 const editingDraft = ref('')
@@ -97,7 +95,6 @@ const commentDraft = computed<string>({
 const scrollContainer = ref<HTMLElement | null>(null)
 
 watch(() => state.selectedNumber.value, () => {
-  closeWithComment.value = false
   editingCommentId.value = null
   editingDraft.value = ''
   nextTick(() => {
@@ -106,12 +103,26 @@ watch(() => state.selectedNumber.value, () => {
   })
 })
 
+const draftHasContent = computed(() => {
+  if (editingCommentId.value)
+    return false
+  return commentDraft.value.trim().length > 0
+})
+
 async function queueClose() {
   if (!item.value)
     return
   state.setError(null)
+  const number = item.value.number
+  const body = ui.getDraft(number).trim()
   try {
-    await rpc.addQueueOp({ action: 'close', number: item.value.number })
+    if (body) {
+      await rpc.addQueueOp({ action: 'close-with-comment', number, body })
+      ui.clearDraft(number)
+    }
+    else {
+      await rpc.addQueueOp({ action: 'close', number })
+    }
   }
   catch (error) {
     state.setError((error as Error).message)
@@ -131,6 +142,8 @@ async function queueReopen() {
 }
 
 async function submitComment() {
+  if (submitting.value)
+    return
   if (!item.value)
     return
   const body = (editingCommentId.value ? editingDraft.value : ui.getDraft(item.value.number)).trim()
@@ -147,15 +160,6 @@ async function submitComment() {
       }
       editingCommentId.value = null
       editingDraft.value = ''
-    }
-    else if (closeWithComment.value && effectiveState.value === 'open') {
-      await rpc.addQueueOp({
-        action: 'close-with-comment',
-        number: item.value.number,
-        body,
-      })
-      ui.clearDraft(item.value.number)
-      closeWithComment.value = false
     }
     else {
       await rpc.addQueueOp({
@@ -178,7 +182,6 @@ function startEditingPendingComment(entry: QueueEntry) {
   const op = entry.op as { body?: string }
   editingDraft.value = op.body ?? ''
   editingCommentId.value = entry.id
-  closeWithComment.value = false
   nextTick(() => {
     const el = document.querySelector<HTMLTextAreaElement>('[data-shortcut="comment-draft"]')
     el?.focus()
@@ -221,13 +224,7 @@ async function executeThisItem() {
 
 async function discardThisItem() {
   state.setError(null)
-  const entries = pending.entries.value
-  const skipped: string[] = []
-  for (const entry of entries) {
-    if (entry.source === 'per-item') {
-      skipped.push(entry.filePath ?? '(per-item)')
-      continue
-    }
+  for (const entry of pending.entries.value) {
     try {
       await rpc.removeQueueOp(entry.id)
     }
@@ -236,19 +233,22 @@ async function discardThisItem() {
       return
     }
   }
-  if (skipped.length)
-    state.setError(`Left ${skipped.length} frontmatter edit(s) in place; edit the markdown to undo them.`)
 }
+
+const { activePanel } = useActivePanel()
+const ringClass = computed(() =>
+  activePanel.value === 'detail' ? 'panel-active' : '',
+)
 </script>
 
 <template>
-  <div v-if="!item" class="h-full flex flex-col items-center justify-center color-muted">
+  <div v-if="!item" class="h-full flex flex-col items-center justify-center color-muted transition" :class="ringClass">
     <span class="i-octicon-inbox-16 text-5xl mb-4 op-fade" />
     <p class="text-sm">Select an item on the left to view it here.</p>
     <p class="text-xs mt-2 color-faint">Use <span class="kbd">j</span> <span class="kbd">k</span> or <span class="kbd">↑</span> <span class="kbd">↓</span> to navigate.</p>
   </div>
 
-  <article v-else class="h-full flex flex-col min-h-0 bg-base">
+  <article v-else class="h-full flex flex-col min-h-0 bg-base transition" :class="ringClass">
     <header class="flex items-start gap-3 px-6 py-4 border-b border-base">
       <ItemStateIcon :item="item" :pull="pullMeta" :pending="pending.direction.value" size="lg" class="mt-0.5 shrink-0" />
       <div class="flex-1 min-w-0">
@@ -258,16 +258,7 @@ async function discardThisItem() {
             :class="{ italic: titleIsPending }"
             v-html="titleHtml"
           />
-          <a
-            v-if="item.url"
-            :href="item.url"
-            target="_blank"
-            rel="noreferrer"
-            tabindex="-1"
-            class="font-mono text-base color-muted hover:color-active tabular-nums"
-            :aria-label="`Open #${item.number} on GitHub`"
-          >#{{ item.number }}</a>
-          <span v-else class="font-mono text-base color-muted tabular-nums">#{{ item.number }}</span>
+          <span class="font-mono text-base color-muted tabular-nums">#{{ item.number }}</span>
         </div>
         <div class="flex items-center gap-2 flex-wrap text-xs color-muted mt-2">
           <span class="badge-color-neutral uppercase tracking-wide text-[10px]">{{ stateLabel }}</span>
@@ -301,13 +292,7 @@ async function discardThisItem() {
     <div v-if="labels.length || assignees.length || item.milestone" class="px-6 py-2 border-b border-base flex items-center gap-2 flex-wrap text-xs">
       <template v-if="labels.length">
         <span class="i-octicon-tag-16 color-muted" />
-        <span
-          v-for="label in labels"
-          :key="label"
-          class="badge border"
-          :style="labelMap.get(label) ? labelStyle(labelMap.get(label)!.color) : undefined"
-          :class="{ 'badge-color-neutral border-transparent': !labelMap.get(label) }"
-        >{{ label }}</span>
+        <Label v-for="label in labels" :key="label" :name="label" />
       </template>
       <template v-if="assignees.length">
         <span class="i-octicon-person-16 color-muted ml-2" />
@@ -366,6 +351,7 @@ async function discardThisItem() {
           <span class="i-octicon-comment-discussion-16" />
           Conversation
           <span v-if="comments.length + timeline.length" class="tab-count">{{ comments.length + timeline.length }}</span>
+          <Kbd shortcut-id="pr.tab.conversation" tone="muted" />
         </TabsTrigger>
         <TabsTrigger
           value="commits"
@@ -374,6 +360,7 @@ async function discardThisItem() {
           <span class="i-octicon-git-commit-16" />
           Commits
           <span v-if="commits.length" class="tab-count">{{ commits.length }}</span>
+          <Kbd shortcut-id="pr.tab.commits" tone="muted" />
         </TabsTrigger>
         <TabsTrigger
           value="changes"
@@ -381,9 +368,10 @@ async function discardThisItem() {
         >
           <span class="i-octicon-file-diff-16" />
           Changes
+          <Kbd shortcut-id="pr.tab.changes" tone="muted" />
         </TabsTrigger>
       </TabsList>
-      <div ref="scrollContainer" class="flex-1 overflow-y-auto">
+      <div ref="scrollContainer" data-scroll="detail" class="flex-1 overflow-y-auto">
         <TabsContent value="conversation">
           <ConversationTab
             :item="item"
@@ -403,7 +391,7 @@ async function discardThisItem() {
       </div>
     </TabsRoot>
 
-    <div v-else ref="scrollContainer" class="flex-1 overflow-y-auto">
+    <div v-else ref="scrollContainer" data-scroll="detail" class="flex-1 overflow-y-auto">
       <ConversationTab
         :item="item"
         :comments="comments"
@@ -415,20 +403,30 @@ async function discardThisItem() {
     </div>
 
     <footer class="border-t border-base px-6 py-3 bg-base flex flex-col gap-3">
-      <div class="border border-base rounded-lg bg-base" :class="{ 'ring-2 ring-yellow-500/60 border-yellow-500/60': editingCommentId }">
-        <textarea
-          v-model="commentDraft"
-          data-shortcut="comment-draft"
-          :placeholder="editingCommentId ? 'Editing pending comment…' : `Leave a comment on this ${kindLabel}`"
-          rows="3"
-          class="w-full bg-transparent outline-none px-3 py-2 text-sm resize-none font-sans"
-        />
+      <div
+        class="border border-base rounded-lg bg-base transition"
+        :class="editingCommentId
+          ? 'ring-2 ring-yellow-500/60 border-yellow-500/60'
+          : 'focus-within:border-active focus-within:ring-2 focus-within:ring-primary-500/30'"
+      >
+        <div class="relative">
+          <textarea
+            v-model="commentDraft"
+            data-shortcut="comment-draft"
+            :placeholder="editingCommentId ? 'Editing pending comment…' : `Leave a comment on this ${kindLabel}`"
+            rows="3"
+            class="peer w-full bg-transparent outline-none px-3 py-2 text-sm resize-none font-sans"
+            @keydown.meta.enter.prevent.stop="submitComment"
+            @keydown.ctrl.enter.prevent.stop="submitComment"
+          />
+          <Kbd
+            shortcut-id="comment.focus"
+            tone="muted"
+            class="absolute bottom-2 right-2 pointer-events-none peer-focus:op0 transition-opacity"
+          />
+        </div>
         <div class="flex items-center gap-2 px-2 py-1.5 border-t border-base">
-          <label v-if="!editingCommentId && effectiveState === 'open'" class="flex items-center gap-1.5 text-xs color-muted cursor-pointer select-none">
-            <input v-model="closeWithComment" type="checkbox" class="accent-primary-500">
-            Close with comment
-          </label>
-          <span v-else-if="editingCommentId" class="text-xs color-muted">Editing a queued comment</span>
+          <span v-if="editingCommentId" class="text-xs color-muted">Editing a queued comment</span>
           <div class="flex-1" />
           <button
             v-if="editingCommentId"
@@ -445,7 +443,9 @@ async function discardThisItem() {
             @click="queueClose"
           >
             <span class="i-octicon-x-circle-16 color-red-500 dark:color-red-400" />
-            {{ pending.direction.value === 'reopen' ? 'Cancel reopen' : `Close ${kindLabel}` }}
+            <span v-if="pending.direction.value === 'reopen'">Cancel reopen</span>
+            <span v-else-if="draftHasContent">Close with comment</span>
+            <span v-else>Close {{ kindLabel }}</span>
             <Kbd shortcut-id="item.close" />
           </button>
           <button
@@ -465,8 +465,8 @@ async function discardThisItem() {
           >
             <span class="i-octicon-comment-16" />
             <span v-if="editingCommentId">Update comment</span>
-            <span v-else-if="closeWithComment && effectiveState === 'open'">Close with comment</span>
             <span v-else>Comment</span>
+            <Kbd keys="⌘ ↵" tone="muted" />
           </button>
         </div>
       </div>

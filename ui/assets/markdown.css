@@ -113,6 +113,29 @@
   white-space: pre;
 }
 
+/* Shiki dual-theme highlighting. With `defaultColor: false` shiki emits only
+ * CSS variables, so we wire each theme explicitly. */
+.markdown-body pre.shiki {
+  background-color: var(--shiki-light-bg);
+  color: var(--shiki-light);
+}
+.markdown-body pre.shiki span {
+  color: var(--shiki-light);
+  font-style: var(--shiki-light-font-style);
+  font-weight: var(--shiki-light-font-weight);
+  text-decoration: var(--shiki-light-text-decoration);
+}
+.dark .markdown-body pre.shiki {
+  background-color: var(--shiki-dark-bg);
+  color: var(--shiki-dark);
+}
+.dark .markdown-body pre.shiki span {
+  color: var(--shiki-dark);
+  font-style: var(--shiki-dark-font-style);
+  font-weight: var(--shiki-dark-font-weight);
+  text-decoration: var(--shiki-dark-text-decoration);
+}
+
 /* Blockquote */
 .markdown-body blockquote {
   margin: 0 0 12px 0;

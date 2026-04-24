@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import type { QueueEntry } from '#ghfs/server-types'
+import type { SyncItemState } from '../../src/types/sync-state'
 import { ACTIONS_COLOR_HEX } from '#ghfs/action-colors'
+
+interface Group {
+  number: number
+  item: SyncItemState | null
+  entries: QueueEntry[]
+}
 
 const state = useAppState()
 const rpc = useRpc()
+const { entries } = useQueue()
 
-const entries = computed<QueueEntry[]>(() => state.payload.value?.queue.entries ?? [])
 const warnings = computed<string[]>(() => state.payload.value?.queue.warnings ?? [])
 const hasToken = computed<boolean>(() => state.payload.value?.repo.hasToken ?? false)
 const clearDialogOpen = ref(false)
@@ -19,11 +26,24 @@ const executeConfirmOpen = computed({
   },
 })
 
-function sourceLabel(source: QueueEntry['source']): string {
-  if (source === 'execute.yml') return 'yml'
-  if (source === 'execute.md') return 'md'
-  return 'frontmatter'
-}
+const groups = computed<Group[]>(() => {
+  const items = state.payload.value?.syncState.items ?? {}
+  const byNumber = new Map<number, Group>()
+  for (const entry of entries.value) {
+    const number = entry.op.number
+    const group = byNumber.get(number)
+    if (group) {
+      group.entries.push(entry)
+      continue
+    }
+    byNumber.set(number, {
+      number,
+      item: items[String(number)] ?? null,
+      entries: [entry],
+    })
+  }
+  return [...byNumber.values()].sort((a, b) => a.number - b.number)
+})
 
 function actionColor(action: string): string {
   return (ACTIONS_COLOR_HEX as Record<string, string>)[action] ?? '#6b7280'
@@ -45,21 +65,15 @@ function summarize(entry: QueueEntry): string {
   return details.join(' ')
 }
 
+function selectItem(number: number) {
+  state.selectItem(number)
+  state.closeQueue()
+}
+
 async function remove(entry: QueueEntry) {
   state.setError(null)
   try {
     await rpc.removeQueueOp(entry.id)
-  }
-  catch (error) {
-    state.setError(`${(error as Error).message}`)
-  }
-}
-
-async function openFile(entry: QueueEntry) {
-  if (!entry.filePath)
-    return
-  try {
-    await rpc.openInEditor(entry.filePath)
   }
   catch (error) {
     state.setError(`${(error as Error).message}`)
@@ -85,12 +99,13 @@ function askExecute() {
 
 async function confirmExecute() {
   executeConfirmOpen.value = false
-  if (entries.value.length === 0)
+  const ids = entries.value.map(e => e.id)
+  if (ids.length === 0)
     return
   state.setError(null)
   state.setExecuting(true)
   try {
-    await rpc.executeQueue({ continueOnError: true })
+    await rpc.executeQueue({ entryIds: ids, continueOnError: true })
   }
   catch (error) {
     state.setError(`Execute failed: ${(error as Error).message}`)
@@ -144,37 +159,56 @@ async function confirmExecute() {
           <span class="text-xs color-faint">Open an item and use the footer actions to queue close/reopen/comment.</span>
         </div>
         <div v-else class="divide-y divide-neutral-200 dark:divide-neutral-800">
-          <div
-            v-for="entry in entries"
-            :key="entry.id"
-            class="group flex items-start gap-3 px-4 py-2.5 hover:bg-active transition"
-          >
-            <span
-              class="badge font-mono text-xs flex-none"
-              :style="{ backgroundColor: `${actionColor(entry.op.action)}22`, color: actionColor(entry.op.action) }"
-            >{{ entry.op.action }}</span>
-
-            <div class="flex-1 min-w-0">
-              <div class="font-mono text-sm">#{{ entry.op.number }}</div>
-              <div v-if="summarize(entry)" class="text-xs color-muted truncate mt-0.5">{{ summarize(entry) }}</div>
-              <div class="text-[10px] color-faint font-mono mt-0.5 uppercase tracking-wide">
-                {{ sourceLabel(entry.source) }}
+          <section v-for="group in groups" :key="group.number" class="flex flex-col">
+            <button
+              type="button"
+              class="flex items-start gap-2 px-4 py-2 bg-secondary/60 hover:bg-active transition text-left"
+              @click="selectItem(group.number)"
+            >
+              <ItemStateIcon
+                v-if="group.item"
+                :item="group.item.data.item"
+                :pull="group.item.data.pull"
+                size="sm"
+                class="mt-0.5 shrink-0"
+              />
+              <span v-else class="i-octicon-question-16 color-muted mt-0.5 shrink-0" />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 text-sm">
+                  <span v-if="group.item" class="truncate font-medium">{{ group.item.data.item.title }}</span>
+                  <span v-else class="color-muted italic">Unknown item</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs color-muted mt-0.5 font-mono tabular-nums">
+                  <span>#{{ group.number }}</span>
+                  <template v-if="group.item">
+                    <span class="color-faint">·</span>
+                    <span>{{ group.item.data.item.kind === 'pull' ? 'pull request' : 'issue' }}</span>
+                    <span v-if="group.item.data.item.author" class="color-faint">·</span>
+                    <span v-if="group.item.data.item.author">@{{ group.item.data.item.author }}</span>
+                  </template>
+                </div>
               </div>
-            </div>
-
-            <div class="hover-fade flex items-center gap-1">
-              <TooltipButton v-if="entry.source === 'per-item' && entry.filePath" tooltip="Open file">
-                <button class="btn-icon" @click="openFile(entry)">
-                  <span class="i-octicon-link-external-16" />
-                </button>
-              </TooltipButton>
-              <TooltipButton v-else tooltip="Remove from queue">
-                <button class="btn-icon" @click="remove(entry)">
-                  <span class="i-octicon-trash-16" />
-                </button>
-              </TooltipButton>
-            </div>
-          </div>
+            </button>
+            <ul class="flex flex-col">
+              <li
+                v-for="entry in group.entries"
+                :key="entry.id"
+                class="group flex items-start gap-2 px-4 py-1.5 pl-8 hover:bg-active transition"
+              >
+                <span
+                  class="badge font-mono text-xs flex-none"
+                  :style="{ backgroundColor: `${actionColor(entry.op.action)}22`, color: actionColor(entry.op.action) }"
+                >{{ entry.op.action }}</span>
+                <span v-if="summarize(entry)" class="text-xs color-muted truncate flex-1">{{ summarize(entry) }}</span>
+                <span v-else class="flex-1" />
+                <TooltipButton tooltip="Remove from queue">
+                  <button class="btn-icon !w-6 !h-6 hover-fade" @click="remove(entry)">
+                    <span class="i-octicon-trash-16 text-xs" />
+                  </button>
+                </TooltipButton>
+              </li>
+            </ul>
+          </section>
         </div>
       </div>
 

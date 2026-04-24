@@ -36,8 +36,6 @@ interface StreamEvent {
 
 type StreamEntry = StreamComment | StreamEvent
 
-const labelMap = useLabelColorMap()
-
 const entries = computed<StreamEntry[]>(() => {
   const seenCommentIds = new Set<number>()
   const out: StreamEntry[] = []
@@ -131,7 +129,7 @@ function colorFor(event: ProviderTimelineEvent): string {
           <span
             class="absolute left-0 top-3 inline-flex items-center justify-center w-8 h-8 rounded-full bg-base border border-base"
           >
-            <Avatar :login="entry.author" :size="24" />
+            <Avatar :login="entry.author" :size="38" />
           </span>
           <div class="border border-base rounded-lg bg-base overflow-hidden">
             <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-subtle">
@@ -219,11 +217,11 @@ function colorFor(event: ProviderTimelineEvent): string {
 
             <template v-if="entry.event.kind === 'labeled' || entry.event.kind === 'unlabeled'">
               <span class="color-muted">{{ entry.event.kind === 'labeled' ? 'added' : 'removed' }}</span>
-              <span
+              <Label
                 v-if="entry.event.label"
-                class="badge border"
-                :style="labelStyle(labelMap.get(entry.event.label.name)?.color ?? entry.event.label.color)"
-              >{{ entry.event.label.name }}</span>
+                :name="entry.event.label.name"
+                :fallback-color="entry.event.label.color"
+              />
               <span class="color-muted">label</span>
             </template>
 
