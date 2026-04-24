@@ -28,7 +28,7 @@ export function usePendingOps(numberRef: Ref<number | null | undefined>): Pendin
     if (num == null)
       return []
     const all = state.payload.value?.queue.entries ?? []
-    return all.filter(e => e.op.number === num)
+    return all.filter(e => e.source !== 'per-item' && e.op.number === num)
   })
 
   const direction = computed<PendingDirection>(() => {

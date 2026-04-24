@@ -45,6 +45,7 @@ catalog:
   pathe: ^2.0.3
   portless: ^0.10.3
   reka-ui: ^2.9.6
+  shiki: ^4.0.2
   simple-git-hooks: ^2.13.1
   skills-npm: ^1.1.1
   splitpanes: ^4.0.4

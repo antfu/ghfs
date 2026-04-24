@@ -16,7 +16,7 @@ export function useFilteredItems() {
     const searching = search.length > 0
     return allEntries.value.filter((entry) => {
       const item = entry.data.item
-      if (state.filters.state !== 'all' && item.state !== state.filters.state)
+      if (item.state !== 'open')
         return false
       // When not searching, restrict by kind tab; when searching, show both.
       if (!searching && state.filters.kind !== item.kind)
@@ -37,6 +37,8 @@ export function useFilteredItems() {
     let issues = 0
     let pulls = 0
     for (const entry of allEntries.value) {
+      if (entry.data.item.state !== 'open')
+        continue
       if (entry.data.item.kind === 'issue')
         issues += 1
       else

@@ -33,12 +33,18 @@ export function useShortcutsHandler(): void {
       target.blur()
       return
     }
-    if (isInput)
+    // Tab escapes inputs (blur) and then falls through to shortcut matching so
+    // global Tab / Shift+Tab navigation works from any focused textarea.
+    if (event.key === 'Tab' && isInput) {
+      target.blur()
+    }
+    else if (isInput) {
       return
+    }
     if (event.metaKey || event.ctrlKey || event.altKey)
       return
 
-    const key = event.key
+    const key = effectiveKey(event)
     if (!key)
       return
 
@@ -115,6 +121,25 @@ function humanizeKey(key: string): string {
   if (key === 'Enter') return '↵'
   if (key === 'ArrowUp') return '↑'
   if (key === 'ArrowDown') return '↓'
+  if (key === 'ArrowLeft') return '←'
+  if (key === 'ArrowRight') return '→'
   if (key === ' ') return 'Space'
   return key
+}
+
+/**
+ * Compose an event into a stable key name. For single-char keys, shift state
+ * is already baked into `event.key` (e.g. `j` vs `J`). For named keys like
+ * `Tab`, `Enter`, `ArrowDown`, we prefix with `Shift+` so shortcut authors can
+ * distinguish `Tab` from `Shift+Tab`.
+ */
+function effectiveKey(event: KeyboardEvent): string {
+  const key = event.key
+  if (!key)
+    return ''
+  if (!event.shiftKey)
+    return key
+  if (key.length === 1)
+    return key
+  return `Shift+${key}`
 }

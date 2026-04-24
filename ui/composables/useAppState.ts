@@ -11,7 +11,6 @@ export interface ProgressState {
 }
 
 export interface FilterState {
-  state: 'all' | 'open' | 'closed'
   kind: 'issue' | 'pull'
   search: string
 }
@@ -25,7 +24,6 @@ const executeConfirmOpen = ref(false)
 const selectedNumber = ref<number | null>(null)
 const lastError = ref<string | null>(null)
 const filters = reactive<FilterState>({
-  state: 'open',
   kind: 'issue',
   search: '',
 })
