@@ -61,11 +61,11 @@ export function useShortcutsHandler(): void {
         const result = sc.run()
         if (result && typeof result === 'object' && 'catch' in result)
           void (result as Promise<unknown>).catch((err: unknown) => {
-            log.GHFS_E0901({ shortcut: sc.id, detail: String((err as Error)?.message ?? err) }, { cause: err }).error()
+            log.GHFS0901({ shortcut: sc.id, detail: String((err as Error)?.message ?? err) }, { cause: err }).error()
           })
       }
       catch (err) {
-        log.GHFS_E0901({ shortcut: sc.id, detail: String((err as Error)?.message ?? err) }, { cause: err }).error()
+        log.GHFS0901({ shortcut: sc.id, detail: String((err as Error)?.message ?? err) }, { cause: err }).error()
       }
       return
     }

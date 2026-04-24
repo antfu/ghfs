@@ -103,7 +103,7 @@ export async function createUiServer(options: CreateUiServerOptions): Promise<Ui
       cachedToken = await options.onRequestToken()
       return cachedToken
     }
-    throw new CodedError(log.GHFS_E0001())
+    throw new CodedError(log.GHFS0001())
   }
 
   let cachedProvider: RepositoryProvider | undefined

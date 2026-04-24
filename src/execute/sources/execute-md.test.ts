@@ -160,14 +160,14 @@ describe('parseExecuteMdLine', () => {
   it('returns warning for malformed quoted text', () => {
     expect(parseExecuteMdLine('set-title #1 "oops')).toEqual({
       kind: 'warning',
-      message: '[GHFS_W0150] invalid quoted string syntax',
+      message: '[GHFS0150] invalid quoted string syntax',
     })
   })
 
   it('returns warning for unknown command', () => {
     expect(parseExecuteMdLine('unknown #1')).toEqual({
       kind: 'warning',
-      message: '[GHFS_W0151] unrecognized action pattern: unknown',
+      message: '[GHFS0151] unrecognized action pattern: unknown',
     })
   })
 
@@ -181,21 +181,21 @@ describe('parseExecuteMdLine', () => {
 
   it('emits warnings for malformed set-title, label, assignee, comment, and multi-action lines', () => {
     const cases: Array<[string, string]> = [
-      ['set-title #1', '[GHFS_W0152] set-title expects:'],
-      ['set-title lol "t"', '[GHFS_W0153] set-title expects a single issue reference'],
-      ['add-labels #1', '[GHFS_W0152] add-labels expects:'],
-      ['add-labels lol foo', '[GHFS_W0153] add-labels expects a single issue reference'],
-      ['add-labels #1 ,,,', '[GHFS_W0154] add-labels requires at least one label'],
-      ['add-assignees #1', '[GHFS_W0152] add-assignees expects:'],
-      ['add-assignees lol foo', '[GHFS_W0153] add-assignees expects a single issue reference'],
-      ['add-assignees #1 ,,,', '[GHFS_W0155] add-assignees requires at least one assignee'],
-      ['add-comment #1', '[GHFS_W0152] add-comment expects:'],
-      ['add-comment lol "hi"', '[GHFS_W0153] add-comment expects a single issue reference'],
-      ['add-comment #1 "   "', '[GHFS_W0156] add-comment requires a non-empty comment'],
-      ['close-with-comment #1', '[GHFS_W0152] close-with-comment expects:'],
-      ['close-with-comment lol "bye"', '[GHFS_W0153] close-with-comment expects a single issue reference'],
-      ['close-with-comment #1 "   "', '[GHFS_W0156] close-with-comment requires a non-empty comment'],
-      ['close lol', '[GHFS_W0157] close expects one or more issue references'],
+      ['set-title #1', '[GHFS0152] set-title expects:'],
+      ['set-title lol "t"', '[GHFS0153] set-title expects a single issue reference'],
+      ['add-labels #1', '[GHFS0152] add-labels expects:'],
+      ['add-labels lol foo', '[GHFS0153] add-labels expects a single issue reference'],
+      ['add-labels #1 ,,,', '[GHFS0154] add-labels requires at least one label'],
+      ['add-assignees #1', '[GHFS0152] add-assignees expects:'],
+      ['add-assignees lol foo', '[GHFS0153] add-assignees expects a single issue reference'],
+      ['add-assignees #1 ,,,', '[GHFS0155] add-assignees requires at least one assignee'],
+      ['add-comment #1', '[GHFS0152] add-comment expects:'],
+      ['add-comment lol "hi"', '[GHFS0153] add-comment expects a single issue reference'],
+      ['add-comment #1 "   "', '[GHFS0156] add-comment requires a non-empty comment'],
+      ['close-with-comment #1', '[GHFS0152] close-with-comment expects:'],
+      ['close-with-comment lol "bye"', '[GHFS0153] close-with-comment expects a single issue reference'],
+      ['close-with-comment #1 "   "', '[GHFS0156] close-with-comment requires a non-empty comment'],
+      ['close lol', '[GHFS0157] close expects one or more issue references'],
     ]
     for (const [input, prefix] of cases) {
       const parsed = parseExecuteMdLine(input)
@@ -216,7 +216,7 @@ describe('stringifyExecuteMd', () => {
     ].join('\n'))
 
     expect(parsed.warnings).toEqual([
-      'execute-md line 5: [GHFS_W0151] unrecognized action pattern: unknown',
+      'execute-md line 5: [GHFS0151] unrecognized action pattern: unknown',
     ])
 
     const output = stringifyExecuteMd(parsed, new Set([1, 3, 4]))

@@ -14,16 +14,16 @@ describe('withErrorHandling', () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const handler = withErrorHandling(async () => {
-      throw new CodedError(log.GHFS_E0001())
+      throw new CodedError(log.GHFS0001())
     })
     handler()
     await flush()
 
     const output = errSpy.mock.calls.flat().join('\n')
-    expect(output).toContain('GHFS_E0001')
+    expect(output).toContain('GHFS0001')
     expect(output).toContain('Missing GitHub token')
     expect(output).toContain('fix:')
-    expect(output).toContain('https://github.com/antfu/ghfs/blob/main/docs/errors/ghfs_e0001.md')
+    expect(output).toContain('https://github.com/antfu/ghfs/blob/main/docs/errors/ghfs0001.md')
     expect(exitSpy).toHaveBeenCalledWith(1)
 
     errSpy.mockRestore()

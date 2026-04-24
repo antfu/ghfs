@@ -21,7 +21,7 @@ export async function loadPerItemSource(storageDir: string): Promise<PerItemSour
   for (const tracked of Object.values(syncState.items)) {
     const markdownPath = join(storageDir, tracked.filePath)
     if (!await pathExists(markdownPath)) {
-      warnings.push(formatInline(diagnostics.GHFS_W0160({
+      warnings.push(formatInline(diagnostics.GHFS0160({
         issue: formatIssueNumber(tracked.number, { repo }),
         path: tracked.filePath,
       })))
@@ -31,7 +31,7 @@ export async function loadPerItemSource(storageDir: string): Promise<PerItemSour
     const raw = await readFile(markdownPath, 'utf8')
     const frontmatter = parseFrontmatter(raw)
     if (!frontmatter) {
-      warnings.push(formatInline(diagnostics.GHFS_W0161({
+      warnings.push(formatInline(diagnostics.GHFS0161({
         issue: formatIssueNumber(tracked.number, { repo }),
       })))
       continue

@@ -20,7 +20,7 @@ export async function loadExecuteSources(executeFilePath: string): Promise<Execu
   const mergedOps = [...ymlOps, ...executeMd.ops, ...perItem.ops]
   const customErrors = validateExecuteRules(mergedOps)
   if (customErrors.length)
-    throw new CodedError(log.GHFS_E0108({ detail: customErrors.join('; ') }))
+    throw new CodedError(log.GHFS0108({ detail: customErrors.join('; ') }))
 
   return {
     ops: mergedOps,

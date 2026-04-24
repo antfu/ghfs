@@ -8,7 +8,7 @@ import { CodedError, log } from '../logger'
 const execFileAsync = promisify(execFile)
 
 export function isPortlessUnavailableError(error: unknown): error is CodedError {
-  return error instanceof CodedError && error.diagnostic.code === 'GHFS_E0206'
+  return error instanceof CodedError && error.diagnostic.code === 'GHFS0206'
 }
 
 export interface RegisterPortlessRouteOptions {
@@ -47,7 +47,7 @@ function resolvePortlessCliPath(): string | undefined {
 async function runPortless(args: string[]): Promise<string> {
   const cliPath = resolvePortlessCliPath()
   if (!cliPath)
-    throw new CodedError(log.GHFS_E0206({ detail: 'portless package is not installed' }))
+    throw new CodedError(log.GHFS0206({ detail: 'portless package is not installed' }))
 
   try {
     const { stdout } = await execFileAsync(process.execPath, [cliPath, ...args], {
@@ -59,7 +59,7 @@ async function runPortless(args: string[]): Promise<string> {
     const err = error as NodeJS.ErrnoException & { stderr?: string, stdout?: string }
     const detail = (err.stderr || err.stdout || err.message || '').toString().trim()
     throw new CodedError(
-      log.GHFS_E0206(
+      log.GHFS0206(
         { detail: detail ? `portless failed: ${detail}` : 'portless failed' },
         { cause: error },
       ),

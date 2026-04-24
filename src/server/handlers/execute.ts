@@ -10,7 +10,7 @@ export function createExecuteHandler(ctx: ServerContext): (options: ExecuteTrigg
 
   return async function executeQueue(options) {
     if (running)
-      throw new CodedError(log.GHFS_E0201())
+      throw new CodedError(log.GHFS0201())
     running = true
     try {
       const token = await ctx.getToken()

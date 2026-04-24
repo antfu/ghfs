@@ -118,7 +118,7 @@ function connect(rpc: BirpcReturn<ServerFunctions, ClientFunctions>): void {
       }
       catch (error) {
         // Older server builds may not return uiState; don't crash the app.
-        log.GHFS_W0950({ detail: String((error as Error)?.message ?? error) }, { cause: error }).warn()
+        log.GHFS0950({ detail: String((error as Error)?.message ?? error) }, { cause: error }).warn()
         useUiState().hydrate(undefined)
       }
     }

@@ -121,7 +121,7 @@ export async function materializePreparedIssue(context: SyncContext, candidate: 
 
   const tracked = context.syncState.items[String(number)]
   if (!tracked) {
-    throw new CodedError(log.GHFS_E0401({
+    throw new CodedError(log.GHFS0401({
       issue: formatIssueNumber(number, { repo: context.repoSlug, kind }),
     }))
   }

@@ -40,7 +40,7 @@ export async function readAndValidateExecuteFileWithSource(path: string): Promis
     parsed = parse(raw || '[]') || []
   }
   catch (error) {
-    throw new CodedError(log.GHFS_E0105({ detail: (error as Error).message }, { cause: error }))
+    throw new CodedError(log.GHFS0105({ detail: (error as Error).message }, { cause: error }))
   }
 
   const parsedResult = v.safeParse(executeFileSchema, parsed)
@@ -51,16 +51,16 @@ export async function readAndValidateExecuteFileWithSource(path: string): Promis
         return `${path ? `${path}: ` : ''}${issue.message}`
       })
       .join('; ')
-    throw new CodedError(log.GHFS_E0106({ detail: message }))
+    throw new CodedError(log.GHFS0106({ detail: message }))
   }
 
   const { pending, sourceActions, actionErrors } = normalizeActionInputs(parsedResult.output as ExecuteInputFile)
   if (actionErrors.length)
-    throw new CodedError(log.GHFS_E0107({ detail: actionErrors.join('; ') }))
+    throw new CodedError(log.GHFS0107({ detail: actionErrors.join('; ') }))
 
   const customErrors = validateExecuteRules(pending)
   if (customErrors.length)
-    throw new CodedError(log.GHFS_E0108({ detail: customErrors.join('; ') }))
+    throw new CodedError(log.GHFS0108({ detail: customErrors.join('; ') }))
 
   return {
     ops: pending,

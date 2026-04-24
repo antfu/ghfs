@@ -20,7 +20,7 @@ function ensureSaver() {
       listPaneSize: uiState.listPaneSize,
       lastPrTab: uiState.lastPrTab,
     }).catch((error) => {
-      log.GHFS_E0900({ detail: String((error as Error)?.message ?? error) }, { cause: error }).error()
+      log.GHFS0900({ detail: String((error as Error)?.message ?? error) }, { cause: error }).error()
     })
   }, 700)
   return saveFn

@@ -60,11 +60,11 @@ export interface ExecuteReporter {
 }
 
 export function createCancelledError(): CodedError {
-  return new CodedError(log.GHFS_E0102())
+  return new CodedError(log.GHFS0102())
 }
 
 export function isExecuteCancelledError(error: unknown): error is CodedError {
-  return error instanceof CodedError && error.diagnostic.code === 'GHFS_E0102'
+  return error instanceof CodedError && error.diagnostic.code === 'GHFS0102'
 }
 
 export async function executePendingChanges(options: ExecuteOptions): Promise<ExecutionResult> {
@@ -90,7 +90,7 @@ export async function executePendingChanges(options: ExecuteOptions): Promise<Ex
 
     const interactive = process.stdin.isTTY && !options.nonInteractive
     if (interactive && !options.prompts)
-      throw new CodedError(log.GHFS_E0100())
+      throw new CodedError(log.GHFS0100())
 
     const selected = Array.isArray(options.selectedIndexes)
       ? selectOperationsByIndexes(allOps, options.selectedIndexes)
@@ -247,7 +247,7 @@ async function applyOperation(provider: RepositoryProvider, op: PendingOp): Prom
   if (op.ifUnchangedSince) {
     const remoteUpdatedAt = item.updatedAt
     if (remoteUpdatedAt && new Date(remoteUpdatedAt).getTime() > new Date(op.ifUnchangedSince).getTime())
-      throw new CodedError(log.GHFS_E0101({ remoteUpdatedAt }))
+      throw new CodedError(log.GHFS0101({ remoteUpdatedAt }))
   }
 
   switch (op.action) {
@@ -337,7 +337,7 @@ async function applyOperation(provider: RepositoryProvider, op: PendingOp): Prom
       break
 
     default:
-      throw new CodedError(log.GHFS_E0103({ action: String((op as { action: string }).action) }))
+      throw new CodedError(log.GHFS0103({ action: String((op as { action: string }).action) }))
   }
 
   return item.kind
@@ -387,7 +387,7 @@ function selectOperationsByIndexes(
 
 function ensurePullAction(action: PendingOp['action'], number: number, isPull: boolean): void {
   if (!isPull)
-    throw new CodedError(log.GHFS_E0104({ action, issue: `#${number}` }))
+    throw new CodedError(log.GHFS0104({ action, issue: `#${number}` }))
 }
 
 function describeExecutionAction(action: string, number: number): string {

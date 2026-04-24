@@ -9,7 +9,7 @@ export function createSyncHandler(ctx: ServerContext): (options: SyncTriggerOpti
 
   return async function triggerSync(options) {
     if (running)
-      throw new CodedError(log.GHFS_E0200())
+      throw new CodedError(log.GHFS0200())
     running = true
     try {
       const token = await ctx.getToken()

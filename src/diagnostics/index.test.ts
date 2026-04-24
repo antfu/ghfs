@@ -34,10 +34,11 @@ describe('diagnostics registry', () => {
     }
   })
 
-  it('uses warn level for W-series codes and error level for E-series', () => {
+  it('uses warn level for codes in the 0150–0169 band and error level elsewhere', () => {
     const factory = diagnostics as unknown as Record<string, (params?: unknown) => { level: string }>
     for (const code of diagnostics.codes()) {
-      const expected = code.includes('_W') ? 'warn' : 'error'
+      const n = Number(code.slice('GHFS'.length))
+      const expected = n >= 150 && n <= 169 ? 'warn' : 'error'
       expect(factory[code](sampleParams).level).toBe(expected)
     }
   })

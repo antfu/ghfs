@@ -285,7 +285,7 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
 
 function assertContext(context: SyncContext | undefined): asserts context is SyncContext {
   if (!context)
-    throw new CodedError(log.GHFS_E0400())
+    throw new CodedError(log.GHFS0400())
 }
 
 function createSyncRunId(): string {
