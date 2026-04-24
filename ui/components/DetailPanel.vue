@@ -5,6 +5,8 @@ import type { SyncItemState } from '../../src/types/sync-state'
 const state = useAppState()
 const rpc = useRpc()
 const ui = useUiState()
+const { currentUser } = useCurrentUser()
+const userOverrideOpen = ref(false)
 
 const selected = computed<SyncItemState | null>(() => {
   const num = state.selectedNumber.value
@@ -249,29 +251,26 @@ const ringClass = computed(() =>
   </div>
 
   <article v-else class="h-full flex flex-col min-h-0 bg-base transition" :class="ringClass">
-    <header class="flex items-start gap-3 px-6 py-4 border-b border-base">
-      <ItemStateIcon :item="item" :pull="pullMeta" :pending="pending.direction.value" size="lg" class="mt-0.5 shrink-0" />
-      <div class="flex-1 min-w-0">
-        <div class="flex items-baseline gap-2 flex-wrap">
-          <h2
-            class="font-medium text-xl leading-tight"
-            :class="{ italic: titleIsPending }"
-            v-html="titleHtml"
-          />
-          <span class="font-mono text-base color-muted tabular-nums">#{{ item.number }}</span>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap text-xs color-muted mt-2">
-          <span class="badge-color-neutral uppercase tracking-wide text-[10px]">{{ stateLabel }}</span>
-          <span v-if="pending.direction.value" class="badge-color-yellow uppercase tracking-wide text-[10px] flex items-center gap-1">
-            <span class="i-octicon-hourglass-16 text-[10px]" /> pending
-          </span>
-          <Avatar v-if="item.author" :login="item.author" :size="16" />
-          <span v-if="item.author" class="font-mono">@{{ item.author }}</span>
-          <span class="color-faint">·</span>
-          <span>opened {{ formatRelative(item.createdAt) }}</span>
-          <span v-if="item.updatedAt !== item.createdAt" class="color-faint">·</span>
-          <span v-if="item.updatedAt !== item.createdAt">updated {{ formatRelative(item.updatedAt) }}</span>
-        </div>
+    <header class="flex items-center gap-2 px-6 py-2.5 border-b border-base">
+      <ItemStateIcon :item="item" :pull="pullMeta" :pending="pending.direction.value" class="shrink-0" />
+      <div class="flex-1 min-w-0 flex items-baseline gap-2 flex-wrap">
+        <h2
+          class="font-medium text-lg leading-tight"
+          :class="{ italic: titleIsPending }"
+          v-html="titleHtml"
+        />
+        <span class="font-mono text-sm color-muted tabular-nums">#{{ item.number }}</span>
+        <span class="badge-color-neutral uppercase tracking-wide text-[10px]">{{ stateLabel }}</span>
+        <span v-if="pending.direction.value" class="badge-color-yellow uppercase tracking-wide text-[10px] flex items-center gap-1">
+          <span class="i-octicon-hourglass-16 text-[10px]" /> pending
+        </span>
+        <span v-if="item.author" class="flex items-center gap-1 text-xs color-muted">
+          <Avatar :login="item.author" :size="14" />
+          <span class="font-mono">@{{ item.author }}</span>
+        </span>
+        <span class="text-xs color-muted">
+          <span class="color-faint">·</span> {{ formatRelative(item.createdAt) }}
+        </span>
       </div>
       <div class="flex items-center gap-1 shrink-0">
         <TooltipButton v-if="item.url" tooltip="Open on GitHub">
@@ -279,7 +278,7 @@ const ringClass = computed(() =>
             :href="item.url"
             target="_blank"
             rel="noreferrer"
-            class="btn-icon"
+            class="btn-icon !w-7 !h-7"
             aria-label="Open on GitHub"
           >
             <span class="i-octicon-link-external-16" />
@@ -289,11 +288,20 @@ const ringClass = computed(() =>
       </div>
     </header>
 
-    <div v-if="labels.length || assignees.length || item.milestone" class="px-6 py-2 border-b border-base flex items-center gap-2 flex-wrap text-xs">
-      <template v-if="labels.length">
-        <span class="i-octicon-tag-16 color-muted" />
-        <Label v-for="label in labels" :key="label" :name="label" />
-      </template>
+    <div class="px-6 py-1.5 border-b border-base flex items-center gap-1.5 flex-wrap text-xs">
+      <span class="i-octicon-tag-16 color-muted" />
+      <Label v-for="label in labels" :key="label" :name="label" />
+      <TooltipButton tooltip="Edit labels">
+        <button
+          type="button"
+          class="btn-icon !w-5 !h-5"
+          aria-label="Edit labels"
+          @click="ui.labelEditorOpen.value = true"
+        >
+          <span class="i-octicon-pencil-16 text-xs" />
+        </button>
+      </TooltipButton>
+      <Kbd shortcut-id="item.labels" tone="muted" />
       <template v-if="assignees.length">
         <span class="i-octicon-person-16 color-muted ml-2" />
         <span v-for="a in assignees" :key="a" class="flex items-center gap-1">
@@ -309,7 +317,7 @@ const ringClass = computed(() =>
 
     <div
       v-if="pending.hasPending.value"
-      class="px-6 py-3 border-b border-yellow-500/30 bg-yellow-500/10 flex items-center gap-3 text-sm"
+      class="px-6 py-2 border-b border-yellow-500/30 bg-yellow-500/10 flex items-center gap-3 text-sm"
     >
       <span class="i-octicon-hourglass-16 color-yellow-600 dark:color-yellow-400 shrink-0" />
       <div class="flex-1 min-w-0">
@@ -402,7 +410,30 @@ const ringClass = computed(() =>
       />
     </div>
 
-    <footer class="border-t border-base px-6 py-3 bg-base flex flex-col gap-3">
+    <footer class="border-t border-base px-6 py-3 bg-base flex flex-col gap-2">
+      <div class="flex items-center gap-2 text-xs color-muted">
+        <Avatar
+          :login="currentUser?.login ?? null"
+          :src="currentUser?.avatarUrl"
+          :size="18"
+        />
+        <span class="font-mono">
+          <template v-if="currentUser?.login">@{{ currentUser.login }}</template>
+          <template v-else>(no user)</template>
+        </span>
+        <span v-if="currentUser?.name" class="color-faint">· {{ currentUser.name }}</span>
+        <div class="flex-1" />
+        <TooltipButton tooltip="Override user">
+          <button
+            type="button"
+            class="btn-icon !w-6 !h-6"
+            aria-label="Override user identity"
+            @click="userOverrideOpen = true"
+          >
+            <span class="i-octicon-pencil-16 text-xs" />
+          </button>
+        </TooltipButton>
+      </div>
       <div
         class="border border-base rounded-lg bg-base transition"
         :class="editingCommentId
@@ -471,5 +502,7 @@ const ringClass = computed(() =>
         </div>
       </div>
     </footer>
+    <UserOverrideDialog v-model:open="userOverrideOpen" />
+    <LabelEditor />
   </article>
 </template>

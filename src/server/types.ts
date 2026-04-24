@@ -4,7 +4,13 @@ import type { ExecutionResult } from '../types/execution'
 import type { SyncState } from '../types/sync-state'
 import type { UiState } from './ui-state'
 
-export type { UiState } from './ui-state'
+export type { UiState, UserOverride } from './ui-state'
+
+export interface CurrentUser {
+  login: string
+  name: string | null
+  avatarUrl: string
+}
 
 export type QueueSource = 'execute.yml' | 'execute.md' | 'per-item'
 
@@ -60,6 +66,7 @@ export interface InitialPayload {
   recentExecutions: ExecutionResult[]
   uiState: UiState
   repositoryLabels: RepoLabel[]
+  currentUser: CurrentUser | null
 }
 
 export interface SyncTriggerOptions {

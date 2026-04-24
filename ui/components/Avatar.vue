@@ -2,6 +2,8 @@
 interface Props {
   login?: string | null
   size?: number
+  /** Explicit avatar URL override. When set, used verbatim instead of the GH CDN. */
+  src?: string | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -9,16 +11,17 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const url = computed(() => {
+  if (props.src && props.src.startsWith('https://'))
+    return props.src
   if (!props.login)
     return ''
-  const retinaSize = Math.ceil(props.size * 2)
-  return `https://avatars.githubusercontent.com/${props.login}?size=${retinaSize}`
+  return `https://avatars.githubusercontent.com/${props.login}`
 })
 
 const initial = computed(() => (props.login?.[0] ?? '?').toUpperCase())
 const imgFailed = ref(false)
 
-watch(() => props.login, () => {
+watch(() => [props.login, props.src], () => {
   imgFailed.value = false
 })
 </script>
@@ -29,9 +32,9 @@ watch(() => props.login, () => {
     class="inline-flex shrink-0 items-center justify-center rounded-full overflow-hidden bg-secondary color-muted font-mono text-[10px] select-none align-middle"
   >
     <img
-      v-if="props.login && !imgFailed"
+      v-if="url && !imgFailed"
       :src="url"
-      :alt="`@${props.login}`"
+      :alt="`@${props.login ?? ''}`"
       :width="props.size"
       :height="props.size"
       loading="lazy"

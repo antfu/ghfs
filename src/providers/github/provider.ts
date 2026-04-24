@@ -1,6 +1,7 @@
 import type { Octokit } from 'octokit'
 import type {
   PaginateItemsOptions,
+  ProviderAuthenticatedUser,
   ProviderComment,
   ProviderCommit,
   ProviderItem,
@@ -40,6 +41,13 @@ export function createGitHubProvider(options: CreateGitHubProviderOptions): Repo
     requestCount += 1
   }
 
+  let authenticatedUserPromise: Promise<ProviderAuthenticatedUser | null> | null = null
+  const fetchAuthenticatedUserCached = (): Promise<ProviderAuthenticatedUser | null> => {
+    if (!authenticatedUserPromise)
+      authenticatedUserPromise = fetchAuthenticatedUser(octokit, bumpRequestCount)
+    return authenticatedUserPromise
+  }
+
   return {
     paginateItems: paginateOptions => paginateItems(octokit, owner, repo, paginateOptions, bumpRequestCount),
     fetchItems: paginateOptions => fetchItems(octokit, owner, repo, paginateOptions, bumpRequestCount),
@@ -54,6 +62,7 @@ export function createGitHubProvider(options: CreateGitHubProviderOptions): Repo
     fetchRepository: () => fetchRepository(octokit, owner, repo, bumpRequestCount),
     fetchRepositoryLabels: () => fetchRepositoryLabels(octokit, owner, repo, bumpRequestCount),
     fetchRepositoryMilestones: () => fetchRepositoryMilestones(octokit, owner, repo, bumpRequestCount),
+    fetchAuthenticatedUser: fetchAuthenticatedUserCached,
     countUpdatedSince: since => countUpdatedSince(octokit, owner, repo, since, bumpRequestCount),
     getRequestCount: () => requestCount,
 
@@ -299,6 +308,21 @@ async function fetchRepositoryMilestones(octokit: Octokit, owner: string, repo: 
     state: 'all',
     per_page: 100,
   }) as ProviderMilestone[]
+}
+
+async function fetchAuthenticatedUser(octokit: Octokit, bumpRequestCount: BumpRequestCount): Promise<ProviderAuthenticatedUser | null> {
+  bumpRequestCount()
+  try {
+    const result = await octokit.rest.users.getAuthenticated()
+    return {
+      login: result.data.login,
+      name: result.data.name ?? null,
+      avatarUrl: result.data.avatar_url,
+    }
+  }
+  catch {
+    return null
+  }
 }
 
 async function countUpdatedSince(

@@ -137,6 +137,12 @@ export interface ProviderLabel {
   default: boolean
 }
 
+export interface ProviderAuthenticatedUser {
+  login: string
+  name: string | null
+  avatarUrl: string
+}
+
 export interface ProviderMilestone {
   number: number
   title: string
@@ -182,6 +188,7 @@ export interface RepositoryProvider {
   fetchRepository: () => Promise<ProviderRepository>
   fetchRepositoryLabels: () => Promise<ProviderLabel[]>
   fetchRepositoryMilestones: () => Promise<ProviderMilestone[]>
+  fetchAuthenticatedUser: () => Promise<ProviderAuthenticatedUser | null>
   countUpdatedSince: (since: string) => Promise<ProviderUpdateCounts>
   getRequestCount: () => number
 

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "birpc": "catalog:",
+    "colorjs.io": "catalog:",
     "floating-vue": "catalog:",
     "logs-sdk": "catalog:",
     "marked": "catalog:",
