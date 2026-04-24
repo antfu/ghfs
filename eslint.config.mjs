@@ -7,3 +7,6 @@ export default antfu({
     'ui/**',
   ],
 })
+  .removeRules(
+    'markdown/no-multiple-h1',
+  )
