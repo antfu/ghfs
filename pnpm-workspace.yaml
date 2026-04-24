@@ -27,6 +27,7 @@ catalog:
   birpc: ^4.0.0
   bumpp: ^11.0.1
   cac: ^7.0.0
+  colorjs.io: ^0.6.0
   dotenv: ^17.4.2
   eslint: ^10.2.1
   floating-vue: ^5.2.2

@@ -1,5 +1,5 @@
 import type { ServerContext } from '../context'
-import type { InitialPayload, QueueState, RepoMeta, UiState } from '../types'
+import type { CurrentUser, InitialPayload, QueueState, RepoMeta, UiState } from '../types'
 import { readFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { GHFS_VERSION } from '../../meta'
@@ -60,6 +60,7 @@ export function createStateHandlers(ctx: ServerContext): {
       color: label.color,
       description: label.description,
     }))
+    const currentUser = await resolveCurrentUser(ctx, uiState)
     return {
       repo,
       syncState,
@@ -68,6 +69,7 @@ export function createStateHandlers(ctx: ServerContext): {
       recentExecutions: syncState.executions ?? [],
       uiState,
       repositoryLabels,
+      currentUser,
     }
   }
 
@@ -93,5 +95,29 @@ export function createStateHandlers(ctx: ServerContext): {
     getRepoMeta,
     saveUiState: (state: UiState) => saveUiState(ctx.storageDirAbsolute, state),
     getPullPatch,
+  }
+}
+
+async function resolveCurrentUser(ctx: ServerContext, uiState: UiState): Promise<CurrentUser | null> {
+  const override = uiState.userOverride
+  let fetched: CurrentUser | null = null
+  try {
+    const provider = await ctx.getProvider()
+    const user = await provider?.fetchAuthenticatedUser()
+    if (user)
+      fetched = { login: user.login, name: user.name, avatarUrl: user.avatarUrl }
+  }
+  catch {
+    fetched = null
+  }
+  if (!override && !fetched)
+    return null
+  const login = override?.login ?? fetched?.login
+  if (!login)
+    return null
+  return {
+    login,
+    name: override?.name ?? fetched?.name ?? null,
+    avatarUrl: override?.avatarUrl ?? fetched?.avatarUrl ?? `https://avatars.githubusercontent.com/${login}`,
   }
 }

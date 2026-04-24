@@ -1,4 +1,4 @@
-import type { UiState } from '#ghfs/server-types'
+import type { UiState, UserOverride } from '#ghfs/server-types'
 import { useDebounceFn } from '@vueuse/core'
 import { log } from '../utils/logger'
 
@@ -6,31 +6,47 @@ type PrTabId = 'conversation' | 'commits' | 'changes'
 
 const uiState = reactive<UiState>({ drafts: {} })
 const helpOpen = ref(false)
+const labelEditorOpen = ref(false)
 let hydrated = false
 let saveFn: (() => void) | null = null
 
-function ensureSaver() {
+function ensureSaver(): () => void {
   if (saveFn)
     return saveFn
   const rpc = useRpc()
-  saveFn = useDebounceFn(() => {
+  const fn = useDebounceFn(() => {
     if (!hydrated)
       return
     rpc.saveUiState({
       drafts: { ...uiState.drafts },
       listPaneSize: uiState.listPaneSize,
       lastPrTab: uiState.lastPrTab,
+      userOverride: uiState.userOverride ? { ...uiState.userOverride } : undefined,
     }).catch((error) => {
       log.GHFS0900({ detail: String((error as Error)?.message ?? error) }, { cause: error }).error()
     })
   }, 700)
-  return saveFn
+  saveFn = fn
+  return fn
 }
 
 function normalizePrTab(value: unknown): PrTabId | undefined {
   if (value === 'conversation' || value === 'commits' || value === 'changes')
     return value
   return undefined
+}
+
+function normalizeUserOverride(value: UserOverride | undefined): UserOverride | undefined {
+  if (!value || typeof value !== 'object')
+    return undefined
+  const out: UserOverride = {}
+  if (typeof value.login === 'string' && value.login.trim())
+    out.login = value.login.trim()
+  if (typeof value.name === 'string' && value.name.trim())
+    out.name = value.name.trim()
+  if (typeof value.avatarUrl === 'string' && value.avatarUrl.startsWith('https://'))
+    out.avatarUrl = value.avatarUrl.trim()
+  return Object.keys(out).length > 0 ? out : undefined
 }
 
 export function useUiState() {
@@ -41,7 +57,14 @@ export function useUiState() {
     uiState.drafts = drafts
     uiState.listPaneSize = typeof next?.listPaneSize === 'number' ? next.listPaneSize : undefined
     uiState.lastPrTab = normalizePrTab(next?.lastPrTab)
+    uiState.userOverride = normalizeUserOverride(next?.userOverride)
     hydrated = true
+  }
+
+  function setUserOverride(next: UserOverride | null): void {
+    const normalized = next ? normalizeUserOverride(next) : undefined
+    uiState.userOverride = normalized
+    ensureSaver()()
   }
 
   function getDraft(number: number | string | null | undefined): string {
@@ -88,11 +111,13 @@ export function useUiState() {
   return {
     uiState,
     helpOpen,
+    labelEditorOpen,
     hydrate,
     getDraft,
     setDraft,
     clearDraft,
     setListPaneSize,
     setLastPrTab,
+    setUserOverride,
   }
 }

@@ -7,10 +7,11 @@ interface Props {
 
 const props = defineProps<Props>()
 const labelMap = useLabelColorMap()
+const isDark = useDark()
 
 const style = computed(() => {
   const color = labelMap.value.get(props.name)?.color ?? props.fallbackColor
-  return color ? labelStyle(color) : undefined
+  return color ? labelStyle(color, isDark.value) : undefined
 })
 </script>
 

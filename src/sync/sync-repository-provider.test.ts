@@ -146,6 +146,7 @@ function createContext(overrides: {
       })),
       fetchRepositoryLabels: vi.fn(async () => []),
       fetchRepositoryMilestones: vi.fn(async () => []),
+      fetchAuthenticatedUser: vi.fn(async () => null),
       getRequestCount: vi.fn(() => 0),
       actionClose: vi.fn(async () => {}),
       actionReopen: vi.fn(async () => {}),

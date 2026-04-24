@@ -242,10 +242,14 @@ export function createAppShortcuts(): Shortcut[] {
       id: 'panel.close',
       keys: ['Escape'],
       description: 'Close overlay',
-      enabled: () => ui.helpOpen.value || state.queueOpen.value || state.executeConfirmOpen.value,
+      enabled: () => ui.helpOpen.value || ui.labelEditorOpen.value || state.queueOpen.value || state.executeConfirmOpen.value,
       run: () => {
         if (ui.helpOpen.value) {
           ui.helpOpen.value = false
+          return
+        }
+        if (ui.labelEditorOpen.value) {
+          ui.labelEditorOpen.value = false
           return
         }
         if (state.executeConfirmOpen.value) {
@@ -268,6 +272,13 @@ export function createAppShortcuts(): Shortcut[] {
       description: 'Queue reopen',
       enabled: () => !!activeItem.value && activeItem.value.state === 'closed',
       run: queueReopen,
+    },
+    {
+      id: 'item.labels',
+      keys: ['l'],
+      description: 'Edit labels',
+      enabled: () => !!activeItem.value,
+      run: () => { ui.labelEditorOpen.value = true },
     },
     {
       id: 'comment.focus',
