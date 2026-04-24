@@ -27,7 +27,7 @@ catalog:
   birpc: ^4.0.0
   bumpp: ^11.0.1
   cac: ^7.0.0
-  colorjs.io: ^0.6.0
+  colorjs.io: ^0.6.1
   dotenv: ^17.4.2
   eslint: ^10.2.1
   floating-vue: ^5.2.2
@@ -42,7 +42,7 @@ catalog:
   octokit: ^5.0.5
   ohash: ^2.0.11
   open: ^11.0.0
-  parse-diff: ^0.11.1
+  parse-diff: ^0.12.0
   pathe: ^2.0.3
   portless: ^0.10.3
   reka-ui: ^2.9.6
@@ -51,7 +51,7 @@ catalog:
   skills-npm: ^1.1.1
   splitpanes: ^4.0.4
   structured-clone-es: ^2.0.0
-  tsdown: ^0.21.9
+  tsdown: ^0.21.10
   tsx: ^4.21.0
   typescript: ^6.0.3
   unimport: ^6.1.1
