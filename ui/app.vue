@@ -79,6 +79,18 @@ html, body, #app {
   overflow: hidden;
 }
 
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+* {
+  scrollbar-width: thin;
+}
+
 .ghfs-splitpanes.splitpanes--vertical > .splitpanes__splitter {
   width: 4px;
   min-width: 4px;
