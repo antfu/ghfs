@@ -43,6 +43,7 @@
     "dev:hub": "trap 'kill 0' EXIT INT TERM; pnpm run dev:ui & GHFS_UI_DEV=1 tsx src/cli.ts hub --no-open --port 7710 --cwd ..",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "pretest:e2e": "tsx tests/e2e/_support/run-setup.ts",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium",
     "coverage": "vitest run --coverage",

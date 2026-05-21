@@ -10,7 +10,11 @@ const homeDir = resolve(fixtures, 'hub/_home')
 export default defineConfig({
   testDir: './tests/e2e',
   testIgnore: ['_support/**', 'fixtures/**'],
-  globalSetup: './tests/e2e/_support/global-setup.ts',
+  // Note: fixtures are built before this config is consumed via the
+  // `pretest:e2e` script in the root package.json. Playwright's
+  // `globalSetup` cannot be used here because it runs *after* the
+  // `webServer` processes start, and the hub server reads its enabled
+  // projects from disk once on boot.
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
