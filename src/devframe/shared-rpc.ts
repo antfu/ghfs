@@ -6,7 +6,7 @@ import type { ExecutionResult } from '../types/execution'
 import type { SyncState } from '../types/sync-state'
 import type { ProjectContext, ProjectRegistry } from './project-context'
 import { spawn } from 'node:child_process'
-import { readFile, stat } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import process from 'node:process'
 import { defineRpcFunction } from 'devframe'
 import { isAbsolute, join, resolve } from 'pathe'
@@ -22,8 +22,10 @@ import {
 } from '../server/queue-writer'
 import { loadUiState, saveUiState } from '../server/ui-state'
 import { syncRepository } from '../sync'
+import { computeProjectActivityBuckets } from '../sync/activity'
 import { loadRepoSnapshot } from '../sync/repo-snapshot'
 import { loadSyncState } from '../sync/state'
+import { findProjectIcon } from '../utils/project-icon'
 
 export interface ProjectSummary {
   id: string
@@ -161,52 +163,6 @@ async function buildInitialPayload(ctx: ProjectContext): Promise<ProjectInitialP
     repositoryLabels,
     currentUser,
   }
-}
-
-/**
- * Directories scanned for a project icon, in priority order. Earlier
- * directories win. Within a directory we try every (name, extension)
- * combination using {@link ICON_NAMES} × {@link ICON_EXTS}.
- */
-const ICON_DIRS = ['public', 'docs', 'docs/public', 'res', '.github', 'assets', ''] as const
-const ICON_NAMES = ['logo', 'icon', 'favicon'] as const
-/** SVG first (scalable, tiny), then raster formats. ICO last (fallback). */
-const ICON_EXTS = ['.svg', '.png', '.webp', '.jpg', '.jpeg', '.ico'] as const
-const ICON_MAX_BYTES = 256 * 1024
-
-const MIME_BY_EXT: Record<string, string> = {
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.webp': 'image/webp',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.ico': 'image/x-icon',
-}
-
-async function findProjectIcon(ctx: ProjectContext): Promise<string | null> {
-  for (const dir of ICON_DIRS) {
-    for (const name of ICON_NAMES) {
-      for (const ext of ICON_EXTS) {
-        const candidate = join(ctx.path, dir, `${name}${ext}`)
-        try {
-          const info = await stat(candidate)
-          if (!info.isFile() || info.size > ICON_MAX_BYTES)
-            continue
-          const buf = await readFile(candidate)
-          const mime = MIME_BY_EXT[ext] ?? 'application/octet-stream'
-          if (ext === '.svg') {
-            // Inline SVG as utf8 — smaller than base64 and renders identically.
-            return `data:${mime};utf8,${encodeURIComponent(buf.toString('utf8'))}`
-          }
-          return `data:${mime};base64,${buf.toString('base64')}`
-        }
-        catch {
-          // ENOENT or unreadable — try the next candidate.
-        }
-      }
-    }
-  }
-  return null
 }
 
 async function getPullPatch(ctx: ProjectContext, number: number): Promise<string | null> {
@@ -348,12 +304,21 @@ async function resolveSelectedIndexes(
   return indexes
 }
 
+export interface RegisterProjectRpcOptions {
+  /** Fires after `ghfs:save-ui-state` succeeds; used to react to settings changes. */
+  onUiStateSaved?: (state: UiState, projectId: string) => void
+}
+
 /**
  * Register every per-project RPC function on the devframe context.
  * Functions are namespaced under `ghfs:` and take `projectId` as the
  * first argument so the same set works for ui and hub modes.
  */
-export function registerProjectRpc(ctx: DevToolsNodeContext, registry: ProjectRegistry): void {
+export function registerProjectRpc(
+  ctx: DevToolsNodeContext,
+  registry: ProjectRegistry,
+  options: RegisterProjectRpcOptions = {},
+): void {
   const def = defineRpcFunction
 
   ctx.rpc.register(def({
@@ -479,7 +444,8 @@ export function registerProjectRpc(ctx: DevToolsNodeContext, registry: ProjectRe
     type: 'action',
     handler: async (projectId: string, state: UiState): Promise<void> => {
       const p = requireProject(registry, projectId)
-      return saveUiState(p.storageDirAbsolute, state)
+      await saveUiState(p.storageDirAbsolute, state)
+      options.onUiStateSaved?.(state, projectId)
     },
   }))
 
@@ -490,9 +456,94 @@ export function registerProjectRpc(ctx: DevToolsNodeContext, registry: ProjectRe
   }))
 
   ctx.rpc.register(def({
+    name: 'ghfs:project-activity',
+    type: 'query',
+    handler: async (projectId: string, days?: number) => {
+      const p = requireProject(registry, projectId)
+      const state = await loadSyncState(p.storageDirAbsolute)
+      return computeProjectActivityBuckets(state, days ?? 90)
+    },
+  }))
+
+  ctx.rpc.register(def({
+    name: 'ghfs:hub-queue',
+    type: 'query',
+    handler: async () => {
+      const out: { projectId: string, repo: string, queue: QueueState }[] = []
+      for (const p of registry.listProjects()) {
+        const queue = await buildQueueState({
+          storageDirAbsolute: p.storageDirAbsolute,
+          executeFilePath: p.executeFilePath,
+        })
+        out.push({ projectId: p.id, repo: p.repo, queue })
+      }
+      return out
+    },
+  }))
+
+  ctx.rpc.register(def({
+    name: 'ghfs:hub-execute-queue',
+    type: 'action',
+    handler: async (options: { projectId?: string } | undefined): Promise<ExecutionResult[]> => {
+      const projects = options?.projectId
+        ? [requireProject(registry, options.projectId)]
+        : registry.listProjects()
+      const results: ExecutionResult[] = []
+      for (const p of projects) {
+        try {
+          const r = await executeQueue(p, {})
+          results.push(r)
+        }
+        catch {
+          // Already broadcast via the per-project executor's onError; continue
+          // running other projects so a single failure doesn't halt the batch.
+        }
+      }
+      return results
+    },
+  }))
+
+  ctx.rpc.register(def({
+    name: 'ghfs:hub-recent-items',
+    type: 'query',
+    handler: async (limit?: number) => {
+      const cap = typeof limit === 'number' && limit > 0 ? Math.min(limit, 500) : 100
+      const collected: {
+        projectId: string
+        repo: string
+        kind: 'issue' | 'pull'
+        number: number
+        title: string
+        state: 'open' | 'closed'
+        updatedAt: string
+        author: string | null
+        labels: string[]
+      }[] = []
+      for (const p of registry.listProjects()) {
+        const state = await loadSyncState(p.storageDirAbsolute)
+        for (const item of Object.values(state.items)) {
+          collected.push({
+            projectId: p.id,
+            repo: p.repo,
+            kind: item.kind,
+            number: item.number,
+            title: item.data.item.title,
+            state: item.state,
+            updatedAt: item.data.item.updatedAt,
+            author: item.data.item.author,
+            labels: item.data.item.labels ?? [],
+          })
+        }
+      }
+      collected.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      return collected.slice(0, cap)
+    },
+  }))
+
+  ctx.rpc.register(def({
     name: 'ghfs:get-project-icon',
     type: 'query',
-    handler: async (projectId: string): Promise<string | null> => findProjectIcon(requireProject(registry, projectId)),
+    handler: async (projectId: string): Promise<string | null> => findProjectIcon(requireProject(registry, projectId).path),
   }))
 }
 

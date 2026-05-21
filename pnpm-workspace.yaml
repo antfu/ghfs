@@ -7,6 +7,8 @@ minimumReleaseAgeExclude:
   - '@vitest/spy@4.1.7'
   - '@vitest/utils@4.1.7'
   - vitest@4.1.7
+  - '@tanstack/virtual-core@3.15.0'
+  - '@tanstack/vue-virtual@3.13.25'
 shellEmulator: true
 
 trustPolicy: no-downgrade
@@ -26,6 +28,7 @@ catalog:
   '@octokit/plugin-retry': ^8.1.0
   '@octokit/plugin-throttling': ^11.0.3
   '@playwright/test': ^1.60.0
+  '@tanstack/vue-virtual': ^3.13.25
   '@types/node': ^25.9.1
   '@unocss/nuxt': ^66.6.8
   '@unocss/preset-web-fonts': ^66.6.8
@@ -64,6 +67,7 @@ catalog:
   unocss: ^66.6.8
   valibot: ^1.4.0
   vitest: ^4.1.7
+  vue-data-ui: ^3.19.9
   vue-tsc: ^3.3.1
   yaml: ^2.9.0
 onlyBuiltDependencies:

@@ -826,12 +826,48 @@ function mapTimelineEvent(event: GitHubTimelineEvent): ProviderTimelineEvent | n
         rename: { from: event.rename.from, to: event.rename.to },
       }
     case 'referenced':
-    case 'cross-referenced':
-      return { ...base, kind: eventName }
+    case 'cross-referenced': {
+      const issue = event.source?.issue
+      if (!issue?.number)
+        return { ...base, kind: eventName }
+      const source: NonNullable<ProviderTimelineEvent['source']> = {
+        number: issue.number,
+        kind: issue.pull_request ? 'pull' : 'issue',
+        ...(issue.title ? { title: issue.title } : {}),
+        ...(issue.html_url ? { url: issue.html_url } : {}),
+        ...(issue.repository?.full_name ? { repo: issue.repository.full_name } : {}),
+      }
+      return { ...base, kind: eventName, source }
+    }
+    case 'mentioned':
+    case 'subscribed':
+    case 'unsubscribed':
+    case 'pinned':
+    case 'unpinned':
+    case 'transferred':
+    case 'connected':
+    case 'disconnected':
+    case 'marked_as_duplicate':
+    case 'unmarked_as_duplicate':
+    case 'auto_merge_enabled':
+    case 'auto_merge_disabled':
+    case 'auto_squash_enabled':
+    case 'auto_squash_disabled':
+    case 'auto_rebase_enabled':
+    case 'auto_rebase_disabled':
+    case 'base_ref_changed':
+      return { ...base, kind: eventName as ProviderTimelineEventKind }
+    case 'milestoned':
+    case 'demilestoned':
+      return {
+        ...base,
+        kind: eventName,
+        ...(event.milestone?.title ? { milestone: event.milestone.title } : {}),
+      }
     default:
       if (!actor)
         return null
-      return { ...base, kind: 'unknown' }
+      return { ...base, kind: 'unknown', rawKind: eventName }
   }
 }
 
@@ -949,6 +985,17 @@ interface GitHubTimelineEvent {
   state?: string
   state_reason?: string | null
   body?: string | null
+  milestone?: { title?: string } | null
+  source?: {
+    type?: string
+    issue?: {
+      number?: number
+      title?: string
+      html_url?: string
+      pull_request?: unknown
+      repository?: { full_name?: string } | null
+    } | null
+  } | null
   // committed shape
   sha?: string
   message?: string

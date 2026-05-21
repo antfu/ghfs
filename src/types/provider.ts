@@ -84,7 +84,35 @@ export type ProviderTimelineEventKind
     | 'convert_to_draft'
     | 'referenced'
     | 'cross-referenced'
+    | 'mentioned'
+    | 'subscribed'
+    | 'unsubscribed'
+    | 'pinned'
+    | 'unpinned'
+    | 'transferred'
+    | 'milestoned'
+    | 'demilestoned'
+    | 'marked_as_duplicate'
+    | 'unmarked_as_duplicate'
+    | 'connected'
+    | 'disconnected'
+    | 'auto_merge_enabled'
+    | 'auto_merge_disabled'
+    | 'auto_squash_enabled'
+    | 'auto_squash_disabled'
+    | 'auto_rebase_enabled'
+    | 'auto_rebase_disabled'
+    | 'base_ref_changed'
     | 'unknown'
+
+/** Cross-reference target: the issue/PR that mentioned this item. */
+export interface ProviderTimelineSource {
+  number: number
+  kind: 'issue' | 'pull'
+  title?: string
+  url?: string
+  repo?: string
+}
 
 export type ProviderReviewState = 'approved' | 'changes_requested' | 'commented' | 'dismissed' | 'pending'
 
@@ -107,6 +135,12 @@ export interface ProviderTimelineEvent {
   body?: string | null
   rename?: { from: string, to: string }
   stateReason?: string | null
+  /** Populated for `referenced` and `cross-referenced` events. */
+  source?: ProviderTimelineSource
+  /** Populated for `milestoned` / `demilestoned` events. */
+  milestone?: string
+  /** Raw event name for events we don't model explicitly. */
+  rawKind?: string
 }
 
 export interface ProviderRepository {

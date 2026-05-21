@@ -4,6 +4,7 @@ import 'splitpanes/dist/splitpanes.css'
 
 const props = defineProps<{
   projectId: string
+  initialNumber?: number | null
 }>()
 
 const activeId = useActiveProjectId()
@@ -12,6 +13,8 @@ const activeId = useActiveProjectId()
 activeId.value = props.projectId
 
 const state = useAppState(props.projectId)
+
+useSelectedItemSync(() => props.projectId, () => props.initialNumber ?? null)
 const ui = useUiState()
 const { filteredEntries } = useFilteredItems()
 const { activePanel, setPanel } = useActivePanel()
@@ -79,7 +82,7 @@ const showError = computed(() => Boolean(loadError.value) && !hasPayload.value)
 
 <template>
   <div class="h-full flex flex-col relative">
-    <Navbar />
+    <AppNavbar mode="project" />
 
     <!-- Top progress bar shown while refreshing existing data; non-blocking. -->
     <div
@@ -97,20 +100,18 @@ const showError = computed(() => Boolean(loadError.value) && !hasPayload.value)
             :class="activePanel === 'list' ? 'panel-active' : ''"
         >
           <div
-            class="h-full overflow-y-auto transition"
+            class="h-full transition flex flex-col"
             data-testid="item-list"
             @mousedown="setPanel('list')"
           >
-            <div v-if="showFirstLoad" class="flex flex-col items-center justify-center py-32 color-muted" data-testid="project-loading">
+            <div v-if="showFirstLoad" class="flex flex-col items-center justify-center py-32 color-muted flex-1" data-testid="project-loading">
               <span class="i-octicon-sync-16 animate-spin text-2xl mb-3 color-active" />
               <p class="text-sm">Loading…</p>
             </div>
-            <div v-else-if="showError" class="px-4 py-6 color-muted">
+            <div v-else-if="showError" class="px-4 py-6 color-muted flex-1">
               <p class="text-sm">{{ loadError }}</p>
             </div>
-            <template v-else>
-              <ItemList :entries="filteredEntries" />
-            </template>
+            <VirtualItemList v-else :entries="filteredEntries" class="flex-1 min-h-0" />
           </div>
         </Pane>
 

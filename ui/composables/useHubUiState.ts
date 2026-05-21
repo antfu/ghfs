@@ -1,11 +1,13 @@
 const pickerOpen = ref(false)
-const rootDialogOpen = ref(false)
+const settingsOpen = ref(false)
+const queueDrawerOpen = ref(false)
 const syncingAll = ref(false)
 
 export function useHubUiState() {
   return {
     pickerOpen,
-    rootDialogOpen,
+    settingsOpen,
+    queueDrawerOpen,
     syncingAll,
     openPicker() {
       pickerOpen.value = true
@@ -13,11 +15,17 @@ export function useHubUiState() {
     closePicker() {
       pickerOpen.value = false
     },
-    openRootDialog() {
-      rootDialogOpen.value = true
+    openSettings() {
+      settingsOpen.value = true
     },
-    closeRootDialog() {
-      rootDialogOpen.value = false
+    closeSettings() {
+      settingsOpen.value = false
+    },
+    openQueueDrawer() {
+      queueDrawerOpen.value = true
+    },
+    closeQueueDrawer() {
+      queueDrawerOpen.value = false
     },
     setSyncingAll(value: boolean) {
       syncingAll.value = value

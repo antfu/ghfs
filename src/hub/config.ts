@@ -11,6 +11,7 @@ const ConfigSchema = v.object({
         path: v.string(),
       })),
       lastScanAt: v.optional(v.string()),
+      autoSyncIntervalMs: v.optional(v.pipe(v.number(), v.minValue(60_000), v.maxValue(3_600_000))),
     }),
   ),
 })
@@ -25,6 +26,8 @@ export interface HubProjectEntry {
 export interface HubEntry {
   enabledProjects: HubProjectEntry[]
   lastScanAt?: string
+  /** When set, the server runs `triggerSync` for every project with a token on this interval. */
+  autoSyncIntervalMs?: number
 }
 
 export interface ResolveHubConfigPathOptions {
@@ -68,6 +71,7 @@ export async function loadHubConfig(options: LoadHubConfigOptions): Promise<HubE
   return {
     enabledProjects: entry.enabledProjects.map(p => ({ path: p.path })),
     lastScanAt: entry.lastScanAt,
+    autoSyncIntervalMs: entry.autoSyncIntervalMs,
   }
 }
 
@@ -75,15 +79,46 @@ export interface SaveHubConfigOptions extends ResolveHubConfigPathOptions {
   hubCwd: string
   enabledProjects: HubProjectEntry[]
   lastScanAt?: string
+  autoSyncIntervalMs?: number
 }
 
 export async function saveHubConfig(options: SaveHubConfigOptions): Promise<void> {
   const path = resolveHubConfigPath(options)
   const file = await readConfigFile(path)
+  const existing = file.hubs[hubKey(options.hubCwd)]
   file.hubs[hubKey(options.hubCwd)] = {
     enabledProjects: options.enabledProjects.map(p => ({ path: p.path })),
     lastScanAt: options.lastScanAt ?? new Date().toISOString(),
+    ...(options.autoSyncIntervalMs !== undefined
+      ? { autoSyncIntervalMs: options.autoSyncIntervalMs }
+      : existing?.autoSyncIntervalMs !== undefined
+        ? { autoSyncIntervalMs: existing.autoSyncIntervalMs }
+        : {}),
   }
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(file, null, 2)}\n`, 'utf8')
+}
+
+export interface PatchHubSettingsOptions extends ResolveHubConfigPathOptions {
+  hubCwd: string
+  patch: { autoSyncIntervalMs?: number | null }
+}
+
+/** Update fields on the hub entry without touching `enabledProjects`. */
+export async function patchHubSettings(options: PatchHubSettingsOptions): Promise<HubEntry> {
+  const path = resolveHubConfigPath(options)
+  const file = await readConfigFile(path)
+  const key = hubKey(options.hubCwd)
+  const existing = file.hubs[key] ?? { enabledProjects: [], lastScanAt: undefined }
+  const next = {
+    enabledProjects: existing.enabledProjects.map(p => ({ path: p.path })),
+    lastScanAt: existing.lastScanAt,
+    autoSyncIntervalMs: 'autoSyncIntervalMs' in options.patch
+      ? (options.patch.autoSyncIntervalMs ?? undefined)
+      : existing.autoSyncIntervalMs,
+  }
+  file.hubs[key] = next
+  await mkdir(dirname(path), { recursive: true })
+  await writeFile(path, `${JSON.stringify(file, null, 2)}\n`, 'utf8')
+  return next
 }

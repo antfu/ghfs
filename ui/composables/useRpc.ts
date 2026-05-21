@@ -17,6 +17,7 @@ export interface HubScannedProject {
   path: string
   name: string
   enabled: boolean
+  iconDataUrl: string | null
 }
 
 export interface ProjectEventPayload<T> {
@@ -59,11 +60,45 @@ interface GhfsServerFunctions extends Record<string, (...args: unknown[]) => unk
   'ghfs:save-ui-state': (projectId: string, state: UiState) => Promise<void>
   'ghfs:get-pull-patch': (projectId: string, number: number) => Promise<string | null>
   'ghfs:get-project-icon': (projectId: string) => Promise<string | null>
+  'ghfs:project-activity': (projectId: string, days?: number) => Promise<ActivityResult>
   'ghfs:hub-info': () => Promise<{ cwd: string }>
   'ghfs:hub-scan': () => Promise<HubScannedProject[]>
   'ghfs:hub-enable': (path: string) => Promise<{ id: string }>
   'ghfs:hub-disable': (id: string) => Promise<{ removed: boolean }>
   'ghfs:hub-set-root': (path: string) => Promise<{ cwd: string }>
+  'ghfs:hub-recent-items': (limit?: number) => Promise<HubRecentItem[]>
+  'ghfs:hub-queue': () => Promise<HubQueueGroup[]>
+  'ghfs:hub-execute-queue': (options: { projectId?: string }) => Promise<ExecutionResult[]>
+  'ghfs:hub-settings': () => Promise<HubSettings>
+  'ghfs:hub-set-settings': (patch: Partial<HubSettings>) => Promise<HubSettings>
+}
+
+export interface ActivityResult {
+  buckets: number[]
+  total: number
+  days: number
+}
+
+export interface HubRecentItem {
+  projectId: string
+  repo: string
+  kind: 'issue' | 'pull'
+  number: number
+  title: string
+  state: 'open' | 'closed'
+  updatedAt: string
+  author: string | null
+  labels: string[]
+}
+
+export interface HubQueueGroup {
+  projectId: string
+  repo: string
+  queue: QueueState
+}
+
+export interface HubSettings {
+  autoSyncIntervalMs?: number
 }
 
 export interface GhfsRpc {
@@ -81,11 +116,17 @@ export interface GhfsRpc {
   saveUiState: (projectId: string, state: UiState) => Promise<void>
   getPullPatch: (projectId: string, number: number) => Promise<string | null>
   getProjectIcon: (projectId: string) => Promise<string | null>
+  projectActivity: (projectId: string, days?: number) => Promise<ActivityResult>
   hubInfo: () => Promise<{ cwd: string }>
   hubScan: () => Promise<HubScannedProject[]>
   hubEnable: (path: string) => Promise<{ id: string }>
   hubDisable: (id: string) => Promise<{ removed: boolean }>
   hubSetRoot: (path: string) => Promise<{ cwd: string }>
+  hubRecentItems: (limit?: number) => Promise<HubRecentItem[]>
+  hubQueue: () => Promise<HubQueueGroup[]>
+  hubExecuteQueue: (options?: { projectId?: string }) => Promise<ExecutionResult[]>
+  hubSettings: () => Promise<HubSettings>
+  hubSetSettings: (patch: Partial<HubSettings>) => Promise<HubSettings>
 }
 
 let singleton: GhfsRpc | null = null
@@ -155,11 +196,17 @@ function createGhfsRpcClient(): GhfsRpc {
     saveUiState: (projectId, state) => call('ghfs:save-ui-state', projectId, state) as Promise<void>,
     getPullPatch: (projectId, number) => call('ghfs:get-pull-patch', projectId, number) as Promise<string | null>,
     getProjectIcon: projectId => call('ghfs:get-project-icon', projectId) as Promise<string | null>,
+    projectActivity: (projectId, days) => call('ghfs:project-activity', projectId, days) as Promise<ActivityResult>,
     hubInfo: () => call('ghfs:hub-info') as Promise<{ cwd: string }>,
     hubScan: () => call('ghfs:hub-scan') as Promise<HubScannedProject[]>,
     hubEnable: path => call('ghfs:hub-enable', path) as Promise<{ id: string }>,
     hubDisable: id => call('ghfs:hub-disable', id) as Promise<{ removed: boolean }>,
     hubSetRoot: path => call('ghfs:hub-set-root', path) as Promise<{ cwd: string }>,
+    hubRecentItems: limit => call('ghfs:hub-recent-items', limit) as Promise<HubRecentItem[]>,
+    hubQueue: () => call('ghfs:hub-queue') as Promise<HubQueueGroup[]>,
+    hubExecuteQueue: options => call('ghfs:hub-execute-queue', options ?? {}) as Promise<ExecutionResult[]>,
+    hubSettings: () => call('ghfs:hub-settings') as Promise<HubSettings>,
+    hubSetSettings: patch => call('ghfs:hub-set-settings', patch) as Promise<HubSettings>,
   }
 }
 
@@ -236,9 +283,12 @@ function createClientHandlers(): GhfsClientFunctions {
     },
     'ghfs:onSyncStateChange': (event) => {
       useAppState(event.projectId).patchSyncState(event.state)
+      invalidateProjectActivity(event.projectId)
     },
     'ghfs:onQueueChange': (event) => {
       useAppState(event.projectId).patchQueue(event.queue)
+      if (useHubState().capabilities.value?.mode === 'hub')
+        useHubQueue().load()
     },
     'ghfs:onRemoteStatusChange': (event) => {
       useAppState(event.projectId).patchRemote(event.status)
@@ -286,10 +336,16 @@ function makeNoopRpc(): GhfsRpc {
     saveUiState: reject as never,
     getPullPatch: reject as never,
     getProjectIcon: reject as never,
+    projectActivity: reject as never,
     hubInfo: reject as never,
     hubScan: reject as never,
     hubEnable: reject as never,
     hubDisable: reject as never,
     hubSetRoot: reject as never,
+    hubRecentItems: reject as never,
+    hubQueue: reject as never,
+    hubExecuteQueue: reject as never,
+    hubSettings: reject as never,
+    hubSetSettings: reject as never,
   }
 }

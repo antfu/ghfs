@@ -280,12 +280,14 @@ const ringClass = computed(() =>
         >
           pending
         </Badge>
-        <span v-if="item.author" class="flex items-center gap-1 text-xs color-muted">
-          <Avatar :login="item.author" :size="14" />
-          <span class="font-mono">@{{ item.author }}</span>
-        </span>
-        <span class="text-xs color-muted">
-          <span class="color-faint">·</span> {{ formatRelative(item.createdAt) }}
+        <AuthorEntry
+          v-if="item.author"
+          :author="item.author"
+          :size="14"
+        />
+        <span class="text-xs color-muted flex items-center gap-1">
+          <span class="color-faint">·</span>
+          <DateBadge :time="item.createdAt" mode="day" />
         </span>
       </div>
       <div class="flex items-center gap-1 shrink-0">
@@ -303,28 +305,37 @@ const ringClass = computed(() =>
       </div>
     </header>
 
-    <div class="px-6 py-1.5 border-b border-base flex items-center gap-1.5 flex-wrap text-xs">
-      <span class="i-octicon-tag-16 color-muted" />
-      <Label v-for="label in labels" :key="label" :name="label" />
-      <IconButton
-        icon="i-ph-pencil-simple-duotone"
-        size="sm"
-        tooltip="Edit labels"
-        aria-label="Edit labels"
+    <div class="border-b border-base text-xs">
+      <button
+        type="button"
+        class="w-full px-6 py-1.5 flex items-center gap-1.5 flex-wrap text-left hover:bg-active transition outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40"
+        data-testid="detail-labels-row"
+        :title="'Edit labels'"
         @click="ui.labelEditorOpen.value = true"
-      />
-      <Kbd shortcut-id="item.labels" tone="muted" />
-      <template v-if="assignees.length">
-        <span class="i-octicon-person-16 color-muted ml-2" />
-        <span v-for="a in assignees" :key="a" class="flex items-center gap-1">
-          <Avatar :login="a" :size="14" />
-          <span class="font-mono">@{{ a }}</span>
-        </span>
-      </template>
-      <template v-if="item.milestone">
-        <span class="i-octicon-milestone-16 color-muted ml-2" />
-        <span class="font-mono italic">{{ item.milestone }}</span>
-      </template>
+      >
+        <span class="i-octicon-tag-16 color-muted" />
+        <Label v-for="label in labels" :key="label" :name="label" />
+        <span v-if="!labels.length" class="color-faint italic">no labels</span>
+        <Kbd shortcut-id="item.labels" tone="muted" class="ml-auto" />
+      </button>
+      <div
+        v-if="assignees.length || item.milestone"
+        class="px-6 py-1.5 flex items-center gap-1.5 flex-wrap"
+      >
+        <template v-if="assignees.length">
+          <span class="i-octicon-person-16 color-muted" />
+          <AuthorEntry
+            v-for="a in assignees"
+            :key="a"
+            :author="a"
+            :size="14"
+          />
+        </template>
+        <template v-if="item.milestone">
+          <span class="i-octicon-milestone-16 color-muted ml-2" />
+          <span class="font-mono italic">{{ item.milestone }}</span>
+        </template>
+      </div>
     </div>
 
     <div
@@ -424,15 +435,13 @@ const ringClass = computed(() =>
 
     <footer class="border-t border-base px-6 py-3 bg-base flex flex-col gap-2">
       <div class="flex items-center gap-2 text-xs color-muted">
-        <Avatar
-          :login="currentUser?.login ?? null"
-          :src="currentUser?.avatarUrl"
+        <AuthorEntry
+          v-if="currentUser?.login"
+          :author="{ login: currentUser.login, avatarUrl: currentUser.avatarUrl, name: currentUser.name }"
           :size="18"
+          :link="false"
         />
-        <span class="font-mono">
-          <template v-if="currentUser?.login">@{{ currentUser.login }}</template>
-          <template v-else>(no user)</template>
-        </span>
+        <span v-else class="font-mono">(no user)</span>
         <span v-if="currentUser?.name" class="color-faint">· {{ currentUser.name }}</span>
         <div class="flex-1" />
         <IconButton

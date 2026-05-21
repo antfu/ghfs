@@ -1,4 +1,5 @@
 import type { SyncItemState } from '../../src/types/sync-state'
+import { refThrottled } from '@vueuse/core'
 
 export function useFilteredItems() {
   const state = useAppState()
@@ -11,8 +12,13 @@ export function useFilteredItems() {
       .sort((a, b) => b.data.item.updatedAt.localeCompare(a.data.item.updatedAt))
   })
 
+  // Input updates `state.filters.search` instantly (so typing feels live),
+  // but the heavy haystack scan only re-runs at ~6Hz to keep large lists
+  // responsive. trailing=true ensures the last keystroke isn't dropped.
+  const throttledSearch = refThrottled(computed(() => state.filters.search), 150, true)
+
   const filteredEntries = computed<SyncItemState[]>(() => {
-    const search = state.filters.search.trim().toLowerCase()
+    const search = throttledSearch.value.trim().toLowerCase()
     const searching = search.length > 0
     return allEntries.value.filter((entry) => {
       const item = entry.data.item

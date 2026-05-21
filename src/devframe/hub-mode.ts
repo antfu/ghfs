@@ -8,17 +8,25 @@ import { defineRpcFunction } from 'devframe'
 import { isAbsolute, resolve } from 'pathe'
 import { resolveConfig } from '../config/load'
 import { resolveRepo } from '../config/repo'
-import { loadHubConfig, saveHubConfig } from '../hub/config'
+import { createAutoSyncTimer } from '../hub/auto-sync'
+import { loadHubConfig, patchHubSettings, saveHubConfig } from '../hub/config'
 import { scanGitRepos } from '../hub/scanner'
 import { CodedError, log } from '../logger'
 import { slugifyRepoName } from '../server/portless'
+import { findProjectIcon } from '../utils/project-icon'
 import { buildProjectContext, closeProjectContext } from './project-factory'
 import { registerProjectRpc } from './shared-rpc'
+
+export interface HubSettings {
+  autoSyncIntervalMs?: number
+}
 
 export interface HubScannedProject {
   path: string
   name: string
   enabled: boolean
+  /** Data URL of a logo found in the project directory, or null. */
+  iconDataUrl: string | null
 }
 
 export interface HubModeOptions {
@@ -111,12 +119,19 @@ export async function setupHubMode(
 
   await loadEnabledProjects()
 
+  const initialEntry = await loadHubConfig({ hubCwd, homeDir })
+
   const registry: ProjectRegistry = {
     mode: 'hub',
     getProject: id => projects.get(id) ?? null,
     listProjects: () => Array.from(projects.values()),
     close: clearProjects,
   }
+
+  const autoSync = createAutoSyncTimer({
+    registry,
+    initialIntervalMs: initialEntry.autoSyncIntervalMs,
+  })
 
   registerProjectRpc(devframeCtx, registry)
 
@@ -137,11 +152,12 @@ export async function setupHubMode(
     handler: async (): Promise<HubScannedProject[]> => {
       const scanned = await scanGitRepos(hubCwd)
       const enabledPaths = new Set(Array.from(projects.values()).map(p => p.path))
-      return scanned.map(s => ({
+      return Promise.all(scanned.map(async s => ({
         path: s.path,
         name: s.name,
         enabled: enabledPaths.has(s.path),
-      }))
+        iconDataUrl: await findProjectIcon(s.path).catch(() => null),
+      })))
     },
   }))
 
@@ -185,9 +201,30 @@ export async function setupHubMode(
       await clearProjects()
       hubCwd = next
       await loadEnabledProjects()
+      const entry = await loadHubConfig({ hubCwd, homeDir })
+      autoSync.setInterval(entry.autoSyncIntervalMs)
       broadcastHubInfoChange()
       broadcastProjectsChange()
       return { cwd: hubCwd }
+    },
+  }))
+
+  devframeCtx.rpc.register(def({
+    name: 'ghfs:hub-settings',
+    type: 'query',
+    handler: async (): Promise<HubSettings> => {
+      const entry = await loadHubConfig({ hubCwd, homeDir })
+      return { autoSyncIntervalMs: entry.autoSyncIntervalMs }
+    },
+  }))
+
+  devframeCtx.rpc.register(def({
+    name: 'ghfs:hub-set-settings',
+    type: 'action',
+    handler: async (patch: { autoSyncIntervalMs?: number | null }): Promise<HubSettings> => {
+      const entry = await patchHubSettings({ hubCwd, homeDir, patch })
+      autoSync.setInterval(entry.autoSyncIntervalMs)
+      return { autoSyncIntervalMs: entry.autoSyncIntervalMs }
     },
   }))
 
@@ -202,7 +239,10 @@ export async function setupHubMode(
 
   return {
     registry,
-    close: clearProjects,
+    close: async () => {
+      autoSync.close()
+      await clearProjects()
+    },
   }
 }
 

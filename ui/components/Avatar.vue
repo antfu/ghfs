@@ -29,7 +29,7 @@ watch(() => [props.login, props.src], () => {
 <template>
   <span
     :style="{ width: `${props.size}px`, height: `${props.size}px` }"
-    class="inline-flex shrink-0 items-center justify-center rounded-full overflow-hidden bg-secondary color-muted font-mono text-[10px] select-none align-middle"
+    class="inline-flex shrink-0 items-center justify-center rounded-full overflow-hidden border border-base bg-secondary color-muted font-mono text-[10px] select-none align-middle"
   >
     <img
       v-if="url && !imgFailed"

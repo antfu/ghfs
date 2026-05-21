@@ -4,20 +4,20 @@ import { computed } from 'vue'
 const props = withDefaults(defineProps<{
   title?: string
   icon?: string
-  variant?: 'glass' | 'solid'
+  variant?: 'floating' | 'solid'
   padding?: 'none' | 'sm' | 'md'
   headerClass?: string
   dataTestid?: string
   as?: string
 }>(), {
-  variant: 'glass',
+  variant: 'floating',
   padding: 'md',
   as: 'div',
 })
 
 const rootClass = computed(() => {
-  const base = 'border border-base rounded-xl overflow-hidden'
-  return props.variant === 'glass' ? `${base} bg-glass` : `${base} bg-base`
+  const base = 'rounded-xl overflow-hidden border border-base bg-base'
+  return props.variant === 'floating' ? `${base} shadow-sm` : base
 })
 
 const bodyClass = computed(() => {

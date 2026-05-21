@@ -20,19 +20,41 @@
 
 - **Primary palette**: GitHub blue (`#0969da`, accessible via `primary-500` / `color-active`). Do not introduce a second accent — semantic state colors carry the visual variation.
 - **State colors** stay GitHub-native: open=green, merged=purple, closed=red, draft/not-planned=neutral, pending=yellow. Encode via `<Badge color="..." />` or `<StatePill>`. Do not invent new state colors.
+- **No glass / backdrop blur.** Surfaces are flat. Use `bg-base` for opaque chrome and `bg-active` (`#8881`) for hover/selection tint. Backdrop-blur is reserved for cases the platform demands it (none currently).
 - **Icons**: hybrid system.
   - Octicons (`i-octicon-*-16`) for GitHub semantics: issue/PR state, timeline event icons, labels, sync, queue list, comment threads. Reserved for things that *mean* something on GitHub.
   - Phosphor duotone (`i-ph-*-duotone`) for chrome: theme toggle, close, dropdown chevrons, edit, expand, settings, warning/info indicators. When in doubt, ask: "does this icon represent a GitHub concept?" If no → Phosphor.
 - **Surfaces**: prefer the shared primitives over rolling new card scaffolding.
-  - Floating chrome (navbar, queue panel, toast, dropdown menu): `bg-glass` + `border border-base`, or just `panel-card`.
-  - Cards / contained sections: `<Panel>` (or the `panel-card` shortcut inline).
+  - Floating chrome (navbar, drawers, toasts, dropdown menus): `panel-floating` = `bg-base` + `border border-base` + `shadow-sm`. No blur.
+  - Cards / contained sections: `<Panel>` (or the `panel-card` shortcut inline) = `border border-base rounded-xl bg-base`.
   - Modal dialogs: `<Modal>` — never re-implement backdrop + escape + focus trap. It owns the `z-modal-*` layers.
   - Side drawers: `<Drawer>` — same rule.
-- **Borders & depth**: use `border-base` (translucent `#8882`) and `border-active`. Avoid solid neutral hex borders. Depth comes from opacity + glass, not from `shadow-*` (shadows reserved for floating chrome only).
+- **Borders & depth**: use `border-base` (translucent `#8882`) and `border-active`. Avoid solid neutral hex borders. Depth comes from `shadow-sm` on floating chrome only; flat surfaces (cards, panels) rely on borders.
 - **Opacity tokens**: `op-fade` (light/dark adaptive 65/55%) and `op-mute` (30/25%). Prefer these over raw `op-65`.
 - **Z-index**: never write raw `z-30`/`z-50`/etc. in components. Use the named layer shortcuts from `uno.config.ts`: `z-nav`, `z-dropdown`, `z-toast`, `z-modal-backdrop`, `z-modal-content`, `z-drawer-backdrop`, `z-drawer-content`.
 - **Icon buttons**: use `<IconButton>` — it owns the `w-9 h-9 rounded-full op-fade hover:op100 hover:bg-active` pattern plus focus ring, tooltip, and badge slot. The legacy `btn-icon` / `btn-circle` shortcuts remain only for non-component callers.
 - **Search inputs**: use `<SearchField>` for any list filter / search box so the icon + clear-X + Kbd hint stay consistent.
 - **Badges**: use `<Badge>` (or `<StatePill>` for issue/PR state). Avoid inline `bg-{color}-400/20` constructions; the `badge-color-{name}` regex shortcut covers any tailwind color.
+- **Date / age display**: use `<DateBadge :time="iso" />` for any "X ago" indicator. It wraps `<DurationBadge>` with a 5-step age scale: `<1d` bright green, `<7d` green, `<30d` amber, `<90d` orange, `>=90d` pure gray (the "stale" bucket). Pass `:colorize="false"` for a permanent gray badge.
+- **Authors / users**: use `<AuthorEntry :author="loginOrObject" />` instead of pairing `<Avatar>` with an inline `@login` span. Accepts either a plain login string or `{ login, avatarUrl, name }`. Set `:link="false"` when the surrounding element already navigates somewhere.
+- **Virtualized lists**: long lists (issues/PRs in a project, recent items in the hub) use `<VirtualItemList>` (or the TanStack `useVirtualizer` directly when the row shape is custom). Never render thousands of `<ItemRow>` components in a plain `v-for`.
+- **Activity sparkline**: `<ActivitySparkline :points="..." />` wraps `VueUiSparkline` with a curve, no axis. Use it as a background graph behind a card (`absolute inset-x-0 bottom-0 top-1/3 op-30 pointer-events-none`).
+- **Settings**: a single global `<SettingsDialog>` (mounted in `app.vue`) gates every settings-style action. Add new preferences as new sections inside it; do not introduce parallel dialogs.
 - **Empty states**: `<EmptyState>` for "no items", "loading", "error" placeholders. Use its `hint` slot for keyboard-shortcut footers or follow-up CTAs.
-- **Testid forwarding**: every shared primitive (`Modal`, `IconButton`, `Panel`, `Badge`, `SearchField`, `Toggle`, `Drawer`) accepts a `dataTestid` prop that lands on the root element. Add the same forwarding when introducing new primitives — the Playwright suite depends on `data-testid` staying on stable nodes.
+- **Testid forwarding**: every shared primitive (`Modal`, `IconButton`, `Panel`, `Badge`, `SearchField`, `Toggle`, `Drawer`, `DateBadge`, `AuthorEntry`, `VirtualItemList`, `SettingsDialog`, `ActivitySparkline`) accepts a `dataTestid` prop that lands on the root element. Add the same forwarding when introducing new primitives — the Playwright suite depends on `data-testid` staying on stable nodes.
+
+## Keyboard shortcuts (UI)
+
+Global shortcuts are registered in `ui/composables/useAppShortcuts.ts` and rendered next to their trigger via `<Kbd shortcut-id="..." />`. Notable global keys:
+
+- `,` — Open Settings dialog
+- `?` — Help overlay
+- `u` — Hub recent activity page (hub mode)
+- `Q` — Hub queue page (hub mode)
+- `s` — Sync current project
+- `q` — Toggle queue (drawer)
+- `x` — Execute queued ops
+- `/` — Focus search
+- `i` / `p` — Issues / Pull-requests tab
+- `j` / `k` / arrow keys — Navigate list / scroll detail
+- `[` / `]` — Previous / next project (hub mode)

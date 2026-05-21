@@ -23,6 +23,7 @@ function ensureSaver(): () => void {
       listPaneSize: uiState.listPaneSize,
       lastPrTab: uiState.lastPrTab,
       userOverride: uiState.userOverride ? { ...uiState.userOverride } : undefined,
+      autoSyncIntervalMs: uiState.autoSyncIntervalMs,
     }).catch((error) => {
       log.GHFS0900({ detail: String((error as Error)?.message ?? error) }, { cause: error }).error()
     })
@@ -60,6 +61,7 @@ export function useUiState() {
     uiState.listPaneSize = typeof next?.listPaneSize === 'number' ? next.listPaneSize : undefined
     uiState.lastPrTab = normalizePrTab(next?.lastPrTab)
     uiState.userOverride = normalizeUserOverride(next?.userOverride)
+    uiState.autoSyncIntervalMs = typeof next?.autoSyncIntervalMs === 'number' ? next.autoSyncIntervalMs : undefined
     hydrated = true
   }
 
@@ -110,6 +112,16 @@ export function useUiState() {
     ensureSaver()()
   }
 
+  function setAutoSyncIntervalMs(value: number | undefined): void {
+    const normalized = typeof value === 'number' && value >= 60_000 && value <= 3_600_000
+      ? Math.round(value)
+      : undefined
+    if (uiState.autoSyncIntervalMs === normalized)
+      return
+    uiState.autoSyncIntervalMs = normalized
+    ensureSaver()()
+  }
+
   return {
     uiState,
     helpOpen,
@@ -121,5 +133,6 @@ export function useUiState() {
     setListPaneSize,
     setLastPrTab,
     setUserOverride,
+    setAutoSyncIntervalMs,
   }
 }

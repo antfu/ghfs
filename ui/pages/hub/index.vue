@@ -4,16 +4,10 @@ import type { ProjectSummary } from '#ghfs/shared-rpc'
 const rpc = useRpc()
 const hub = useHubState()
 const hubUi = useHubUiState()
-const isDark = useDark()
-const ui = useUiState()
 
 const projects = computed<ProjectSummary[]>(() => hub.projects.value)
 const pickerOpen = computed({ get: () => hubUi.pickerOpen.value, set: v => (hubUi.pickerOpen.value = v) })
-const rootDialogOpen = computed({ get: () => hubUi.rootDialogOpen.value, set: v => (hubUi.rootDialogOpen.value = v) })
-const syncingAll = computed(() => hubUi.syncingAll.value)
 const focusedIndex = ref(0)
-
-const hubCwd = computed(() => hub.hubCwd.value)
 
 const aggregates = computed(() => {
   let issues = 0
@@ -31,53 +25,33 @@ const aggregates = computed(() => {
   return { issues, pulls, tokens, synced }
 })
 
-const lastSyncedSummary = computed(() => {
+const lastActivitySummary = computed(() => {
   let mostRecent: string | undefined
   for (const p of projects.value) {
-    if (!p.lastSyncedAt)
+    const candidate = p.lastActivityAt ?? p.lastSyncedAt
+    if (!candidate)
       continue
-    if (!mostRecent || p.lastSyncedAt > mostRecent)
-      mostRecent = p.lastSyncedAt
+    if (!mostRecent || candidate > mostRecent)
+      mostRecent = candidate
   }
   return mostRecent
 })
-
-const syncableCount = computed(() => projects.value.filter(p => p.hasToken).length)
 
 onMounted(async () => {
   try {
     const info = await rpc.hubInfo()
     hub.setHubCwd(info.cwd)
   }
-  catch {
-    /* header just falls back to the title */
-  }
+  catch { /* fall back to title */ }
   try {
     const fresh = await rpc.listProjects()
     hub.setProjects(fresh)
   }
-  catch {
-    /* hub state stays whatever capabilities returned */
-  }
+  catch { /* keep capabilities-provided list */ }
 })
-
-async function onRootChanged() {
-  // Same project IDs may point at different filesystem locations under a
-  // new hub root, so flush the icon cache before refetching.
-  clearProjectIconCache()
-  try {
-    const fresh = await rpc.listProjects()
-    hub.setProjects(fresh)
-  }
-  catch { /* noop */ }
-}
 
 function openProject(id: string) {
   navigateTo(`/hub/${id}`)
-}
-
-async function syncAll() {
-  await syncAllProjects()
 }
 
 const cardRefs = ref<HTMLButtonElement[]>([])
@@ -137,54 +111,7 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
 
 <template>
   <div class="h-full flex flex-col" data-testid="hub-home">
-    <header class="sticky top-0 z-nav bg-glass border-b border-base flex items-center gap-3 px-5 h-14">
-      <span class="i-octicon-organization-16 text-lg color-active shrink-0" />
-      <div class="flex flex-col leading-tight min-w-0">
-        <span class="text-sm font-semibold">ghfs hub</span>
-        <button
-          v-if="hubCwd"
-          type="button"
-          class="text-[11px] color-muted hover:color-active font-mono truncate inline-flex items-center gap-1 transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 rounded"
-          data-testid="hub-root-button"
-          :title="`${hubCwd} — click to change`"
-          @click="rootDialogOpen = true"
-        >
-          <span class="truncate">{{ hubCwd }}</span>
-          <span class="i-ph-pencil-simple-duotone text-[10px] shrink-0 op70" />
-        </button>
-      </div>
-      <div class="flex-1" />
-      <button
-        class="btn-action-sm"
-        data-testid="hub-sync-all"
-        :title="syncableCount > 0 ? `Sync ${syncableCount} project${syncableCount === 1 ? '' : 's'}` : 'No project has a GitHub token'"
-        :disabled="syncingAll || syncableCount === 0"
-        @click="syncAll"
-      >
-        <span class="i-octicon-sync-16" :class="syncingAll ? 'animate-spin' : ''" />
-        <span>{{ syncingAll ? 'Syncing…' : 'Sync all' }}</span>
-      </button>
-      <button
-        class="btn-action-sm"
-        data-testid="hub-open-picker"
-        @click="pickerOpen = true"
-      >
-        <span class="i-ph-sliders-duotone" />
-        <span>Manage projects</span>
-      </button>
-      <IconButton
-        :icon="isDark ? 'i-ph-sun-duotone' : 'i-ph-moon-duotone'"
-        :tooltip="isDark ? 'Light mode' : 'Dark mode'"
-        aria-label="Toggle theme"
-        @click="isDark = !isDark"
-      />
-      <IconButton
-        icon="i-ph-question-duotone"
-        tooltip="Keyboard shortcuts"
-        aria-label="Help"
-        @click="ui.helpOpen.value = true"
-      />
-    </header>
+    <AppNavbar mode="hub" />
 
     <main class="flex-1 overflow-y-auto">
       <div class="max-w-6xl mx-auto px-5 py-6 flex flex-col gap-6">
@@ -213,8 +140,8 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
           </div>
           <div class="flex-1" />
           <div class="flex flex-col leading-tight text-right">
-            <span class="text-[11px] uppercase tracking-wide color-muted font-medium">Last sync</span>
-            <span class="text-sm tabular-nums" :title="lastSyncedSummary ?? ''">{{ formatRelative(lastSyncedSummary) }}</span>
+            <span class="text-[11px] uppercase tracking-wide color-muted font-medium">Last activity</span>
+            <DateBadge :time="lastActivitySummary" mode="day" />
           </div>
         </section>
 
@@ -226,6 +153,7 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
             <button
               v-if="projects.length > 0"
               class="text-xs color-muted hover:color-active transition"
+              data-testid="hub-manage-projects"
               @click="pickerOpen = true"
             >
               + add or remove
@@ -272,12 +200,6 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
     </main>
 
     <HubProjectPicker v-if="pickerOpen" @close="pickerOpen = false" />
-    <HubRootDialog
-      v-if="hubCwd"
-      v-model:open="rootDialogOpen"
-      :current="hubCwd"
-      @changed="onRootChanged"
-    />
     <HelpOverlay />
   </div>
 </template>

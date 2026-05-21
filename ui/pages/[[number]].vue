@@ -1,10 +1,18 @@
 <script setup lang="ts">
+const route = useRoute()
 const router = useRouter()
 const rpc = useRpc()
 const hub = useHubState()
 
 const ready = ref(false)
 const fatalError = ref<string | null>(null)
+
+const initialNumber = computed(() => {
+  const raw = route.params.number
+  const n = Array.isArray(raw) ? raw[0] : raw
+  const parsed = Number.parseInt(n ?? '', 10)
+  return Number.isFinite(parsed) ? parsed : null
+})
 
 onMounted(async () => {
   try {
@@ -32,7 +40,7 @@ const projectId = computed(() => hub.projects.value[0]?.id ?? '')
     <span class="i-octicon-sync-16 animate-spin text-2xl mb-3 color-active" />
     <p class="text-sm">Connecting…</p>
   </div>
-  <ProjectView v-else-if="projectId" :project-id="projectId" />
+  <ProjectView v-else-if="projectId" :project-id="projectId" :initial-number="initialNumber" />
   <div v-else class="flex flex-col items-center justify-center h-full color-muted">
     <p class="text-sm">No project configured.</p>
   </div>

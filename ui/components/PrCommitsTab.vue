@@ -45,7 +45,13 @@ async function copy(sha: string) {
     <ol v-else class="border border-base rounded-lg bg-base overflow-hidden divide-y divide-#8882">
       <li v-for="commit in props.commits" :key="commit.sha" class="px-4 py-3">
         <div class="flex items-start gap-3">
-          <Avatar :login="commit.authorLogin ?? undefined" :size="24" class="mt-0.5" />
+          <AuthorEntry
+            v-if="commit.authorLogin"
+            :author="commit.authorLogin"
+            :size="24"
+            :show-name="false"
+            class="mt-0.5"
+          />
           <div class="flex-1 min-w-0">
             <div class="flex items-start gap-2 flex-wrap">
               <button
@@ -61,12 +67,10 @@ async function copy(sha: string) {
             </div>
             <pre v-if="expanded.has(commit.sha) && rest(commit.message)" class="mt-2 text-xs color-muted whitespace-pre-wrap font-sans">{{ rest(commit.message) }}</pre>
             <div class="mt-1 flex items-center gap-2 text-xs color-muted flex-wrap">
-              <span v-if="commit.authorLogin">
-                <span class="font-mono">@{{ commit.authorLogin }}</span>
-              </span>
+              <span v-if="commit.authorLogin" class="font-mono">@{{ commit.authorLogin }}</span>
               <span v-else-if="commit.authorName">{{ commit.authorName }}</span>
               <span class="color-faint">·</span>
-              <span>{{ formatRelative(commit.authorDate) }}</span>
+              <DateBadge :time="commit.authorDate" mode="day" />
             </div>
           </div>
           <div class="flex items-center gap-1 shrink-0">

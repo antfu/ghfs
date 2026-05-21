@@ -43,7 +43,7 @@ function close() {
   <DialogRoot v-model:open="open">
     <DialogPortal>
       <DialogOverlay
-        class="fixed inset-0 bg-black/40 backdrop-blur-sm z-modal-backdrop"
+        class="fixed inset-0 bg-black/40 z-modal-backdrop"
         @click="closeOnBackdrop ? close() : null"
       />
       <DialogContent

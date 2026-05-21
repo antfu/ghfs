@@ -263,7 +263,8 @@ export function createAppShortcuts(): Shortcut[] {
         || state.value.queueOpen.value
         || state.value.executeConfirmOpen.value
         || hubUi.pickerOpen.value
-        || hubUi.rootDialogOpen.value,
+        || hubUi.settingsOpen.value
+        || hubUi.queueDrawerOpen.value,
       run: () => {
         if (ui.helpOpen.value) {
           ui.helpOpen.value = false
@@ -277,12 +278,16 @@ export function createAppShortcuts(): Shortcut[] {
           state.value.executeConfirmOpen.value = false
           return
         }
-        if (hubUi.rootDialogOpen.value) {
-          hubUi.closeRootDialog()
+        if (hubUi.settingsOpen.value) {
+          hubUi.closeSettings()
           return
         }
         if (hubUi.pickerOpen.value) {
           hubUi.closePicker()
+          return
+        }
+        if (hubUi.queueDrawerOpen.value) {
+          hubUi.closeQueueDrawer()
           return
         }
         if (state.value.queueOpen.value) state.value.closeQueue()
@@ -344,6 +349,27 @@ export function createAppShortcuts(): Shortcut[] {
       run: () => { ui.helpOpen.value = true },
     },
     {
+      id: 'settings.open',
+      keys: [','],
+      description: 'Settings',
+      enabled: () => !hubUi.settingsOpen.value,
+      run: () => hubUi.openSettings(),
+    },
+    {
+      id: 'hub.recent',
+      keys: ['u'],
+      description: 'Recent activity (hub)',
+      enabled: () => isHubMode.value && route.path !== '/hub/recent',
+      run: () => { router.push('/hub/recent') },
+    },
+    {
+      id: 'hub.queue-page',
+      keys: ['Q'],
+      description: 'Open hub queue page',
+      enabled: () => isHubMode.value && route.path !== '/hub/queue',
+      run: () => { router.push('/hub/queue') },
+    },
+    {
       id: 'hub.prev-project',
       keys: ['['],
       description: 'Previous project (hub)',
@@ -375,15 +401,8 @@ export function createAppShortcuts(): Shortcut[] {
       id: 'hub.manage',
       keys: ['m'],
       description: 'Manage hub projects',
-      enabled: () => isHubHome.value && !hubUi.pickerOpen.value && !hubUi.rootDialogOpen.value,
+      enabled: () => isHubHome.value && !hubUi.pickerOpen.value,
       run: () => hubUi.openPicker(),
-    },
-    {
-      id: 'hub.change-root',
-      keys: ['r'],
-      description: 'Change hub root',
-      enabled: () => isHubHome.value && !hubUi.pickerOpen.value && !hubUi.rootDialogOpen.value,
-      run: () => hubUi.openRootDialog(),
     },
     {
       id: 'hub.focus-first',

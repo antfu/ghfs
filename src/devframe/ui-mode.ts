@@ -1,7 +1,9 @@
 import type { DevToolsNodeContext } from 'devframe'
 import type { GhfsResolvedConfig } from '../types'
 import type { ProjectRegistry } from './project-context'
+import { createAutoSyncTimer } from '../hub/auto-sync'
 import { slugifyRepoName } from '../server/portless'
+import { loadUiState } from '../server/ui-state'
 import { buildProjectContext, closeProjectContext } from './project-factory'
 import { registerProjectRpc } from './shared-rpc'
 
@@ -45,10 +47,24 @@ export async function setupUiMode(
     close: async () => closeProjectContext(project),
   }
 
-  registerProjectRpc(devframeCtx, registry)
+  // UI mode persists the auto-sync interval in the project's per-UI state.
+  const uiState = await loadUiState(project.storageDirAbsolute)
+  const autoSync = createAutoSyncTimer({
+    registry,
+    initialIntervalMs: uiState.autoSyncIntervalMs,
+  })
+
+  registerProjectRpc(devframeCtx, registry, {
+    onUiStateSaved: (next) => {
+      autoSync.setInterval(next.autoSyncIntervalMs)
+    },
+  })
 
   return {
     registry,
-    close: () => registry.close(),
+    close: async () => {
+      autoSync.close()
+      await registry.close()
+    },
   }
 }

@@ -36,6 +36,46 @@ It will sync the open issues and pull requests to the local filesystem under `.g
 
 Then you can view them offline, or ask your local agent to summarize them for you.
 
+## Web UI
+
+`ghfs` ships a local web UI for browsing and acting on the synced mirror.
+
+### `ghfs ui` — single project
+
+Run inside a repository directory after a sync. Opens a browser tab with a two-pane (list + detail) view of the project's issues and PRs.
+
+```bash
+ghfs ui
+```
+
+Flags:
+
+- `--port <number>` — port to listen on (default `7710`).
+- `--host <addr>` — bind address (default `127.0.0.1`).
+- `--cwd <path>` — project directory; defaults to the current working directory.
+- `--no-open` — don't auto-open the browser (useful for headless setups).
+
+The UI is read-and-queue: edits made in the interface are queued to `.ghfs/execute.yml` and `.ghfs/execute.md` — you still apply them with `ghfs execute --run`.
+
+### `ghfs hub` — multi-project dashboard
+
+Point at a directory that contains multiple project checkouts and `ghfs hub` scans for git repositories, lets you enable the ones you want, and exposes them all in one dashboard.
+
+```bash
+ghfs hub --cwd ~/projects
+```
+
+The hub keeps its enabled-project list and auto-sync interval in `~/.config/ghfs/hub.json`, keyed by the hub root. Switching roots remembers each root's selection independently.
+
+Features:
+
+- Project cards with activity sparkline, open issue / PR counts, last updated and last synced badges.
+- `/hub/recent` — cross-project list of recently-updated issues and PRs.
+- `/hub/queue` — aggregated queue across all enabled projects with per-project execute.
+- Settings dialog (`,`) for hub root and an optional auto-sync interval (1–60 minutes).
+
+Flags mirror `ghfs ui` (`--port`, `--host`, `--cwd`, `--no-open`).
+
 ## Execute operations
 
 `ghfs` also allows you to take actions on the issues and pull requests in batch.
@@ -149,4 +189,4 @@ export default defineConfig({
 - [ ] Documentation.
 - [x] Index page, and basic repo info
 - [x] Agent Skills.
-- [ ] Local Web UI for managing the local mirror.
+- [x] Local Web UI for managing the local mirror (`ghfs ui` and `ghfs hub`).

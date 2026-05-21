@@ -29,26 +29,26 @@ async function refresh() {
   }
 }
 
-async function toggle(entry: HubScannedProject, next: boolean) {
+async function toggle(entry: HubScannedProject) {
   if (busyPath.value)
     return
+  const next = !entry.enabled
   busyPath.value = entry.path
   try {
-    if (!next && entry.enabled) {
+    if (!next) {
       const project = hub.projects.value.find(p => p.path === entry.path)
       if (project) {
         await rpc.hubDisable(project.id)
         entry.enabled = false
       }
     }
-    else if (next && !entry.enabled) {
+    else {
       await rpc.hubEnable(entry.path)
       entry.enabled = true
     }
   }
   catch (err) {
     error.value = (err as Error).message
-    entry.enabled = !next
   }
   finally {
     busyPath.value = null
@@ -97,23 +97,13 @@ const enabledCount = computed(() => items.value.filter(i => i.enabled).length)
         :spinning="loading"
         @click="refresh"
       />
-      <IconButton
-        icon="i-ph-x"
-        size="sm"
-        aria-label="Close"
-        data-testid="hub-picker-close"
-        @click="open = false"
-      />
     </template>
 
     <div class="px-5 py-2 border-b border-base">
       <SearchField v-model="search" placeholder="Filter by name or path…" />
     </div>
 
-    <EmptyState
-      v-if="loading"
-      size="sm"
-    >
+    <EmptyState v-if="loading" size="sm">
       <span class="i-octicon-sync-16 animate-spin text-xl color-active mb-2" />
       <p class="text-sm color-muted">Scanning for git repositories…</p>
     </EmptyState>
@@ -129,26 +119,49 @@ const enabledCount = computed(() => items.value.filter(i => i.enabled).length)
       <li
         v-for="entry in filtered"
         :key="entry.path"
-        class="flex items-center gap-3 px-5 py-3 border-b border-base last:border-b-0 hover:bg-active transition"
+        class="flex items-center gap-3 px-5 py-2.5 border-b border-base last:border-b-0 hover:bg-active transition"
         :data-testid="entry.enabled ? 'hub-picker-enabled' : 'hub-picker-disabled'"
         :data-path="entry.path"
       >
         <span
-          class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-md"
-          :class="entry.enabled ? 'bg-primary-500/12 color-active' : 'bg-#8881 color-muted'"
+          class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-md overflow-hidden bg-#8881"
+          :class="entry.enabled ? 'ring-1 ring-primary-500/30' : ''"
         >
-          <span class="i-octicon-repo-16" />
+          <img
+            v-if="entry.iconDataUrl"
+            :src="entry.iconDataUrl"
+            :alt="entry.name"
+            class="w-full h-full object-contain"
+            loading="lazy"
+          >
+          <span v-else class="i-octicon-repo-16 color-muted" />
         </span>
         <div class="flex-1 min-w-0">
-          <div class="text-sm font-medium font-mono truncate">{{ entry.name }}</div>
-          <div class="text-xs color-muted font-mono truncate" :title="entry.path">{{ entry.path }}</div>
+          <div class="text-sm font-medium font-mono truncate" :class="entry.enabled ? '' : 'color-muted'">{{ entry.name }}</div>
+          <div class="text-[11px] color-faint font-mono truncate" :title="entry.path">{{ entry.path }}</div>
         </div>
-        <Toggle
-          :model-value="entry.enabled"
-          :busy="busyPath === entry.path"
-          :aria-label="entry.enabled ? `Disable ${entry.name}` : `Enable ${entry.name}`"
-          @update:model-value="toggle(entry, $event)"
-        />
+        <button
+          type="button"
+          class="btn-toggle-pill shrink-0"
+          :class="entry.enabled ? 'btn-toggle-pill-on' : 'btn-toggle-pill-off'"
+          :disabled="busyPath === entry.path"
+          :aria-label="entry.enabled ? `Remove ${entry.name}` : `Add ${entry.name}`"
+          :data-testid="entry.enabled ? 'hub-picker-toggle-remove' : 'hub-picker-toggle-add'"
+          @click="toggle(entry)"
+        >
+          <template v-if="busyPath === entry.path">
+            <span class="i-octicon-sync-16 animate-spin" />
+            <span>{{ entry.enabled ? 'Removing…' : 'Adding…' }}</span>
+          </template>
+          <template v-else-if="entry.enabled">
+            <span class="i-ph-check-bold" />
+            <span>Enabled</span>
+          </template>
+          <template v-else>
+            <span class="i-ph-plus-bold" />
+            <span>Add</span>
+          </template>
+        </button>
       </li>
     </ul>
 
@@ -160,7 +173,7 @@ const enabledCount = computed(() => items.value.filter(i => i.enabled).length)
 
     <template #footer>
       <span class="text-xs color-muted flex-1">
-        Toggle a project to add or remove it. Changes take effect immediately — your hub config is saved automatically.
+        Changes save automatically.
       </span>
     </template>
   </Modal>

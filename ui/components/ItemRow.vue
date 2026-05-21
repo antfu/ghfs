@@ -34,21 +34,10 @@ const bodySnippetHtml = computed(() => {
 function selectItem() {
   state.selectItem(item.value.number)
 }
-
-const rowRef = ref<HTMLElement | null>(null)
-watch(
-  () => props.selected,
-  (selected) => {
-    if (selected)
-      rowRef.value?.scrollIntoView({ block: 'nearest' })
-  },
-  { immediate: true, flush: 'post' },
-)
 </script>
 
 <template>
   <button
-    ref="rowRef"
     type="button"
     class="group w-full text-left flex items-start gap-2.5 px-3 py-2 text-sm border-b border-base transition-colors relative outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40"
     :class="props.selected
@@ -96,12 +85,14 @@ watch(
       <div v-if="bodySnippetHtml" class="text-xs color-muted mt-1 leading-relaxed" v-html="bodySnippetHtml" />
 
       <div class="flex items-center gap-2 flex-wrap text-xs color-muted mt-1">
-        <template v-if="item.author">
-          <Avatar :login="item.author" :size="14" />
-          <span class="font-mono">@{{ item.author }}</span>
-        </template>
+        <AuthorEntry
+          v-if="item.author"
+          :author="item.author"
+          :size="14"
+          :link="false"
+        />
         <span class="color-faint">·</span>
-        <span>{{ formatRelative(item.updatedAt) }}</span>
+        <DateBadge :time="item.updatedAt" mode="day" />
         <template v-if="assignees.length">
           <span class="color-faint">·</span>
           <span class="flex items-center gap-1">

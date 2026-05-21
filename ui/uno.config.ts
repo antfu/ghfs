@@ -44,13 +44,35 @@ export default defineConfig({
       'border-base': 'border-#8882',
       'border-active': 'border-primary-500/25 dark:border-primary-400/25',
 
-      'bg-tooltip': 'bg-white:75 dark:bg-#111:75 backdrop-blur-8',
+      'bg-tooltip': 'bg-white dark:bg-#111',
       'bg-gradient-more': 'bg-gradient-to-t from-white via-white:80 to-white:0 dark:from-#111 dark:via-#111:80 dark:to-#111:0',
 
       'op-fade': 'op65 dark:op55',
       'op-mute': 'op30 dark:op25',
 
-      'panel-card': 'border border-base rounded-xl bg-glass',
+      'panel-card': 'border border-base rounded-xl bg-base',
+      'panel-floating': 'bg-base border border-base shadow-sm',
+
+      // <DurationBadge> base chip — rectangular, subtle background, no border.
+      // Visually distinct from <Label> (rounded-full pill with border).
+      'date-chip': 'inline-flex items-baseline gap-0.5 px-1.5 py-0.25 rounded-sm text-xs font-mono tabular-nums leading-tight',
+
+      // <DurationBadge> color scales. Each picks a text-color + matching
+      // background tint. Used by <DateBadge>.
+      //
+      // `freshness` (e.g. "last updated"): newer is better, bright green fading to gray.
+      // Renders pure gray once the age crosses ~3 months.
+      'date-chip-fresh-now': 'date-chip text-green-700 bg-green-500/12 dark:text-green-300 dark:bg-green-400/10',
+      'date-chip-fresh-recent': 'date-chip text-green-700 bg-green-500/10 dark:text-green-300 dark:bg-green-400/8',
+      'date-chip-fresh-mature': 'date-chip color-muted bg-#8881',
+      'date-chip-fresh-stale': 'date-chip color-faint bg-#8881',
+      //
+      // `staleness` (e.g. "last synced"): newer is fine, severity grows with age.
+      // Mirrors node-modules-inspector's package-age palette.
+      'date-chip-stale-fresh': 'date-chip color-muted bg-#8881',
+      'date-chip-stale-warm': 'date-chip text-yellow-700 bg-yellow-500/15 dark:text-yellow-300 dark:bg-yellow-400/10',
+      'date-chip-stale-warning': 'date-chip text-orange-700 bg-orange-500/15 dark:text-orange-300 dark:bg-orange-400/10',
+      'date-chip-stale-critical': 'date-chip text-red-700 bg-red-500/15 dark:text-red-300 dark:bg-red-400/10',
 
       'btn-action': 'border border-base rounded flex gap-2 items-center px2 py1 op75 hover:op100 hover:bg-active transition disabled:pointer-events-none disabled:op30! outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40',
       'btn-action-sm': 'btn-action text-sm',
@@ -58,6 +80,9 @@ export default defineConfig({
       'btn-icon': 'w-9 h-9 rounded-full op-fade hover:op100 hover:bg-active transition flex items-center justify-center disabled:pointer-events-none disabled:op30 outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40',
       'btn-circle': 'btn-icon w-10 h-10',
       'btn-primary': 'px3 py1.5 rounded flex gap-2 items-center text-sm bg-primary-500 hover:bg-primary-600 text-white transition disabled:op50 disabled:pointer-events-none outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40',
+      'btn-toggle-pill': 'inline-flex items-center gap-1.5 px-2.5 h-7 text-xs font-medium rounded-full border transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:op50 disabled:pointer-events-none',
+      'btn-toggle-pill-on': 'border-primary-500/40 bg-primary-500/12 color-active hover:bg-primary-500/20',
+      'btn-toggle-pill-off': 'border-base bg-base color-muted hover:color-base hover:border-active hover:bg-active',
 
       'badge': 'inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium leading-none',
       'kbd': 'inline-flex items-center justify-center h-4 min-w-4 px-1.5 rounded border border-base border-b-2 bg-secondary font-mono text-[10px] color-muted leading-none',
@@ -78,7 +103,6 @@ export default defineConfig({
       'z-drawer-content': 'z-90',
     },
     [/^badge-color-(\w+)$/, ([, color]) => `badge bg-${color}-400/20 dark:bg-${color}-400/10 text-${color}-700 dark:text-${color}-300 border border-${color}-600/15 dark:border-${color}-300/15`],
-    [/^bg-glass(:\d+)?$/, ([, opacity = ':75']) => `bg-white${opacity} dark:bg-#111${opacity} backdrop-blur-5`],
   ],
   theme: {
     colors: {
@@ -137,5 +161,16 @@ export default defineConfig({
     'i-octicon-hourglass-16',
     'i-octicon-git-commit-16',
     'i-octicon-repo-push-16',
+    'i-octicon-mention-16',
+    'i-octicon-pin-16',
+    'i-octicon-pin-slash-16',
+    'i-octicon-arrow-right-16',
+    'i-octicon-copy-16',
+    'i-octicon-link-16',
+    'i-octicon-link-slash-16',
+    'i-octicon-git-branch-16',
+    'i-octicon-bell-16',
+    'i-octicon-bell-slash-16',
+    'i-octicon-trash-16',
   ],
 })

@@ -33,6 +33,9 @@ catalogs:
     '@playwright/test':
       specifier: ^1.60.0
       version: 1.60.0
+    '@tanstack/vue-virtual':
+      specifier: ^3.13.25
+      version: 3.13.25
     '@types/node':
       specifier: ^25.9.1
       version: 25.9.1
@@ -147,6 +150,9 @@ catalogs:
     vitest:
       specifier: ^4.1.7
       version: 4.1.7
+    vue-data-ui:
+      specifier: ^3.19.9
+      version: 3.19.9
     vue-tsc:
       specifier: ^3.3.1
       version: 3.3.1
@@ -259,6 +265,9 @@ importers:
 
   ui:
     dependencies:
+      '@tanstack/vue-virtual':
+        specifier: 'catalog:'
+        version: 3.13.25(vue@3.5.34(typescript@6.0.3))
       colorjs.io:
         specifier: 'catalog:'
         version: 0.6.1
@@ -286,6 +295,9 @@ importers:
       splitpanes:
         specifier: 'catalog:'
         version: 4.0.4(vue@3.5.34(typescript@6.0.3))
+      vue-data-ui:
+        specifier: 'catalog:'
+        version: 3.19.9(vue@3.5.34(typescript@6.0.3))
     devDependencies:
       '@iconify-json/carbon':
         specifier: 'catalog:'
@@ -2599,8 +2611,16 @@ packages:
   '@tanstack/virtual-core@3.14.0':
     resolution: {integrity: sha512-JLANqGy/D6k4Ujmh8Tr25lGimuOXNiaVyXaCAZS0W+1390sADdGnyUdSWNIfd49gebtIxGMij4IktRVzrdr12Q==}
 
+  '@tanstack/virtual-core@3.15.0':
+    resolution: {integrity: sha512-0AwPGx0I8QxPYjAxShT/+z+ZOe9u8mW5rsXvivCTjRfRmz9a43+3mRyi4wwlyoUqOC56q/jatKa0Bh9M99BEHQ==}
+
   '@tanstack/vue-virtual@3.13.24':
     resolution: {integrity: sha512-A0k2qF0zFSUStXSZkGXABouXr2Tw2Ztl/cVIYG9qy84uR8W7UNjAcX3DvzBS3YnDcwvLxab8v7dbmYBZ39itDA==}
+    peerDependencies:
+      vue: ^2.7.0 || ^3.0.0
+
+  '@tanstack/vue-virtual@3.13.25':
+    resolution: {integrity: sha512-/ez+t68a5O4CgVysvk7Bav0XbSYSYufOVHZveXF+DYO9hvtg2UheYzR0YkniCeUtXmMjDne1dDqwBMkOmEUOow==}
     peerDependencies:
       vue: ^2.7.0 || ^3.0.0
 
@@ -2648,9 +2668,6 @@ packages:
 
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
-
-  '@types/node@25.6.0':
-    resolution: {integrity: sha512-+qIYRKdNYJwY3vRCZMdJbPLJAtGjQBudzZzdzwQYkEPQd+PJGixUL5QfvCLDaULoLv+RhT3LDkwEfKaAkgSmNQ==}
 
   '@types/node@25.9.1':
     resolution: {integrity: sha512-xfrlY7UD5rMJk3ZVJP8BNzS28J36YJg+xp+LPXV1TdWxr8uMH5A860QNxYDGQe/ylDSgjxE52Q9VnO7p75tJxg==}
@@ -6062,9 +6079,6 @@ packages:
   unctx@2.5.0:
     resolution: {integrity: sha512-p+Rz9x0R7X+CYDkT+Xg8/GhpcShTlU8n+cf9OtOEf7zEQsNcCZO1dPKNRDqvUTaq+P32PMMkxWHwfrxkqfqAYg==}
 
-  undici-types@7.19.2:
-    resolution: {integrity: sha512-qYVnV5OEm2AW8cJMCpdV20CDyaN3g0AjDlOGf1OW4iaDEx8MwdtChUp4zu4H0VP3nDRF/8RKWH+IPp9uW0YGZg==}
-
   undici-types@7.24.6:
     resolution: {integrity: sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg==}
 
@@ -6444,6 +6458,15 @@ packages:
 
   vue-bundle-renderer@2.2.0:
     resolution: {integrity: sha512-sz/0WEdYH1KfaOm0XaBmRZOWgYTEvUDt6yPYaUzl4E52qzgWLlknaPPTTZmp6benaPTlQAI/hN1x3tAzZygycg==}
+
+  vue-data-ui@3.19.9:
+    resolution: {integrity: sha512-FW/XWJx/5K5aKkgXwyHD2IWvMc5FjUiezf97+rJDuqiVl1UfERaFYYtqkCX2ZjxLRbdRKeMq31aLrzRXYksrpA==}
+    peerDependencies:
+      jspdf: '>=3.0.1'
+      vue: '>=3.3.0'
+    peerDependenciesMeta:
+      jspdf:
+        optional: true
 
   vue-demi@0.14.10:
     resolution: {integrity: sha512-nMZBOwuzabUO0nLgIcc6rycZEebF6eeUfaiQx9+WSk8e29IbLvPU9feI6tqW4kTo3hvoYAJkMh8n8D0fuISphg==}
@@ -8581,9 +8604,16 @@ snapshots:
 
   '@tanstack/virtual-core@3.14.0': {}
 
+  '@tanstack/virtual-core@3.15.0': {}
+
   '@tanstack/vue-virtual@3.13.24(vue@3.5.34(typescript@6.0.3))':
     dependencies:
       '@tanstack/virtual-core': 3.14.0
+      vue: 3.5.34(typescript@6.0.3)
+
+  '@tanstack/vue-virtual@3.13.25(vue@3.5.34(typescript@6.0.3))':
+    dependencies:
+      '@tanstack/virtual-core': 3.15.0
       vue: 3.5.34(typescript@6.0.3)
 
   '@tybys/wasm-util@0.10.1':
@@ -8633,10 +8663,6 @@ snapshots:
       '@types/unist': 3.0.3
 
   '@types/ms@2.1.0': {}
-
-  '@types/node@25.6.0':
-    dependencies:
-      undici-types: 7.19.2
 
   '@types/node@25.9.1':
     dependencies:
@@ -8690,8 +8716,8 @@ snapshots:
 
   '@typescript-eslint/project-service@8.56.1(typescript@6.0.3)':
     dependencies:
-      '@typescript-eslint/tsconfig-utils': 8.59.0(typescript@6.0.3)
-      '@typescript-eslint/types': 8.59.0
+      '@typescript-eslint/tsconfig-utils': 8.59.4(typescript@6.0.3)
+      '@typescript-eslint/types': 8.59.4
       debug: 4.4.3
       typescript: 6.0.3
     transitivePeerDependencies:
@@ -10824,7 +10850,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 25.6.0
+      '@types/node': 25.9.1
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -12913,8 +12939,6 @@ snapshots:
       magic-string: 0.30.21
       unplugin: 2.3.11
 
-  undici-types@7.19.2: {}
-
   undici-types@7.24.6: {}
 
   unenv@2.0.0-rc.24:
@@ -13235,6 +13259,10 @@ snapshots:
   vue-bundle-renderer@2.2.0:
     dependencies:
       ufo: 1.6.3
+
+  vue-data-ui@3.19.9(vue@3.5.34(typescript@6.0.3)):
+    dependencies:
+      vue: 3.5.34(typescript@6.0.3)
 
   vue-demi@0.14.10(vue@3.5.34(typescript@6.0.3)):
     dependencies:

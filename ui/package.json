@@ -10,6 +10,7 @@
     "typecheck": "nuxi typecheck"
   },
   "dependencies": {
+    "@tanstack/vue-virtual": "catalog:",
     "colorjs.io": "catalog:",
     "devframe": "catalog:",
     "floating-vue": "catalog:",
@@ -18,7 +19,8 @@
     "parse-diff": "catalog:",
     "reka-ui": "catalog:",
     "shiki": "catalog:",
-    "splitpanes": "catalog:"
+    "splitpanes": "catalog:",
+    "vue-data-ui": "catalog:"
   },
   "devDependencies": {
     "@iconify-json/carbon": "catalog:",
