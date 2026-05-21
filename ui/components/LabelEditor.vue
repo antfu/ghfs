@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { RepoLabel } from '#ghfs/server-types'
 
+const activeId = useActiveProjectId()
 const state = useAppState()
-const rpc = useRpc()
+const rpc = useProjectRpc(() => activeId.value ?? '__default__')
 const ui = useUiState()
 const isDark = useDark()
 
@@ -126,6 +127,7 @@ function openModel(value: boolean) {
       <DialogOverlay class="fixed inset-0 bg-black/40 backdrop-blur-sm z-60" />
       <DialogContent
         class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-base border border-base rounded-lg shadow-xl w-[min(92vw,32rem)] max-h-[70vh] z-60 flex flex-col overflow-hidden"
+        data-testid="label-editor"
         @keydown="onListKeydown"
       >
         <header class="px-4 py-3 border-b border-base flex items-center gap-2">

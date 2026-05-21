@@ -1,6 +1,7 @@
 import process from 'node:process'
 import { cac } from 'cac'
 import { registerExecuteCommand } from './commands/execute'
+import { registerHubCommand } from './commands/hub'
 import { registerStatusCommand } from './commands/status'
 import { registerSyncCommand } from './commands/sync'
 import { registerUiCommand } from './commands/ui'
@@ -13,6 +14,7 @@ export function createCli() {
   registerExecuteCommand(cli)
   registerStatusCommand(cli)
   registerUiCommand(cli)
+  registerHubCommand(cli)
 
   cli.help()
   cli.version(CLI_VERSION)

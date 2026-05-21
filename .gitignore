@@ -18,3 +18,9 @@ node_modules
 
 # Agent skills from npm packages (managed by skills-npm)
 **/skills/npm-*
+
+# Playwright generated artifacts + regenerated fixtures
+/tests/e2e/fixtures/
+/test-results
+/playwright-report
+/playwright/.cache

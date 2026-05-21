@@ -1,10 +1,14 @@
 <script setup lang="ts">
+const activeId = useActiveProjectId()
 const state = useAppState()
-const rpc = useRpc()
+const rpc = useProjectRpc(() => activeId.value ?? '__default__')
 const isDark = useDark()
+const hub = useHubState()
+const router = useRouter()
 const { counts } = useFilteredItems()
 const { upCount } = useQueue()
 
+const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
 const repoName = computed(() => state.payload.value?.repo.repo ?? 'connecting…')
 const hasToken = computed(() => state.payload.value?.repo.hasToken ?? false)
 const searching = computed(() => state.filters.search.trim().length > 0)
@@ -39,10 +43,21 @@ function toggleQueue() {
 </script>
 
 <template>
-  <header class="sticky top-0 z-30 bg-glass flex items-center gap-3 px-4 h-14 border-b border-x-0 border-base">
+  <header class="sticky top-0 z-30 bg-glass flex items-center gap-3 px-4 h-14 border-b border-x-0 border-base" data-testid="navbar">
     <div class="flex items-center gap-2 min-w-0 flex-none">
-      <span class="i-octicon-mark-github-16 text-lg color-base shrink-0" />
-      <span class="font-mono text-sm truncate max-w-60">{{ repoName }}</span>
+      <TooltipButton v-if="isHubMode" tooltip="Back to hub home">
+        <button
+          class="btn-icon"
+          aria-label="Hub home"
+          data-testid="navbar-hub-home"
+          @click="router.push('/hub')"
+        >
+          <span class="i-octicon-organization-16 text-lg color-active" />
+        </button>
+      </TooltipButton>
+      <span v-else class="i-octicon-mark-github-16 text-lg color-base shrink-0" />
+      <HubProjectSwitcher v-if="isHubMode && activeId" :project-id="activeId" />
+      <span v-else class="font-mono text-sm truncate max-w-60" data-testid="navbar-repo">{{ repoName }}</span>
     </div>
 
     <div class="h-6 w-px bg-neutral-200 dark:bg-neutral-800 mx-1 flex-none" />
@@ -53,6 +68,7 @@ function toggleQueue() {
         class="px-3 py-1.5 text-xs flex items-center gap-1.5 border-b-2 transition"
         :class="[!searching && state.filters.kind === 'issue' ? 'border-active color-active font-medium' : 'border-transparent color-muted hover:color-base', searching ? 'op50 cursor-default' : '']"
         :disabled="searching"
+        data-testid="navbar-tab-issues"
         @click="state.filters.kind = 'issue'"
       >
         <span class="i-octicon-issue-opened-16" />
@@ -65,6 +81,7 @@ function toggleQueue() {
         class="px-3 py-1.5 text-xs flex items-center gap-1.5 border-b-2 transition"
         :class="[!searching && state.filters.kind === 'pull' ? 'border-active color-active font-medium' : 'border-transparent color-muted hover:color-base', searching ? 'op50 cursor-default' : '']"
         :disabled="searching"
+        data-testid="navbar-tab-pulls"
         @click="state.filters.kind = 'pull'"
       >
         <span class="i-octicon-git-pull-request-16" />
@@ -82,6 +99,7 @@ function toggleQueue() {
       <input
         v-model="state.filters.search"
         data-shortcut="search"
+        data-testid="navbar-search"
         type="text"
         placeholder="Search title, body, author, labels…"
         class="bg-transparent outline-none w-full font-sans text-sm"
@@ -110,11 +128,12 @@ function toggleQueue() {
 
     <div class="flex items-center gap-0.5 flex-none">
       <TooltipButton tooltip="Queue">
-        <button class="btn-icon relative" @click="toggleQueue">
+        <button class="btn-icon relative" data-testid="navbar-queue-toggle" @click="toggleQueue">
           <span class="i-octicon-list-unordered-16" />
           <span
             v-if="upCount > 0"
             class="absolute -top-1 -right-1 badge-color-green !px-1 !py-0 font-mono tabular-nums text-[10px] leading-none min-w-4 h-4 justify-center"
+            data-testid="queue-badge"
           >{{ upCount }}</span>
         </button>
       </TooltipButton>

@@ -9,15 +9,16 @@ const helpOpen = ref(false)
 const labelEditorOpen = ref(false)
 let hydrated = false
 let saveFn: (() => void) | null = null
+let activeProjectId: string | null = null
 
 function ensureSaver(): () => void {
   if (saveFn)
     return saveFn
   const rpc = useRpc()
   const fn = useDebounceFn(() => {
-    if (!hydrated)
+    if (!hydrated || !activeProjectId)
       return
-    rpc.saveUiState({
+    rpc.saveUiState(activeProjectId, {
       drafts: { ...uiState.drafts },
       listPaneSize: uiState.listPaneSize,
       lastPrTab: uiState.lastPrTab,
@@ -50,7 +51,8 @@ function normalizeUserOverride(value: UserOverride | undefined): UserOverride | 
 }
 
 export function useUiState() {
-  function hydrate(next: UiState | null | undefined) {
+  function hydrate(projectId: string, next: UiState | null | undefined) {
+    activeProjectId = projectId
     const drafts = next && typeof next === 'object' && next.drafts && typeof next.drafts === 'object'
       ? { ...next.drafts }
       : {}

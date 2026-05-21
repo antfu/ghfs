@@ -31,7 +31,7 @@ export default defineNuxtConfig({
   },
 
   app: {
-    baseURL: isDev ? '/' : './',
+    baseURL: '/',
     head: {
       title: 'ghfs',
       link: [
@@ -57,6 +57,11 @@ export default defineNuxtConfig({
       alias: {
         '#ghfs/server-types': resolve(rootDir, '../src/server/types.ts'),
         '#ghfs/action-colors': resolve(rootDir, '../src/execute/actions.ts'),
+        '#ghfs/shared-rpc': resolve(rootDir, '../src/devframe/shared-rpc.ts'),
+        '#ghfs/execute-types': resolve(rootDir, '../src/execute/types.ts'),
+        '#ghfs/execution-types': resolve(rootDir, '../src/types/execution.ts'),
+        '#ghfs/sync-contracts': resolve(rootDir, '../src/sync/contracts.ts'),
+        '#ghfs/sync-state': resolve(rootDir, '../src/types/sync-state.ts'),
       },
     },
     server: {
@@ -83,6 +88,8 @@ export default defineNuxtConfig({
   imports: {
     dirs: ['composables'],
   },
+
+  pages: true,
 
   compatibilityDate: '2025-01-01',
 })

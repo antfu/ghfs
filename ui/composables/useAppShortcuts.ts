@@ -1,21 +1,37 @@
 import type { Shortcut } from './useShortcuts'
 
 export function createAppShortcuts(): Shortcut[] {
-  const state = useAppState()
-  const rpc = useRpc()
+  const activeId = useActiveProjectId()
+  // Resolve state lazily so shortcuts always operate on the *currently*
+  // active project's bucket, not the one captured at install time.
+  const state = computed(() => useAppState(activeId.value ?? undefined))
+  const rpc = useProjectRpc(() => activeId.value ?? '__default__')
   const isDark = useDark()
   const ui = useUiState()
+  const hub = useHubState()
+  const hubUi = useHubUiState()
+  const router = useRouter()
+  const route = useRoute()
   const { filteredEntries } = useFilteredItems()
   const { upCount } = useQueue()
   const { activePanel, setPanel } = useActivePanel()
 
+  const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
+  const isHubHome = computed(() => isHubMode.value && route.path === '/hub')
+  const hasSyncableProjects = computed(() => hub.projects.value.some(p => p.hasToken))
+
+  function focusFirstHubCard(): void {
+    const first = document.querySelector<HTMLButtonElement>('[data-testid="hub-project-card"]')
+    first?.focus()
+  }
+
   const activeItem = computed(() => {
-    const num = state.selectedNumber.value
+    const num = state.value.selectedNumber.value
     if (num == null) return null
-    return state.payload.value?.syncState.items[String(num)]?.data.item ?? null
+    return state.value.payload.value?.syncState.items[String(num)]?.data.item ?? null
   })
-  const searching = computed(() => state.filters.search.trim().length > 0)
-  const hasToken = computed(() => state.payload.value?.repo.hasToken ?? false)
+  const searching = computed(() => state.value.filters.search.trim().length > 0)
+  const hasToken = computed(() => state.value.payload.value?.repo.hasToken ?? false)
   const hasEntries = computed(() => filteredEntries.value.length > 0)
 
   const SCROLL_STEP = 120
@@ -38,21 +54,21 @@ export function createAppShortcuts(): Shortcut[] {
     const entries = filteredEntries.value
     if (!entries.length)
       return
-    const current = state.selectedNumber.value == null
+    const current = state.value.selectedNumber.value == null
       ? -1
-      : entries.findIndex(e => e.number === state.selectedNumber.value)
+      : entries.findIndex(e => e.number === state.value.selectedNumber.value)
     const next = current < 0
       ? (delta > 0 ? 0 : entries.length - 1)
       : Math.max(0, Math.min(entries.length - 1, current + delta))
-    state.selectItem(entries[next].number)
+    state.value.selectItem(entries[next].number)
   }
   function focusFirst() {
     if (filteredEntries.value.length)
-      state.selectItem(filteredEntries.value[0].number)
+      state.value.selectItem(filteredEntries.value[0].number)
   }
   function focusLast() {
     if (filteredEntries.value.length)
-      state.selectItem(filteredEntries.value[filteredEntries.value.length - 1].number)
+      state.value.selectItem(filteredEntries.value[filteredEntries.value.length - 1].number)
   }
 
   function focusSearch() {
@@ -69,25 +85,25 @@ export function createAppShortcuts(): Shortcut[] {
   }
 
   async function triggerSync() {
-    if (state.syncing.value) return
-    state.setSyncing(true)
-    state.setError(null)
+    if (state.value.syncing.value) return
+    state.value.setSyncing(true)
+    state.value.setError(null)
     try {
       await rpc.triggerSync({})
     }
     catch (error) {
-      state.setError(`Sync failed: ${(error as Error).message}`)
-      state.setSyncing(false)
+      state.value.setError(`Sync failed: ${(error as Error).message}`)
+      state.value.setSyncing(false)
     }
   }
   function askExecute() {
-    if (state.executing.value) return
+    if (state.value.executing.value) return
     if (upCount.value === 0) return
-    state.askExecute()
+    state.value.askExecute()
   }
   function toggleQueue() {
-    if (state.queueOpen.value) state.closeQueue()
-    else state.openQueue()
+    if (state.value.queueOpen.value) state.value.closeQueue()
+    else state.value.openQueue()
   }
   async function queueClose() {
     const num = activeItem.value?.number
@@ -102,13 +118,13 @@ export function createAppShortcuts(): Shortcut[] {
         await rpc.addQueueOp({ action: 'close', number: num })
       }
     }
-    catch (error) { state.setError((error as Error).message) }
+    catch (error) { state.value.setError((error as Error).message) }
   }
   async function queueReopen() {
     const num = activeItem.value?.number
     if (num == null) return
     try { await rpc.addQueueOp({ action: 'reopen', number: num }) }
-    catch (error) { state.setError((error as Error).message) }
+    catch (error) { state.value.setError((error as Error).message) }
   }
 
   return [
@@ -197,14 +213,14 @@ export function createAppShortcuts(): Shortcut[] {
       keys: ['i'],
       description: 'Issues tab',
       enabled: () => !searching.value,
-      run: () => { state.filters.kind = 'issue' },
+      run: () => { state.value.filters.kind = 'issue' },
     },
     {
       id: 'tab.pulls',
       keys: ['p'],
       description: 'Pull requests tab',
       enabled: () => !searching.value,
-      run: () => { state.filters.kind = 'pull' },
+      run: () => { state.value.filters.kind = 'pull' },
     },
     {
       id: 'search.focus',
@@ -216,7 +232,7 @@ export function createAppShortcuts(): Shortcut[] {
       id: 'action.sync',
       keys: ['s'],
       description: 'Sync from GitHub',
-      enabled: () => hasToken.value && !state.syncing.value,
+      enabled: () => hasToken.value && !state.value.syncing.value,
       run: triggerSync,
     },
     {
@@ -229,7 +245,7 @@ export function createAppShortcuts(): Shortcut[] {
       id: 'action.execute',
       keys: ['x'],
       description: 'Execute queue',
-      enabled: () => hasToken.value && upCount.value > 0 && !state.executing.value,
+      enabled: () => hasToken.value && upCount.value > 0 && !state.value.executing.value,
       run: askExecute,
     },
     {
@@ -242,7 +258,12 @@ export function createAppShortcuts(): Shortcut[] {
       id: 'panel.close',
       keys: ['Escape'],
       description: 'Close overlay',
-      enabled: () => ui.helpOpen.value || ui.labelEditorOpen.value || state.queueOpen.value || state.executeConfirmOpen.value,
+      enabled: () => ui.helpOpen.value
+        || ui.labelEditorOpen.value
+        || state.value.queueOpen.value
+        || state.value.executeConfirmOpen.value
+        || hubUi.pickerOpen.value
+        || hubUi.rootDialogOpen.value,
       run: () => {
         if (ui.helpOpen.value) {
           ui.helpOpen.value = false
@@ -252,11 +273,19 @@ export function createAppShortcuts(): Shortcut[] {
           ui.labelEditorOpen.value = false
           return
         }
-        if (state.executeConfirmOpen.value) {
-          state.executeConfirmOpen.value = false
+        if (state.value.executeConfirmOpen.value) {
+          state.value.executeConfirmOpen.value = false
           return
         }
-        if (state.queueOpen.value) state.closeQueue()
+        if (hubUi.rootDialogOpen.value) {
+          hubUi.closeRootDialog()
+          return
+        }
+        if (hubUi.pickerOpen.value) {
+          hubUi.closePicker()
+          return
+        }
+        if (state.value.queueOpen.value) state.value.closeQueue()
       },
     },
     {
@@ -314,5 +343,67 @@ export function createAppShortcuts(): Shortcut[] {
       description: 'Keyboard shortcuts',
       run: () => { ui.helpOpen.value = true },
     },
+    {
+      id: 'hub.prev-project',
+      keys: ['['],
+      description: 'Previous project (hub)',
+      enabled: () => isHubMode.value && hub.projects.value.length > 1 && Boolean(activeId.value),
+      run: () => navigateProject(-1),
+    },
+    {
+      id: 'hub.next-project',
+      keys: [']'],
+      description: 'Next project (hub)',
+      enabled: () => isHubMode.value && hub.projects.value.length > 1 && Boolean(activeId.value),
+      run: () => navigateProject(1),
+    },
+    {
+      id: 'hub.back',
+      keys: ['b'],
+      description: 'Back to hub home',
+      enabled: () => isHubMode.value && Boolean(activeId.value),
+      run: () => { router.push('/hub') },
+    },
+    {
+      id: 'hub.sync-all',
+      keys: ['s'],
+      description: 'Sync all projects',
+      enabled: () => isHubHome.value && hasSyncableProjects.value && !hubUi.syncingAll.value,
+      run: () => { syncAllProjects() },
+    },
+    {
+      id: 'hub.manage',
+      keys: ['m'],
+      description: 'Manage hub projects',
+      enabled: () => isHubHome.value && !hubUi.pickerOpen.value && !hubUi.rootDialogOpen.value,
+      run: () => hubUi.openPicker(),
+    },
+    {
+      id: 'hub.change-root',
+      keys: ['r'],
+      description: 'Change hub root',
+      enabled: () => isHubHome.value && !hubUi.pickerOpen.value && !hubUi.rootDialogOpen.value,
+      run: () => hubUi.openRootDialog(),
+    },
+    {
+      id: 'hub.focus-first',
+      keys: ['j'],
+      description: 'Focus first project',
+      enabled: () => isHubHome.value && hub.projects.value.length > 0,
+      run: focusFirstHubCard,
+    },
   ]
+
+  function navigateProject(delta: number): void {
+    const projects = hub.projects.value
+    if (projects.length === 0)
+      return
+    const currentIdx = projects.findIndex(p => p.id === activeId.value)
+    const nextIdx = currentIdx < 0
+      ? 0
+      : (currentIdx + delta + projects.length) % projects.length
+    const next = projects[nextIdx]
+    if (next)
+      router.push(`/hub/${next.id}`)
+  }
 }

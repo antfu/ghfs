@@ -14,6 +14,7 @@ const groupOrder = [
   'action',
   'item',
   'help',
+  'hub',
 ] as const
 
 type GroupId = typeof groupOrder[number]
@@ -29,6 +30,7 @@ const groupTitle: Record<GroupId, string> = {
   'action': 'Actions',
   'item': 'Item actions',
   'help': 'Help',
+  'hub': 'Hub',
 }
 
 function groupOf(id: string): GroupId {
@@ -71,6 +73,7 @@ function humanize(key: string): string {
       <DialogOverlay class="fixed inset-0 bg-black/40 backdrop-blur-sm z-60" />
       <DialogContent
         class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-base border border-base rounded-lg shadow-xl w-[min(92vw,40rem)] max-h-[80vh] z-60 flex flex-col overflow-hidden"
+        data-testid="help-overlay"
       >
         <header class="px-6 py-4 border-b border-base flex items-center gap-2">
           <span class="i-octicon-question-16 color-active" />

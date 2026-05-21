@@ -9,8 +9,9 @@ interface Group {
   entries: QueueEntry[]
 }
 
+const activeId = useActiveProjectId()
 const state = useAppState()
-const rpc = useRpc()
+const rpc = useProjectRpc(() => activeId.value ?? '__default__')
 const { entries } = useQueue()
 
 const warnings = computed<string[]>(() => state.payload.value?.queue.warnings ?? [])
@@ -126,6 +127,7 @@ async function confirmExecute() {
     <aside
       v-if="state.queueOpen.value"
       class="fixed top-18 right-4 bottom-4 w-[30rem] max-w-[calc(100vw-2rem)] bg-glass rounded-lg shadow-xl z-40 flex flex-col overflow-hidden"
+      data-testid="queue-panel"
     >
       <header class="flex items-center gap-2 px-4 py-3 border-b border-base">
         <span class="i-octicon-list-unordered-16 color-active" />
@@ -194,6 +196,8 @@ async function confirmExecute() {
                 v-for="entry in group.entries"
                 :key="entry.id"
                 class="group flex items-start gap-2 px-4 py-1.5 pl-8 hover:bg-active transition"
+                data-testid="queue-entry"
+                :data-entry-id="entry.id"
               >
                 <span
                   class="badge font-mono text-xs flex-none"

@@ -2,8 +2,9 @@
 import type { QueueEntry } from '#ghfs/server-types'
 import type { SyncItemState } from '../../src/types/sync-state'
 
+const activeId = useActiveProjectId()
 const state = useAppState()
-const rpc = useRpc()
+const rpc = useProjectRpc(() => activeId.value ?? '__default__')
 const ui = useUiState()
 const { currentUser } = useCurrentUser()
 const userOverrideOpen = ref(false)
@@ -257,6 +258,7 @@ const ringClass = computed(() =>
         <h2
           class="font-medium text-lg leading-tight"
           :class="{ italic: titleIsPending }"
+          data-testid="detail-title"
           v-html="titleHtml"
         />
         <span class="font-mono text-sm color-muted tabular-nums">#{{ item.number }}</span>
