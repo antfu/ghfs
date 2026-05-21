@@ -16,8 +16,9 @@ export default defineNuxtConfig({
   css: [
     '@unocss/reset/tailwind.css',
     'floating-vue/dist/style.css',
-    '~/assets/floating-vue.css',
+    '~/assets/global.css',
     '~/assets/markdown.css',
+    '~/assets/splitpanes.css',
   ],
 
   ssr: false,

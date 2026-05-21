@@ -25,15 +25,6 @@ async function triggerSync() {
   }
 }
 
-async function checkRemote() {
-  try {
-    await rpc.checkRemote()
-  }
-  catch (error) {
-    state.setError(`Remote check failed: ${(error as Error).message}`)
-  }
-}
-
 function toggleQueue() {
   if (state.queueOpen.value)
     state.closeQueue()
@@ -43,30 +34,43 @@ function toggleQueue() {
 </script>
 
 <template>
-  <header class="sticky top-0 z-30 bg-glass flex items-center gap-3 px-4 h-14 border-b border-x-0 border-base" data-testid="navbar">
+  <header
+    class="sticky top-0 z-nav bg-glass border-b border-base flex items-center gap-2 px-4 h-14"
+    data-testid="navbar"
+  >
     <div class="flex items-center gap-2 min-w-0 flex-none">
-      <TooltipButton v-if="isHubMode" tooltip="Back to hub home">
-        <button
-          class="btn-icon"
-          aria-label="Hub home"
-          data-testid="navbar-hub-home"
-          @click="router.push('/hub')"
-        >
-          <span class="i-octicon-organization-16 text-lg color-active" />
-        </button>
-      </TooltipButton>
+      <IconButton
+        v-if="isHubMode"
+        icon="i-octicon-organization-16"
+        tooltip="Back to hub home"
+        aria-label="Hub home"
+        data-testid="navbar-hub-home"
+        active
+        @click="router.push('/hub')"
+      />
+      <ProjectIcon
+        v-else-if="activeId && state.payload.value"
+        :project="{ id: activeId, repo: state.payload.value.repo.repo }"
+        :size="20"
+        fallback-class="color-base"
+      />
       <span v-else class="i-octicon-mark-github-16 text-lg color-base shrink-0" />
       <HubProjectSwitcher v-if="isHubMode && activeId" :project-id="activeId" />
       <span v-else class="font-mono text-sm truncate max-w-60" data-testid="navbar-repo">{{ repoName }}</span>
     </div>
 
-    <div class="h-6 w-px bg-neutral-200 dark:bg-neutral-800 mx-1 flex-none" />
+    <div class="h-6 border-l border-base mx-1 flex-none" />
 
     <nav class="flex items-center gap-0 flex-none" aria-label="Kind">
       <button
         type="button"
-        class="px-3 py-1.5 text-xs flex items-center gap-1.5 border-b-2 transition"
-        :class="[!searching && state.filters.kind === 'issue' ? 'border-active color-active font-medium' : 'border-transparent color-muted hover:color-base', searching ? 'op50 cursor-default' : '']"
+        class="px-3 py-1.5 text-xs flex items-center gap-1.5 border-b-2 transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 rounded-t"
+        :class="[
+          !searching && state.filters.kind === 'issue'
+            ? 'border-primary-500 dark:border-primary-400 color-active font-medium'
+            : 'border-transparent color-muted hover:color-base',
+          searching ? 'op50 cursor-default' : '',
+        ]"
         :disabled="searching"
         data-testid="navbar-tab-issues"
         @click="state.filters.kind = 'issue'"
@@ -78,8 +82,13 @@ function toggleQueue() {
       </button>
       <button
         type="button"
-        class="px-3 py-1.5 text-xs flex items-center gap-1.5 border-b-2 transition"
-        :class="[!searching && state.filters.kind === 'pull' ? 'border-active color-active font-medium' : 'border-transparent color-muted hover:color-base', searching ? 'op50 cursor-default' : '']"
+        class="px-3 py-1.5 text-xs flex items-center gap-1.5 border-b-2 transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 rounded-t"
+        :class="[
+          !searching && state.filters.kind === 'pull'
+            ? 'border-primary-500 dark:border-primary-400 color-active font-medium'
+            : 'border-transparent color-muted hover:color-base',
+          searching ? 'op50 cursor-default' : '',
+        ]"
         :disabled="searching"
         data-testid="navbar-tab-pulls"
         @click="state.filters.kind = 'pull'"
@@ -91,62 +100,56 @@ function toggleQueue() {
       </button>
     </nav>
 
+    <div class="h-6 border-l border-base mx-1 flex-none" />
 
-    <div class="h-6 w-px bg-neutral-200 dark:bg-neutral-800 mx-1 flex-none" />
+    <SearchField
+      v-model="state.filters.search"
+      placeholder="Search title, body, author, labels…"
+      data-shortcut="search"
+      data-testid="navbar-search"
+      shortcut-id="search.focus"
+    />
 
-    <label class="flex-1 min-w-40 flex items-center gap-2 border border-base rounded bg-base px-2 py-1 transition max-w-xl focus-within:border-active focus-within:ring-2 focus-within:ring-primary-500/30">
-      <span class="i-octicon-search-16 color-muted shrink-0" />
-      <input
-        v-model="state.filters.search"
-        data-shortcut="search"
-        data-testid="navbar-search"
-        type="text"
-        placeholder="Search title, body, author, labels…"
-        class="bg-transparent outline-none w-full font-sans text-sm"
-      >
-      <Kbd v-if="!state.filters.search" shortcut-id="search.focus" class="shrink-0" />
-      <button
-        v-else
-        class="color-muted hover:color-base shrink-0"
-        aria-label="Clear"
-        @click="state.filters.search = ''"
-      ><span class="i-octicon-x-16 text-sm" /></button>
-    </label>
+    <div class="flex-auto" />
 
-    <div class="flex-auto"></div>
+    <div class="h-6 border-l border-base mx-1 flex-none" />
 
-    <div class="h-6 w-px bg-neutral-200 dark:bg-neutral-800 mx-1 flex-none" />
+    <IconButton
+      icon="i-octicon-sync-16"
+      :tooltip="hasToken ? 'Sync from GitHub' : 'No GitHub token available'"
+      :disabled="state.syncing.value || !hasToken"
+      :spinning="state.syncing.value"
+      @click="triggerSync"
+    >
+      <template #badge>
+        <Kbd shortcut-id="action.sync" class="absolute -bottom-1 -right-1" />
+      </template>
+    </IconButton>
 
-    <div class="flex items-center gap-0.5 flex-none">
-      <TooltipButton :tooltip="hasToken ? 'Sync from GitHub' : 'No GitHub token available'">
-        <button class="btn-icon" :disabled="state.syncing.value || !hasToken" @click="triggerSync">
-          <span class="i-octicon-sync-16" :class="{ 'animate-spin': state.syncing.value }" />
-        </button>
-      </TooltipButton>
-      <Kbd shortcut-id="action.sync" />
-    </div>
+    <IconButton
+      icon="i-octicon-list-unordered-16"
+      tooltip="Queue"
+      :active="state.queueOpen.value"
+      data-testid="navbar-queue-toggle"
+      @click="toggleQueue"
+    >
+      <template #badge>
+        <span
+          v-if="upCount > 0"
+          class="absolute -top-1 -right-1 badge-color-green !px-1 !py-0 font-mono tabular-nums text-[10px] leading-none min-w-4 h-4 justify-center"
+          data-testid="queue-badge"
+        >{{ upCount }}</span>
+      </template>
+    </IconButton>
 
-    <div class="flex items-center gap-0.5 flex-none">
-      <TooltipButton tooltip="Queue">
-        <button class="btn-icon relative" data-testid="navbar-queue-toggle" @click="toggleQueue">
-          <span class="i-octicon-list-unordered-16" />
-          <span
-            v-if="upCount > 0"
-            class="absolute -top-1 -right-1 badge-color-green !px-1 !py-0 font-mono tabular-nums text-[10px] leading-none min-w-4 h-4 justify-center"
-            data-testid="queue-badge"
-          >{{ upCount }}</span>
-        </button>
-      </TooltipButton>
-      <Kbd shortcut-id="action.queue" />
-    </div>
-
-    <div class="flex items-center gap-0.5 flex-none">
-      <TooltipButton :tooltip="isDark ? 'Light mode' : 'Dark mode'">
-        <button class="btn-icon" @click="isDark = !isDark">
-          <span :class="isDark ? 'i-octicon-sun-16' : 'i-octicon-moon-16'" />
-        </button>
-      </TooltipButton>
-      <Kbd shortcut-id="action.theme" />
-    </div>
+    <IconButton
+      :icon="isDark ? 'i-ph-sun-duotone' : 'i-ph-moon-duotone'"
+      :tooltip="isDark ? 'Light mode' : 'Dark mode'"
+      @click="isDark = !isDark"
+    >
+      <template #badge>
+        <Kbd shortcut-id="action.theme" class="absolute -bottom-1 -right-1" />
+      </template>
+    </IconButton>
   </header>
 </template>

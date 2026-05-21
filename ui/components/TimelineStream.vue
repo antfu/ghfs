@@ -122,7 +122,7 @@ function colorFor(event: ProviderTimelineEvent): string {
 <template>
   <div class="relative">
     <!-- vertical guide line -->
-    <div class="absolute left-[15px] top-0 bottom-0 w-px bg-base" aria-hidden="true" />
+    <div class="absolute left-[15px] top-0 bottom-0 w-px bg-#8882" aria-hidden="true" />
 
     <div class="flex flex-col gap-4">
       <template v-for="entry in entries" :key="entry.id">
@@ -134,7 +134,7 @@ function colorFor(event: ProviderTimelineEvent): string {
             <Avatar :login="entry.author" :size="38" />
           </span>
           <div class="border border-base rounded-lg bg-base overflow-hidden">
-            <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-subtle">
+            <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-#8881 dark:bg-#fff1">
               <span class="text-sm">
                 <span class="font-medium">@{{ entry.author || 'ghost' }}</span>
                 <span class="color-muted"> commented {{ formatRelative(entry.createdAt) }}</span>
@@ -157,7 +157,7 @@ function colorFor(event: ProviderTimelineEvent): string {
               <Avatar :login="entry.event.actor" :size="24" />
             </span>
             <div class="border-2 rounded-lg bg-base overflow-hidden" :class="reviewStyle(entry.event.review.state).border">
-              <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-subtle">
+              <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-#8881 dark:bg-#fff1">
                 <span :class="[reviewStyle(entry.event.review.state).icon, reviewStyle(entry.event.review.state).color]" />
                 <span class="text-sm">
                   <span class="font-medium">@{{ entry.event.actor || 'ghost' }}</span>
@@ -175,7 +175,7 @@ function colorFor(event: ProviderTimelineEvent): string {
             <span
               class="absolute left-0 top-0.5 inline-flex items-center justify-center w-8 h-8 rounded-full bg-base"
             >
-              <span class="w-6 h-6 rounded-full bg-subtle inline-flex items-center justify-center">
+              <span class="w-6 h-6 rounded-full bg-#8881 dark:bg-#fff1 inline-flex items-center justify-center">
                 <span :class="[reviewStyle(entry.event.review?.state ?? 'commented').icon, reviewStyle(entry.event.review?.state ?? 'commented').color, 'text-xs']" />
               </span>
             </span>
@@ -191,7 +191,7 @@ function colorFor(event: ProviderTimelineEvent): string {
             <span
               class="absolute left-0 top-0.5 inline-flex items-center justify-center w-8 h-8 rounded-full bg-base"
             >
-              <span class="w-6 h-6 rounded-full bg-subtle inline-flex items-center justify-center">
+              <span class="w-6 h-6 rounded-full bg-#8881 dark:bg-#fff1 inline-flex items-center justify-center">
                 <span class="i-octicon-git-commit-16 color-muted text-xs" />
               </span>
             </span>
@@ -210,7 +210,7 @@ function colorFor(event: ProviderTimelineEvent): string {
             <span
               class="absolute left-0 top-0.5 inline-flex items-center justify-center w-8 h-8 rounded-full bg-base"
             >
-              <span class="w-6 h-6 rounded-full bg-subtle inline-flex items-center justify-center">
+              <span class="w-6 h-6 rounded-full bg-#8881 dark:bg-#fff1 inline-flex items-center justify-center">
                 <span :class="[iconFor(entry.event), colorFor(entry.event), 'text-xs']" />
               </span>
             </span>
@@ -322,26 +322,20 @@ function colorFor(event: ProviderTimelineEvent): string {
               <span v-if="entry.op.action === 'close-with-comment'" class="color-muted"> · will also close</span>
             </span>
             <div class="flex-1" />
-            <TooltipButton tooltip="Edit">
-              <button
-                type="button"
-                class="btn-icon !w-7 !h-7"
-                aria-label="Edit pending comment"
-                @click="emit('editPending', entry)"
-              >
-                <span class="i-octicon-pencil-16 text-sm" />
-              </button>
-            </TooltipButton>
-            <TooltipButton tooltip="Remove">
-              <button
-                type="button"
-                class="btn-icon !w-7 !h-7"
-                aria-label="Remove pending comment"
-                @click="emit('removePending', entry)"
-              >
-                <span class="i-octicon-trash-16 text-sm" />
-              </button>
-            </TooltipButton>
+            <IconButton
+              icon="i-ph-pencil-simple-duotone"
+              size="sm"
+              tooltip="Edit"
+              aria-label="Edit pending comment"
+              @click="emit('editPending', entry)"
+            />
+            <IconButton
+              icon="i-ph-trash-duotone"
+              size="sm"
+              tooltip="Remove"
+              aria-label="Remove pending comment"
+              @click="emit('removePending', entry)"
+            />
           </div>
           <div class="px-4 py-3">
             <p class="text-sm whitespace-pre-wrap font-sans">{{ (entry.op as { body?: string }).body || '(empty)' }}</p>

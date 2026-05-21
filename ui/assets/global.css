@@ -1,3 +1,40 @@
+html,
+body,
+#__nuxt,
+#app {
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  --at-apply: bg-base font-sans;
+  scrollbar-gutter: stable;
+}
+
+body {
+  --at-apply: color-base;
+  overflow: hidden;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+@keyframes spin-reverse {
+  from {
+    transform: rotate(1080deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+.animate-spin-reverse,
+.hover\:animate-spin-reverse:hover {
+  animation: spin-reverse 2.5s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+}
+
+/* Floating Vue overrides */
 .v-popper--theme-dropdown .v-popper__inner,
 .v-popper--theme-tooltip .v-popper__inner {
   --at-apply: bg-tooltip color-base font-sans rounded border border-base shadow dark:shadow-2xl;
@@ -15,7 +52,7 @@
 .v-popper--theme-tooltip .v-popper__arrow-inner,
 .v-popper--theme-dropdown .v-popper__arrow-inner {
   visibility: visible;
-  --at-apply: border-white dark:border-[#0d1117];
+  --at-apply: border-white dark:border-#111;
 }
 
 .v-popper--theme-tooltip .v-popper__arrow-outer,

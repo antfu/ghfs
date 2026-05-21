@@ -6,7 +6,7 @@ import type { ExecutionResult } from '../types/execution'
 import type { SyncState } from '../types/sync-state'
 import type { ProjectContext, ProjectRegistry } from './project-context'
 import { spawn } from 'node:child_process'
-import { readFile } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import process from 'node:process'
 import { defineRpcFunction } from 'devframe'
 import { isAbsolute, join, resolve } from 'pathe'
@@ -161,6 +161,52 @@ async function buildInitialPayload(ctx: ProjectContext): Promise<ProjectInitialP
     repositoryLabels,
     currentUser,
   }
+}
+
+/**
+ * Directories scanned for a project icon, in priority order. Earlier
+ * directories win. Within a directory we try every (name, extension)
+ * combination using {@link ICON_NAMES} × {@link ICON_EXTS}.
+ */
+const ICON_DIRS = ['public', 'docs', 'docs/public', 'res', '.github', 'assets', ''] as const
+const ICON_NAMES = ['logo', 'icon', 'favicon'] as const
+/** SVG first (scalable, tiny), then raster formats. ICO last (fallback). */
+const ICON_EXTS = ['.svg', '.png', '.webp', '.jpg', '.jpeg', '.ico'] as const
+const ICON_MAX_BYTES = 256 * 1024
+
+const MIME_BY_EXT: Record<string, string> = {
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.ico': 'image/x-icon',
+}
+
+async function findProjectIcon(ctx: ProjectContext): Promise<string | null> {
+  for (const dir of ICON_DIRS) {
+    for (const name of ICON_NAMES) {
+      for (const ext of ICON_EXTS) {
+        const candidate = join(ctx.path, dir, `${name}${ext}`)
+        try {
+          const info = await stat(candidate)
+          if (!info.isFile() || info.size > ICON_MAX_BYTES)
+            continue
+          const buf = await readFile(candidate)
+          const mime = MIME_BY_EXT[ext] ?? 'application/octet-stream'
+          if (ext === '.svg') {
+            // Inline SVG as utf8 — smaller than base64 and renders identically.
+            return `data:${mime};utf8,${encodeURIComponent(buf.toString('utf8'))}`
+          }
+          return `data:${mime};base64,${buf.toString('base64')}`
+        }
+        catch {
+          // ENOENT or unreadable — try the next candidate.
+        }
+      }
+    }
+  }
+  return null
 }
 
 async function getPullPatch(ctx: ProjectContext, number: number): Promise<string | null> {
@@ -441,6 +487,12 @@ export function registerProjectRpc(ctx: DevToolsNodeContext, registry: ProjectRe
     name: 'ghfs:get-pull-patch',
     type: 'query',
     handler: async (projectId: string, number: number): Promise<string | null> => getPullPatch(requireProject(registry, projectId), number),
+  }))
+
+  ctx.rpc.register(def({
+    name: 'ghfs:get-project-icon',
+    type: 'query',
+    handler: async (projectId: string): Promise<string | null> => findProjectIcon(requireProject(registry, projectId)),
   }))
 }
 

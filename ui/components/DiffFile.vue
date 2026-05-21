@@ -35,13 +35,13 @@ const statusLabel = computed(() => {
   <div class="border border-base rounded-lg bg-base overflow-hidden">
     <button
       type="button"
-      class="w-full flex items-center gap-2 px-3 py-2 bg-subtle text-left hover:bg-secondary"
+      class="w-full flex items-center gap-2 px-3 py-2 bg-#8881 dark:bg-#fff1 text-left hover:bg-#8882 transition"
       @click="open = !open"
     >
-      <span :class="open ? 'i-octicon-chevron-down-16' : 'i-octicon-chevron-right-16'" class="text-xs color-muted shrink-0" />
+      <span :class="open ? 'i-ph-caret-down-duotone' : 'i-ph-caret-right-duotone'" class="text-xs color-muted shrink-0" />
       <span class="i-octicon-file-diff-16 color-muted shrink-0" />
       <span class="font-mono text-xs truncate flex-1">{{ title }}</span>
-      <span v-if="statusLabel" class="text-[10px] uppercase tracking-wide color-muted badge-color-neutral">{{ statusLabel }}</span>
+      <Badge v-if="statusLabel" color="neutral" size="xs" class="uppercase tracking-wide">{{ statusLabel }}</Badge>
       <span class="text-xs color-green-600 dark:color-green-500 font-mono">+{{ file.additions }}</span>
       <span class="text-xs color-red-600 dark:color-red-500 font-mono">-{{ file.deletions }}</span>
     </button>
@@ -49,7 +49,7 @@ const statusLabel = computed(() => {
       <table class="w-full font-mono text-xs border-collapse">
         <tbody>
           <template v-for="(chunk, ci) in file.chunks" :key="ci">
-            <tr class="bg-blue-500/10">
+            <tr class="bg-primary-500/8 dark:bg-primary-400/8">
               <td colspan="3" class="px-3 py-1 color-muted text-[11px]">{{ chunk.content }}</td>
             </tr>
             <tr

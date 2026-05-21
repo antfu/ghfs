@@ -245,10 +245,18 @@ const ringClass = computed(() =>
 </script>
 
 <template>
-  <div v-if="!item" class="h-full flex flex-col items-center justify-center color-muted transition" :class="ringClass">
-    <span class="i-octicon-inbox-16 text-5xl mb-4 op-fade" />
-    <p class="text-sm">Select an item on the left to view it here.</p>
-    <p class="text-xs mt-2 color-faint">Use <span class="kbd">j</span> <span class="kbd">k</span> or <span class="kbd">↑</span> <span class="kbd">↓</span> to navigate.</p>
+  <div v-if="!item" class="h-full flex flex-col items-center justify-center transition" :class="ringClass">
+    <EmptyState
+      icon="i-octicon-inbox-16"
+      title="Select an item on the left to view it here"
+      size="lg"
+    >
+      <template #hint>
+        <p class="text-xs color-faint">
+          Use <span class="kbd">j</span> <span class="kbd">k</span> or <span class="kbd">↑</span> <span class="kbd">↓</span> to navigate.
+        </p>
+      </template>
+    </EmptyState>
   </div>
 
   <article v-else class="h-full flex flex-col min-h-0 bg-base transition" :class="ringClass">
@@ -262,10 +270,16 @@ const ringClass = computed(() =>
           v-html="titleHtml"
         />
         <span class="font-mono text-sm color-muted tabular-nums">#{{ item.number }}</span>
-        <span class="badge-color-neutral uppercase tracking-wide text-[10px]">{{ stateLabel }}</span>
-        <span v-if="pending.direction.value" class="badge-color-yellow uppercase tracking-wide text-[10px] flex items-center gap-1">
-          <span class="i-octicon-hourglass-16 text-[10px]" /> pending
-        </span>
+        <StatePill :state="(stateLabel as any)" :kind="item.kind" />
+        <Badge
+          v-if="pending.direction.value"
+          color="yellow"
+          icon="i-octicon-hourglass-16"
+          size="xs"
+          class="uppercase tracking-wide"
+        >
+          pending
+        </Badge>
         <span v-if="item.author" class="flex items-center gap-1 text-xs color-muted">
           <Avatar :login="item.author" :size="14" />
           <span class="font-mono">@{{ item.author }}</span>
@@ -275,17 +289,16 @@ const ringClass = computed(() =>
         </span>
       </div>
       <div class="flex items-center gap-1 shrink-0">
-        <TooltipButton v-if="item.url" tooltip="Open on GitHub">
-          <a
-            :href="item.url"
-            target="_blank"
-            rel="noreferrer"
-            class="btn-icon !w-7 !h-7"
-            aria-label="Open on GitHub"
-          >
-            <span class="i-octicon-link-external-16" />
-          </a>
-        </TooltipButton>
+        <IconButton
+          v-if="item.url"
+          as="a"
+          :href="item.url"
+          target="_blank"
+          rel="noreferrer"
+          icon="i-ph-arrow-square-out-duotone"
+          size="sm"
+          tooltip="Open on GitHub"
+        />
         <Kbd shortcut-id="list.open" />
       </div>
     </header>
@@ -293,16 +306,13 @@ const ringClass = computed(() =>
     <div class="px-6 py-1.5 border-b border-base flex items-center gap-1.5 flex-wrap text-xs">
       <span class="i-octicon-tag-16 color-muted" />
       <Label v-for="label in labels" :key="label" :name="label" />
-      <TooltipButton tooltip="Edit labels">
-        <button
-          type="button"
-          class="btn-icon !w-5 !h-5"
-          aria-label="Edit labels"
-          @click="ui.labelEditorOpen.value = true"
-        >
-          <span class="i-octicon-pencil-16 text-xs" />
-        </button>
-      </TooltipButton>
+      <IconButton
+        icon="i-ph-pencil-simple-duotone"
+        size="sm"
+        tooltip="Edit labels"
+        aria-label="Edit labels"
+        @click="ui.labelEditorOpen.value = true"
+      />
       <Kbd shortcut-id="item.labels" tone="muted" />
       <template v-if="assignees.length">
         <span class="i-octicon-person-16 color-muted ml-2" />
@@ -319,7 +329,7 @@ const ringClass = computed(() =>
 
     <div
       v-if="pending.hasPending.value"
-      class="px-6 py-2 border-b border-yellow-500/30 bg-yellow-500/10 flex items-center gap-3 text-sm"
+      class="px-6 py-2 border-b border-yellow-500/30 bg-yellow-500/8 flex items-center gap-3 text-sm"
     >
       <span class="i-octicon-hourglass-16 color-yellow-600 dark:color-yellow-400 shrink-0" />
       <div class="flex-1 min-w-0">
@@ -330,20 +340,20 @@ const ringClass = computed(() =>
       </div>
       <button
         type="button"
-        class="btn-action text-sm"
+        class="btn-action-sm"
         :disabled="state.executing.value || !hasToken"
         :title="hasToken ? 'Execute the pending changes for this item only' : 'No GitHub token available'"
         @click="executeThisItem"
       >
-        <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-octicon-play-16'" />
+        <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-ph-play-duotone'" />
         Execute
       </button>
       <button
         type="button"
-        class="btn-action text-sm"
+        class="btn-action-sm"
         @click="discardThisItem"
       >
-        <span class="i-octicon-trash-16" />
+        <span class="i-ph-trash-duotone" />
         Discard
       </button>
     </div>
@@ -425,16 +435,13 @@ const ringClass = computed(() =>
         </span>
         <span v-if="currentUser?.name" class="color-faint">· {{ currentUser.name }}</span>
         <div class="flex-1" />
-        <TooltipButton tooltip="Override user">
-          <button
-            type="button"
-            class="btn-icon !w-6 !h-6"
-            aria-label="Override user identity"
-            @click="userOverrideOpen = true"
-          >
-            <span class="i-octicon-pencil-16 text-xs" />
-          </button>
-        </TooltipButton>
+        <IconButton
+          icon="i-ph-user-switch-duotone"
+          size="sm"
+          tooltip="Override user"
+          aria-label="Override user identity"
+          @click="userOverrideOpen = true"
+        />
       </div>
       <div
         class="border border-base rounded-lg bg-base transition"

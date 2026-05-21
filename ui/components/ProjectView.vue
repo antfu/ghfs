@@ -87,7 +87,7 @@ const showError = computed(() => Boolean(loadError.value) && !hasPayload.value)
       class="absolute top-14 left-0 right-0 h-0.5 overflow-hidden z-20 pointer-events-none"
       data-testid="project-refresh-bar"
     >
-      <div class="h-full bg-primary-500/70 animate-pulse" style="width: 100%;" />
+      <div class="h-full bg-primary-500/60 animate-pulse" style="width: 100%;" />
     </div>
 
     <main class="flex-1 min-h-0">
@@ -114,7 +114,7 @@ const showError = computed(() => Boolean(loadError.value) && !hasPayload.value)
           </div>
         </Pane>
 
-        <Pane :size="100 - listPaneSize" class="bg-secondary/30">
+        <Pane :size="100 - listPaneSize" class="bg-base">
           <div class="h-full" data-testid="detail-panel" @mousedown="setPanel('detail')">
             <DetailPanel />
           </div>

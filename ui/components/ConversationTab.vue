@@ -32,7 +32,7 @@ const hasAnyActivity = computed(() =>
   <div class="flex flex-col">
     <section class="px-6 py-5">
       <div class="rounded-lg border border-base bg-base overflow-hidden">
-        <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-subtle">
+        <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-#8881 dark:bg-#fff1">
           <Avatar :login="item.author" :size="20" />
           <span class="text-sm">
             <span class="font-medium">@{{ item.author || 'ghost' }}</span>

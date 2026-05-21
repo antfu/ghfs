@@ -37,10 +37,12 @@ async function copy(sha: string) {
 
 <template>
   <div class="px-6 py-5">
-    <div v-if="!props.commits || props.commits.length === 0" class="rounded-lg border border-base bg-base px-4 py-6 text-sm color-muted text-center">
-      No commits synced for this pull request.
-    </div>
-    <ol v-else class="border border-base rounded-lg bg-base overflow-hidden divide-y divide-[var(--border-base)]">
+    <EmptyState
+      v-if="!props.commits || props.commits.length === 0"
+      icon="i-ph-git-commit-duotone"
+      message="No commits synced for this pull request."
+    />
+    <ol v-else class="border border-base rounded-lg bg-base overflow-hidden divide-y divide-#8882">
       <li v-for="commit in props.commits" :key="commit.sha" class="px-4 py-3">
         <div class="flex items-start gap-3">
           <Avatar :login="commit.authorLogin ?? undefined" :size="24" class="mt-0.5" />
@@ -49,11 +51,11 @@ async function copy(sha: string) {
               <button
                 v-if="rest(commit.message)"
                 type="button"
-                class="btn-icon !w-5 !h-5 mt-0.5"
+                class="w-5 h-5 mt-0.5 rounded op-fade hover:op100 hover:bg-active flex items-center justify-center transition"
                 :aria-label="expanded.has(commit.sha) ? 'Collapse commit body' : 'Expand commit body'"
                 @click="toggle(commit.sha)"
               >
-                <span :class="expanded.has(commit.sha) ? 'i-octicon-chevron-down-16' : 'i-octicon-chevron-right-16'" class="text-xs" />
+                <span :class="expanded.has(commit.sha) ? 'i-ph-caret-down-duotone' : 'i-ph-caret-right-duotone'" class="text-xs" />
               </button>
               <p class="text-sm font-medium flex-1 min-w-0 leading-snug">{{ firstLine(commit.message) }}</p>
             </div>
@@ -68,24 +70,21 @@ async function copy(sha: string) {
             </div>
           </div>
           <div class="flex items-center gap-1 shrink-0">
-            <TooltipButton tooltip="Copy SHA">
-              <button
-                type="button"
-                class="btn-icon !w-7 !h-7"
-                :aria-label="`Copy SHA ${commit.sha}`"
-                @click="copy(commit.sha)"
-              >
-                <span class="i-octicon-copy-16 text-xs" />
-              </button>
-            </TooltipButton>
+            <IconButton
+              icon="i-ph-copy-duotone"
+              size="sm"
+              tooltip="Copy SHA"
+              :aria-label="`Copy SHA ${commit.sha}`"
+              @click="copy(commit.sha)"
+            />
             <a
               v-if="commit.url"
               :href="commit.url"
               target="_blank"
               rel="noreferrer"
-              class="font-mono text-xs color-muted hover:color-active px-2 py-1 rounded bg-subtle"
+              class="font-mono text-xs color-muted hover:color-active px-2 py-1 rounded bg-#8881"
             >{{ commit.sha.slice(0, 7) }}</a>
-            <code v-else class="font-mono text-xs color-muted px-2 py-1 rounded bg-subtle">{{ commit.sha.slice(0, 7) }}</code>
+            <code v-else class="font-mono text-xs color-muted px-2 py-1 rounded bg-#8881">{{ commit.sha.slice(0, 7) }}</code>
           </div>
         </div>
       </li>

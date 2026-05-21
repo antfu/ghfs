@@ -36,7 +36,6 @@ watch(open, (v) => {
 })
 
 watch(filtered, () => {
-  // Keep highlight inside bounds when the filter changes.
   if (highlightedIndex.value >= filtered.value.length)
     highlightedIndex.value = Math.max(0, filtered.value.length - 1)
 })
@@ -100,15 +99,16 @@ onClickOutside(root, () => {
     <button
       ref="triggerRef"
       type="button"
-      class="inline-flex items-center gap-1.5 max-w-60 font-mono text-sm truncate rounded px-1.5 py-0.5 hover:bg-secondary/60 focus-visible:ring-2 focus-visible:ring-primary-500/40 outline-none transition"
+      class="inline-flex items-center gap-1.5 max-w-60 font-mono text-sm truncate rounded-md px-1.5 py-0.5 hover:bg-active focus-visible:ring-2 focus-visible:ring-primary-500/40 outline-none transition"
       data-testid="navbar-project-switcher"
       :aria-haspopup="true"
       :aria-expanded="open"
       @click="toggle"
       @keydown="onTriggerKeydown"
     >
+      <ProjectIcon v-if="current" :project="current" :size="16" fallback-class="color-active" />
       <span class="truncate" data-testid="navbar-repo">{{ current?.repo ?? props.projectId }}</span>
-      <span class="i-octicon-chevron-down-16 text-xs shrink-0 op70" />
+      <span class="i-ph-caret-down-duotone text-xs shrink-0 op70" />
     </button>
 
     <Transition
@@ -122,20 +122,12 @@ onClickOutside(root, () => {
       <div
         v-if="open"
         ref="menuRef"
-        class="absolute z-40 top-full left-0 mt-1 min-w-72 max-w-[24rem] bg-base border border-base rounded-md shadow-xl overflow-hidden"
+        class="absolute z-dropdown top-full left-0 mt-1 min-w-72 max-w-[24rem] panel-card !rounded-lg shadow-xl overflow-hidden"
         data-testid="navbar-project-switcher-menu"
         @keydown="onKeydown"
       >
-        <div class="px-3 py-2 border-b border-base/60">
-          <label class="flex items-center gap-2 border border-base/60 rounded bg-base/50 px-2 py-1 transition focus-within:border-active focus-within:ring-2 focus-within:ring-primary-500/30">
-            <span class="i-octicon-search-16 color-muted shrink-0 text-xs" />
-            <input
-              v-model="search"
-              type="text"
-              placeholder="Switch to…"
-              class="bg-transparent outline-none w-full font-mono text-xs"
-            >
-          </label>
+        <div class="px-3 py-2 border-b border-base">
+          <SearchField v-model="search" placeholder="Switch to…" />
         </div>
         <ul class="flex flex-col max-h-80 overflow-y-auto py-1" role="listbox">
           <li v-if="filtered.length === 0" class="px-3 py-2 text-xs color-muted">
@@ -152,7 +144,7 @@ onClickOutside(root, () => {
               type="button"
               class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded transition outline-none"
               :class="[
-                index === highlightedIndex ? 'bg-secondary/80' : 'hover:bg-secondary/40',
+                index === highlightedIndex ? 'bg-active' : 'hover:bg-active',
                 project.id === props.projectId ? 'color-active' : '',
               ]"
               data-testid="navbar-project-switcher-item"
@@ -160,20 +152,20 @@ onClickOutside(root, () => {
               @click="select(project.id)"
               @mouseenter="highlightedIndex = index"
             >
-              <span class="i-octicon-repo-16 shrink-0" :class="project.id === props.projectId ? 'color-active' : 'color-muted'" />
+              <ProjectIcon :project="project" :size="16" :fallback-class="project.id === props.projectId ? 'color-active' : 'color-muted'" />
               <span class="font-mono text-xs truncate flex-1">{{ project.repo }}</span>
               <span class="text-[10px] color-muted tabular-nums shrink-0">
                 {{ project.openIssues }}<span class="mx-0.5">·</span>{{ project.openPulls }}
               </span>
               <span
                 v-if="project.id === props.projectId"
-                class="i-octicon-check-16 text-xs color-active shrink-0"
+                class="i-ph-check-bold text-xs color-active shrink-0"
                 aria-label="current"
               />
             </button>
           </li>
         </ul>
-        <div class="px-3 py-2 border-t border-base/60 flex items-center justify-between text-[10px] color-muted">
+        <div class="px-3 py-2 border-t border-base flex items-center justify-between text-[10px] color-muted">
           <span>
             <span class="kbd">↑</span><span class="kbd">↓</span> navigate · <span class="kbd">↵</span> select · <span class="kbd">Esc</span> close
           </span>
@@ -182,7 +174,7 @@ onClickOutside(root, () => {
             class="hover:color-active transition inline-flex items-center gap-1"
             @click="close()"
           >
-            <span class="i-octicon-arrow-left-16 text-[10px]" />
+            <span class="i-ph-arrow-left-duotone text-[10px]" />
             <span>hub home</span>
           </NuxtLink>
         </div>

@@ -62,6 +62,9 @@ onMounted(async () => {
 })
 
 async function onRootChanged() {
+  // Same project IDs may point at different filesystem locations under a
+  // new hub root, so flush the icon cache before refetching.
+  clearProjectIconCache()
   try {
     const fresh = await rpc.listProjects()
     hub.setProjects(fresh)
@@ -76,8 +79,6 @@ function openProject(id: string) {
 async function syncAll() {
   await syncAllProjects()
 }
-
-const containerCardClass = 'border border-base rounded-md p-4 bg-base shadow-sm transition hover:border-active hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary-500/40 outline-none text-left flex flex-col'
 
 const cardRefs = ref<HTMLButtonElement[]>([])
 
@@ -132,12 +133,11 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
   }
   focusedIndex.value = index
 }
-
 </script>
 
 <template>
   <div class="h-full flex flex-col" data-testid="hub-home">
-    <header class="sticky top-0 z-30 bg-glass flex items-center gap-3 px-5 h-14 border-b border-base">
+    <header class="sticky top-0 z-nav bg-glass border-b border-base flex items-center gap-3 px-5 h-14">
       <span class="i-octicon-organization-16 text-lg color-active shrink-0" />
       <div class="flex flex-col leading-tight min-w-0">
         <span class="text-sm font-semibold">ghfs hub</span>
@@ -150,53 +150,53 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
           @click="rootDialogOpen = true"
         >
           <span class="truncate">{{ hubCwd }}</span>
-          <span class="i-octicon-pencil-16 text-[10px] shrink-0 op70" />
+          <span class="i-ph-pencil-simple-duotone text-[10px] shrink-0 op70" />
         </button>
       </div>
       <div class="flex-1" />
-      <TooltipButton :tooltip="syncableCount > 0 ? `Sync ${syncableCount} project${syncableCount === 1 ? '' : 's'}` : 'No project has a GitHub token'">
-        <button
-          class="btn-action text-xs flex items-center gap-1.5"
-          data-testid="hub-sync-all"
-          :disabled="syncingAll || syncableCount === 0"
-          @click="syncAll"
-        >
-          <span :class="syncingAll ? 'i-octicon-sync-16 animate-spin' : 'i-octicon-sync-16'" />
-          <span>{{ syncingAll ? 'Syncing…' : 'Sync all' }}</span>
-        </button>
-      </TooltipButton>
       <button
-        class="btn-action text-xs flex items-center gap-1.5"
+        class="btn-action-sm"
+        data-testid="hub-sync-all"
+        :title="syncableCount > 0 ? `Sync ${syncableCount} project${syncableCount === 1 ? '' : 's'}` : 'No project has a GitHub token'"
+        :disabled="syncingAll || syncableCount === 0"
+        @click="syncAll"
+      >
+        <span class="i-octicon-sync-16" :class="syncingAll ? 'animate-spin' : ''" />
+        <span>{{ syncingAll ? 'Syncing…' : 'Sync all' }}</span>
+      </button>
+      <button
+        class="btn-action-sm"
         data-testid="hub-open-picker"
         @click="pickerOpen = true"
       >
-        <span class="i-octicon-gear-16" />
+        <span class="i-ph-sliders-duotone" />
         <span>Manage projects</span>
       </button>
-      <TooltipButton :tooltip="isDark ? 'Light mode' : 'Dark mode'">
-        <button class="btn-icon" aria-label="Toggle theme" @click="isDark = !isDark">
-          <span :class="isDark ? 'i-octicon-sun-16' : 'i-octicon-moon-16'" />
-        </button>
-      </TooltipButton>
-      <TooltipButton tooltip="Keyboard shortcuts">
-        <button class="btn-icon" aria-label="Help" @click="ui.helpOpen.value = true">
-          <span class="i-octicon-question-16" />
-        </button>
-      </TooltipButton>
+      <IconButton
+        :icon="isDark ? 'i-ph-sun-duotone' : 'i-ph-moon-duotone'"
+        :tooltip="isDark ? 'Light mode' : 'Dark mode'"
+        aria-label="Toggle theme"
+        @click="isDark = !isDark"
+      />
+      <IconButton
+        icon="i-ph-question-duotone"
+        tooltip="Keyboard shortcuts"
+        aria-label="Help"
+        @click="ui.helpOpen.value = true"
+      />
     </header>
 
     <main class="flex-1 overflow-y-auto">
       <div class="max-w-6xl mx-auto px-5 py-6 flex flex-col gap-6">
-        <!-- Hero summary banner -->
         <section
-          class="rounded-lg border border-base bg-secondary/30 px-5 py-4 flex flex-wrap items-center gap-x-6 gap-y-2"
+          class="panel-card px-5 py-4 flex flex-wrap items-center gap-x-6 gap-y-2"
           data-testid="hub-summary"
         >
           <div class="flex flex-col leading-tight">
             <span class="text-[11px] uppercase tracking-wide color-muted font-medium">Projects</span>
             <span class="text-2xl font-semibold tabular-nums">{{ projects.length }}</span>
           </div>
-          <span class="h-8 w-px bg-base/60" />
+          <span class="h-8 border-l border-base mx-1" />
           <div class="flex flex-col leading-tight">
             <span class="text-[11px] uppercase tracking-wide color-muted font-medium flex items-center gap-1">
               <span class="i-octicon-issue-opened-16" />
@@ -218,7 +218,6 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
           </div>
         </section>
 
-        <!-- Project grid -->
         <section class="flex flex-col gap-3">
           <div class="flex items-baseline gap-2">
             <h2 class="text-sm font-semibold">Projects</h2>
@@ -233,77 +232,40 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
             </button>
           </div>
 
-          <div
+          <EmptyState
             v-if="projects.length === 0"
-            class="flex flex-col items-center justify-center gap-3 py-16 border border-dashed border-base rounded-md color-muted"
+            icon="i-octicon-repo-16"
+            title="No projects enabled yet"
+            message="Click Manage projects to scan this directory and choose which repositories appear in the hub."
           >
-            <span class="i-octicon-repo-16 text-4xl op60" />
-            <p class="text-sm text-center max-w-sm">
-              No projects enabled yet. Click <span class="font-medium color-base">Manage projects</span> to scan this directory and choose which repositories appear in the hub.
-            </p>
-            <button
-              class="btn-primary text-xs flex items-center gap-1.5 mt-1"
-              data-testid="hub-empty-cta"
-              @click="pickerOpen = true"
-            >
-              <span class="i-octicon-gear-16" />
-              <span>Manage projects</span>
-            </button>
-          </div>
+            <template #hint>
+              <button
+                class="btn-primary text-xs flex items-center gap-1.5 mt-1"
+                data-testid="hub-empty-cta"
+                @click="pickerOpen = true"
+              >
+                <span class="i-ph-sliders-duotone" />
+                <span>Manage projects</span>
+              </button>
+            </template>
+          </EmptyState>
 
           <div
             v-else
             class="grid gap-3"
             style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"
           >
-            <button
+            <HubProjectCard
               v-for="(project, index) in projects"
               :key="project.id"
               :ref="el => setCardRef(el, index)"
-              :class="containerCardClass"
+              :project="project"
               data-testid="hub-project-card"
               :data-project-id="project.id"
               @click="openProject(project.id)"
               @keydown="onCardKeydown($event, index)"
               @focus="focusedIndex = index"
-            >
-              <div class="flex items-center gap-2 min-w-0">
-                <span class="i-octicon-repo-16 color-active shrink-0" />
-                <span class="font-mono text-sm font-medium truncate" :title="project.repo">{{ project.repo }}</span>
-                <div class="flex-1" />
-                <span
-                  v-if="!project.hasToken"
-                  class="i-octicon-key-16 color-yellow-600 dark:color-yellow-400"
-                  title="No GitHub token; sync disabled"
-                />
-              </div>
-
-              <div class="mt-3 flex items-center gap-3 text-xs">
-                <span class="flex items-center gap-1 color-muted">
-                  <span class="i-octicon-issue-opened-16" />
-                  <span class="font-mono tabular-nums color-base">{{ project.openIssues }}</span>
-                </span>
-                <span class="flex items-center gap-1 color-muted">
-                  <span class="i-octicon-git-pull-request-16" />
-                  <span class="font-mono tabular-nums color-base">{{ project.openPulls }}</span>
-                </span>
-                <span class="flex items-center gap-1 color-muted">
-                  <span class="i-octicon-database-16" />
-                  <span class="font-mono tabular-nums color-base">{{ project.itemCount }}</span>
-                </span>
-              </div>
-
-              <div class="mt-2 text-[11px] color-muted truncate font-mono" :title="project.path">{{ project.path }}</div>
-
-              <div class="mt-1 text-[11px] color-muted flex items-center gap-2" :title="project.lastActivityAt ?? project.lastSyncedAt ?? ''">
-                <span v-if="project.lastActivityAt">updated {{ formatRelative(project.lastActivityAt) }}</span>
-                <span v-else-if="project.lastSyncedAt">synced {{ formatRelative(project.lastSyncedAt) }}</span>
-                <span v-else class="flex items-center gap-1">
-                  <span class="i-octicon-clock-16 text-[10px]" />
-                  <span>never synced</span>
-                </span>
-              </div>
-            </button>
+            />
           </div>
         </section>
       </div>
@@ -311,9 +273,9 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
 
     <HubProjectPicker v-if="pickerOpen" @close="pickerOpen = false" />
     <HubRootDialog
-      v-if="rootDialogOpen && hubCwd"
+      v-if="hubCwd"
+      v-model:open="rootDialogOpen"
       :current="hubCwd"
-      @close="rootDialogOpen = false"
       @changed="onRootChanged"
     />
     <HelpOverlay />

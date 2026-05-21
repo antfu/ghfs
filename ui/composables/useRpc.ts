@@ -58,6 +58,7 @@ interface GhfsServerFunctions extends Record<string, (...args: unknown[]) => unk
   'ghfs:open-in-editor': (projectId: string, filePath: string) => Promise<void>
   'ghfs:save-ui-state': (projectId: string, state: UiState) => Promise<void>
   'ghfs:get-pull-patch': (projectId: string, number: number) => Promise<string | null>
+  'ghfs:get-project-icon': (projectId: string) => Promise<string | null>
   'ghfs:hub-info': () => Promise<{ cwd: string }>
   'ghfs:hub-scan': () => Promise<HubScannedProject[]>
   'ghfs:hub-enable': (path: string) => Promise<{ id: string }>
@@ -79,6 +80,7 @@ export interface GhfsRpc {
   openInEditor: (projectId: string, filePath: string) => Promise<void>
   saveUiState: (projectId: string, state: UiState) => Promise<void>
   getPullPatch: (projectId: string, number: number) => Promise<string | null>
+  getProjectIcon: (projectId: string) => Promise<string | null>
   hubInfo: () => Promise<{ cwd: string }>
   hubScan: () => Promise<HubScannedProject[]>
   hubEnable: (path: string) => Promise<{ id: string }>
@@ -152,6 +154,7 @@ function createGhfsRpcClient(): GhfsRpc {
     openInEditor: (projectId, filePath) => call('ghfs:open-in-editor', projectId, filePath) as Promise<void>,
     saveUiState: (projectId, state) => call('ghfs:save-ui-state', projectId, state) as Promise<void>,
     getPullPatch: (projectId, number) => call('ghfs:get-pull-patch', projectId, number) as Promise<string | null>,
+    getProjectIcon: projectId => call('ghfs:get-project-icon', projectId) as Promise<string | null>,
     hubInfo: () => call('ghfs:hub-info') as Promise<{ cwd: string }>,
     hubScan: () => call('ghfs:hub-scan') as Promise<HubScannedProject[]>,
     hubEnable: path => call('ghfs:hub-enable', path) as Promise<{ id: string }>,
@@ -185,6 +188,13 @@ function createClientHandlers(): GhfsClientFunctions {
       const state = useAppState(event.projectId)
       state.setProgress(null)
       state.setSyncing(false)
+      // In hub mode, refresh the aggregate project list so the home cards
+      // pick up the new lastSyncedAt + open counts after a sync completes
+      // even when the per-project view isn't mounted.
+      const hub = useHubState()
+      if (hub.capabilities.value?.mode === 'hub') {
+        useRpc().listProjects().then(p => hub.setProjects(p)).catch(() => {})
+      }
     },
     'ghfs:onSyncError': (event) => {
       const state = useAppState(event.projectId)
@@ -275,6 +285,7 @@ function makeNoopRpc(): GhfsRpc {
     openInEditor: reject as never,
     saveUiState: reject as never,
     getPullPatch: reject as never,
+    getProjectIcon: reject as never,
     hubInfo: reject as never,
     hubScan: reject as never,
     hubEnable: reject as never,
