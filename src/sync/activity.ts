@@ -23,7 +23,7 @@ export function computeProjectActivityBuckets(
   days = 90,
   now = Date.now(),
 ): ActivityResult {
-  const buckets: number[] = Array.from({ length: days }).fill(0)
+  const buckets = Array.from<number>({ length: days }).fill(0)
   const startOfTodayMs = startOfUtcDay(now)
   let total = 0
 
