@@ -3,7 +3,9 @@ import type { ActivityResult } from './useRpc'
 const cache = new Map<string, Ref<ActivityResult | null>>()
 const loading = new Set<string>()
 
-export function useProjectActivity(projectId: MaybeRefOrGetter<string | null | undefined>, days = 90) {
+const DEFAULT_ACTIVITY_DAYS = 60
+
+export function useProjectActivity(projectId: MaybeRefOrGetter<string | null | undefined>, days = DEFAULT_ACTIVITY_DAYS) {
   const id = computed(() => {
     const value = toValue(projectId)
     return value ?? null

@@ -476,7 +476,7 @@ export function registerProjectRpc(
     handler: async (projectId: string, days?: number) => {
       const p = requireProject(registry, projectId)
       const state = await loadSyncState(p.storageDirAbsolute)
-      return computeProjectActivityBuckets(state, days ?? 90)
+      return computeProjectActivityBuckets(state, days ?? 30)
     },
   }))
 
