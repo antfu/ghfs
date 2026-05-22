@@ -193,4 +193,3 @@ export function useCommand(id: string): CommandBinding {
   })
   return { command, label, key, active, hasKey }
 }
-
