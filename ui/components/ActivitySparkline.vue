@@ -50,7 +50,7 @@ const config = computed(() => ({
     backgroundColor: 'transparent',
     // Padding must be the object form — the library destructures
     // `{ top, right, bottom, left }`; an array silently becomes all-undefined.
-    padding: { top: 4, right: 0, bottom: 0, left: 0 },
+    padding: { top: 4, right: 0, bottom: 5, left: 0 },
     scaleMin: scaleMin.value,
     scaleMax: scaleMax.value,
     animation: { show: false },
@@ -73,7 +73,7 @@ const config = computed(() => ({
 </script>
 
 <template>
-  <div class="absolute inset-0 overflow-hidden" data-testid="activity-sparkline">
+  <div class="absolute inset-0 overflow-hidden pointer-none" data-testid="activity-sparkline">
     <!--
       forced-padding defaults to 30 in vue-data-ui's Sparkline and is
       applied only on the left side of the chart drawing area — that's
