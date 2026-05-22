@@ -31,6 +31,14 @@ const dataset = computed(() =>
   })),
 )
 
+// Extend the y-scale below 0 so the plotted line floats above the bottom
+// edge while the area fill still reaches the panel bottom — much easier
+// to read than a line that kisses the container edge on zero-activity days.
+const scaleMin = computed(() => {
+  const peak = Math.max(0, ...props.points)
+  return peak > 0 ? -peak * 0.15 : -1
+})
+
 // vue-data-ui sparkline expects `area`, `plot`, etc. at the top level of
 // `style` — NOT nested under `line`. Color must be a real hex value because
 // the library derives gradient stops from it via JS; `currentColor` won't work.
@@ -42,9 +50,8 @@ const config = computed(() => ({
     backgroundColor: 'transparent',
     // Padding must be the object form — the library destructures
     // `{ top, right, bottom, left }`; an array silently becomes all-undefined.
-    // The bottom inset lifts the line off the container edge so even
-    // zero-activity days stay visible.
-    padding: { top: 4, right: 0, bottom: 6, left: 0 },
+    padding: { top: 4, right: 0, bottom: 0, left: 0 },
+    scaleMin: scaleMin.value,
     animation: { show: false },
     line: {
       color: props.color,
@@ -68,7 +75,7 @@ const config = computed(() => ({
 </script>
 
 <template>
-  <div class="w-full h-full overflow-hidden" data-testid="activity-sparkline">
+  <div class="absolute inset-0 overflow-hidden" data-testid="activity-sparkline">
     <VueUiSparkline v-if="ready" :dataset="dataset" :config="config" />
   </div>
 </template>
