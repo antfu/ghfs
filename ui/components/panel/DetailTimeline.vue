@@ -5,6 +5,7 @@ import type {
   ProviderTimelineEvent,
   ProviderTimelineEventKind,
 } from '../../../src/types/provider'
+import { isBotLogin } from '../../../src/utils/bot'
 
 interface Props {
   comments: ProviderComment[]
@@ -20,12 +21,36 @@ const emit = defineEmits<{
 }>()
 
 const { currentUser } = useCurrentUser()
+const appState = useAppState()
+const collapseBotComments = useCollapseBotComments()
+const bots = computed(() => appState.payload.value?.bots ?? [])
+const expanded = reactive(new Set<string>())
+
+function toggleExpanded(id: string): void {
+  if (expanded.has(id))
+    expanded.delete(id)
+  else
+    expanded.add(id)
+}
+
+function isBotEntry(entry: StreamEntry): boolean {
+  if (entry.kind === 'comment')
+    return isBotLogin(entry.author, bots.value)
+  if (entry.event.kind === 'reviewed')
+    return isBotLogin(entry.event.actor, bots.value)
+  return false
+}
+
+function isCollapsed(entry: StreamEntry): boolean {
+  return collapseBotComments.value && isBotEntry(entry) && !expanded.has(entry.id)
+}
 
 interface StreamComment {
   kind: 'comment'
   id: string
   createdAt: string
   author: string | null
+  authorAvatarUrl?: string
   body: string | null
 }
 
@@ -49,6 +74,7 @@ const entries = computed<StreamEntry[]>(() => {
       id: `comment-${comment.id}`,
       createdAt: comment.createdAt,
       author: comment.author,
+      authorAvatarUrl: comment.authorAvatarUrl,
       body: comment.body,
     })
   }
@@ -171,48 +197,106 @@ function fallbackLabel(event: ProviderTimelineEvent): string {
 
     <div class="flex flex-col gap-4">
       <template v-for="entry in entries" :key="entry.id">
-        <!-- Full comment card -->
+        <!-- Comment -->
         <div v-if="entry.kind === 'comment'" class="relative pl-10" :data-comment-id="entry.id">
-          <span
-            class="absolute left-0 top-3 inline-flex items-center justify-center w-8 h-8 rounded-full bg-base border border-base"
+          <!-- Collapsed bot comment -->
+          <button
+            v-if="isCollapsed(entry)"
+            type="button"
+            class="w-full flex items-center gap-2 text-sm py-1 text-left hover:bg-active rounded transition"
+            data-testid="collapsed-bot-comment"
+            @click="toggleExpanded(entry.id)"
           >
-            <UiAvatar :login="entry.author" :size="38" />
-          </span>
-          <div class="border border-base rounded-lg bg-base overflow-hidden">
-            <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-#8881 dark:bg-#fff1">
-              <span class="text-sm">
-                <span class="font-medium">@{{ entry.author || 'ghost' }}</span>
-                <span class="color-muted inline-flex items-center gap-1"> commented <DisplayDateBadge :time="entry.createdAt" mode="day" /></span>
-              </span>
+            <span
+              class="absolute left-0 top-0.5 inline-flex items-center justify-center w-8 h-8 rounded-full bg-base"
+            >
+              <UiAvatar :login="entry.author" :src="entry.authorAvatarUrl" :size="24" />
+            </span>
+            <span class="font-mono font-medium">@{{ entry.author || 'ghost' }}</span>
+            <span class="color-muted">commented</span>
+            <span class="color-faint">·</span>
+            <DisplayDateBadge :time="entry.createdAt" mode="day" />
+            <span class="i-ph-caret-right-duotone color-faint text-xs ml-auto shrink-0" />
+          </button>
+
+          <!-- Full comment card -->
+          <template v-else>
+            <span
+              class="absolute left-0 top-3 inline-flex items-center justify-center w-8 h-8 rounded-full bg-base border border-base"
+            >
+              <UiAvatar :login="entry.author" :src="entry.authorAvatarUrl" :size="38" />
+            </span>
+            <div class="border border-base rounded-lg bg-base overflow-hidden">
+              <div
+                class="flex items-center gap-2 px-4 py-2 border-b border-base bg-#8881 dark:bg-#fff1"
+                :class="isBotEntry(entry) ? 'cursor-pointer hover:bg-#8882 dark:hover:bg-#fff2' : ''"
+                @click="isBotEntry(entry) && toggleExpanded(entry.id)"
+              >
+                <span class="text-sm">
+                  <span class="font-medium">@{{ entry.author || 'ghost' }}</span>
+                  <span class="color-muted inline-flex items-center gap-1"> commented <DisplayDateBadge :time="entry.createdAt" mode="day" /></span>
+                </span>
+                <span v-if="isBotEntry(entry)" class="i-ph-caret-down-duotone color-faint text-xs ml-auto" />
+              </div>
+              <div class="px-4 py-3">
+                <div v-if="entry.body" class="markdown-body text-sm" v-html="renderMarkdown(entry.body)" />
+                <p v-else class="text-sm color-muted italic">Empty comment.</p>
+              </div>
             </div>
-            <div class="px-4 py-3">
-              <div v-if="entry.body" class="markdown-body text-sm" v-html="renderMarkdown(entry.body)" />
-              <p v-else class="text-sm color-muted italic">Empty comment.</p>
-            </div>
-          </div>
+          </template>
         </div>
 
         <!-- Timeline event -->
         <div v-else class="relative pl-10">
           <!-- Review with body -->
           <template v-if="entry.event.kind === 'reviewed' && entry.event.review?.body">
-            <span
-              class="absolute left-0 top-3 inline-flex items-center justify-center w-8 h-8 rounded-full bg-base border border-base"
+            <!-- Collapsed bot review -->
+            <button
+              v-if="isCollapsed(entry)"
+              type="button"
+              class="w-full flex items-center gap-2 text-sm py-1 text-left hover:bg-active rounded transition"
+              data-testid="collapsed-bot-review"
+              @click="toggleExpanded(entry.id)"
             >
-              <UiAvatar :login="entry.event.actor" :size="24" />
-            </span>
-            <div class="border-2 rounded-lg bg-base overflow-hidden" :class="reviewStyle(entry.event.review.state).border">
-              <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-#8881 dark:bg-#fff1">
-                <span :class="[reviewStyle(entry.event.review.state).icon, reviewStyle(entry.event.review.state).color]" />
-                <span class="text-sm">
-                  <span class="font-medium">@{{ entry.event.actor || 'ghost' }}</span>
-                  <span class="color-muted inline-flex items-center gap-1"> {{ reviewStyle(entry.event.review.state).label }} <DisplayDateBadge :time="entry.createdAt" mode="day" /></span>
+              <span
+                class="absolute left-0 top-0.5 inline-flex items-center justify-center w-8 h-8 rounded-full bg-base"
+              >
+                <span class="w-6 h-6 rounded-full bg-#8881 dark:bg-#fff1 inline-flex items-center justify-center">
+                  <span :class="[reviewStyle(entry.event.review.state).icon, reviewStyle(entry.event.review.state).color, 'text-xs']" />
                 </span>
+              </span>
+              <DisplayAuthor :author="entry.event.actor ? { login: entry.event.actor, avatarUrl: entry.event.actorAvatarUrl } : 'ghost'" :size="16" />
+              <span class="color-muted">{{ reviewStyle(entry.event.review.state).label }}</span>
+              <span class="color-faint">·</span>
+              <DisplayDateBadge :time="entry.createdAt" mode="day" />
+              <span class="i-ph-caret-right-duotone color-faint text-xs ml-auto shrink-0" />
+            </button>
+
+            <!-- Full review card -->
+            <template v-else>
+              <span
+                class="absolute left-0 top-3 inline-flex items-center justify-center w-8 h-8 rounded-full bg-base border border-base"
+              >
+                <UiAvatar :login="entry.event.actor" :src="entry.event.actorAvatarUrl" :size="24" />
+              </span>
+              <div class="border-2 rounded-lg bg-base overflow-hidden" :class="reviewStyle(entry.event.review.state).border">
+                <div
+                  class="flex items-center gap-2 px-4 py-2 border-b border-base bg-#8881 dark:bg-#fff1"
+                  :class="isBotEntry(entry) ? 'cursor-pointer hover:bg-#8882 dark:hover:bg-#fff2' : ''"
+                  @click="isBotEntry(entry) && toggleExpanded(entry.id)"
+                >
+                  <span :class="[reviewStyle(entry.event.review.state).icon, reviewStyle(entry.event.review.state).color]" />
+                  <span class="text-sm">
+                    <span class="font-medium">@{{ entry.event.actor || 'ghost' }}</span>
+                    <span class="color-muted inline-flex items-center gap-1"> {{ reviewStyle(entry.event.review.state).label }} <DisplayDateBadge :time="entry.createdAt" mode="day" /></span>
+                  </span>
+                  <span v-if="isBotEntry(entry)" class="i-ph-caret-down-duotone color-faint text-xs ml-auto" />
+                </div>
+                <div class="px-4 py-3">
+                  <div class="markdown-body text-sm" v-html="renderMarkdown(entry.event.review.body)" />
+                </div>
               </div>
-              <div class="px-4 py-3">
-                <div class="markdown-body text-sm" v-html="renderMarkdown(entry.event.review.body)" />
-              </div>
-            </div>
+            </template>
           </template>
 
           <!-- Review without body → single line -->
@@ -224,7 +308,7 @@ function fallbackLabel(event: ProviderTimelineEvent): string {
                 <span :class="[reviewStyle(entry.event.review?.state ?? 'commented').icon, reviewStyle(entry.event.review?.state ?? 'commented').color, 'text-xs']" />
               </span>
             </span>
-            <DisplayAuthor :author="entry.event.actor || 'ghost'" :size="16" />
+            <DisplayAuthor :author="entry.event.actor ? { login: entry.event.actor, avatarUrl: entry.event.actorAvatarUrl } : 'ghost'" :size="16" />
             <span class="color-muted">{{ reviewStyle(entry.event.review?.state ?? 'commented').label }}</span>
             <span class="color-faint">·</span>
             <DisplayDateBadge :time="entry.createdAt" mode="day" />
@@ -258,7 +342,7 @@ function fallbackLabel(event: ProviderTimelineEvent): string {
                 <span :class="[iconFor(entry.event), colorFor(entry.event), 'text-xs']" />
               </span>
             </span>
-            <DisplayAuthor v-if="entry.event.actor" :author="entry.event.actor" :size="16" />
+            <DisplayAuthor v-if="entry.event.actor" :author="{ login: entry.event.actor, avatarUrl: entry.event.actorAvatarUrl }" :size="16" />
 
             <template v-if="entry.event.kind === 'labeled' || entry.event.kind === 'unlabeled'">
               <span class="color-muted">{{ entry.event.kind === 'labeled' ? 'added' : 'removed' }}</span>

@@ -20,6 +20,7 @@ export const hubRecentItems = defineRpcFunction({
           state: 'open' | 'closed'
           updatedAt: string
           author: string | null
+          authorAvatarUrl?: string
           labels: string[]
         }[] = []
         for (const p of registry.listProjects()) {
@@ -34,6 +35,7 @@ export const hubRecentItems = defineRpcFunction({
               state: item.state,
               updatedAt: getEffectiveUpdatedAt(item, p.config.bots),
               author: item.data.item.author,
+              ...(item.data.item.authorAvatarUrl ? { authorAvatarUrl: item.data.item.authorAvatarUrl } : {}),
               labels: item.data.item.labels ?? [],
             })
           }

@@ -62,6 +62,7 @@ export interface HubRecentItem {
   state: 'open' | 'closed'
   updatedAt: string
   author: string | null
+  authorAvatarUrl?: string
   labels: string[]
 }
 

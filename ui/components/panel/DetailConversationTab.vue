@@ -33,7 +33,7 @@ const hasAnyActivity = computed(() =>
     <section class="px-6 py-5">
       <div class="rounded-lg border border-base bg-base overflow-hidden">
         <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-#8881 dark:bg-#fff1">
-          <DisplayAuthor :author="item.author || 'ghost'" :size="20" />
+          <DisplayAuthor :author="item.author ? { login: item.author, avatarUrl: item.authorAvatarUrl } : 'ghost'" :size="20" />
           <span class="text-sm color-muted flex items-center gap-1.5">
             <span>opened this {{ item.kind === 'pull' ? 'pull request' : 'issue' }}</span>
             <DisplayDateBadge :time="item.createdAt" mode="day" colorize="text" />
