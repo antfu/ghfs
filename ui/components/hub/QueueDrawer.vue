@@ -2,18 +2,8 @@
 const hubUi = useHubUiState()
 const hub = useHubState()
 const hubQueue = useHubQueue()
-const router = useRouter()
 
 const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
-
-function close() {
-  hubUi.closeQueueDrawer()
-}
-
-function openQueuePage() {
-  close()
-  router.push('/queue')
-}
 </script>
 
 <template>
@@ -35,20 +25,24 @@ function openQueuePage() {
         <h2 class="font-medium">Queue</h2>
         <span class="color-muted text-sm font-mono tabular-nums">{{ hubQueue.totalCount.value }}</span>
         <div class="flex-1" />
-        <button
-          type="button"
-          class="btn-action-sm"
-          data-testid="hub-queue-open-page"
-          @click="openQueuePage"
-        >
-          <span class="i-ph-arrows-out-duotone" />
-          <span>Open</span>
-        </button>
-        <UiIconButton
-          icon="i-ph-x"
-          tooltip="Close panel"
-          @click="close"
-        />
+        <UiWithCommand v-slot="{ execute }" command="hub.queue-page">
+          <button
+            type="button"
+            class="btn-action-sm"
+            data-testid="hub-queue-open-page"
+            @click="execute"
+          >
+            <span class="i-ph-arrows-out-duotone" />
+            <span>Open</span>
+          </button>
+        </UiWithCommand>
+        <UiWithCommand v-slot="{ execute }" command="action.queue">
+          <UiIconButton
+            icon="i-ph-x"
+            tooltip="Close panel"
+            @click="execute"
+          />
+        </UiWithCommand>
       </header>
 
       <div class="flex-1 overflow-y-auto p-3">
@@ -59,16 +53,18 @@ function openQueuePage() {
         <div class="text-xs color-muted flex-1">
           Each project's queue executes independently.
         </div>
-        <button
-          type="button"
-          class="btn-primary text-sm"
-          :disabled="hubQueue.totalCount.value === 0 || hubQueue.executing.value !== null"
-          data-testid="hub-queue-execute-all"
-          @click="hubQueue.executeAll()"
-        >
-          <span :class="hubQueue.executing.value === 'all' ? 'i-octicon-sync-16 animate-spin' : 'i-ph-play-duotone'" />
-          <span>Execute all</span>
-        </button>
+        <UiWithCommand v-slot="{ execute }" command="hub.execute-all">
+          <button
+            type="button"
+            class="btn-primary text-sm"
+            :disabled="hubQueue.totalCount.value === 0 || hubQueue.executing.value !== null"
+            data-testid="hub-queue-execute-all"
+            @click="execute"
+          >
+            <span :class="hubQueue.executing.value === 'all' ? 'i-octicon-sync-16 animate-spin' : 'i-ph-play-duotone'" />
+            <span>Execute all</span>
+          </button>
+        </UiWithCommand>
       </footer>
     </aside>
   </Transition>

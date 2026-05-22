@@ -46,6 +46,7 @@ export interface RemoteStatus {
 export interface RepoMeta {
   repo: string
   storageDir: string
+  projectPath: string
   ghfsVersion: string
   lastSyncedAt?: string
   lastSince?: string

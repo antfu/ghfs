@@ -2,9 +2,9 @@
 const open = defineModel<boolean>('open', { required: true })
 
 const isDark = useDark()
+const collapseBotComments = useCollapseBotComments()
 const hub = useHubState()
 const hubSettings = useHubSettings()
-const hubUi = useHubUiState()
 const ui = useUiState()
 
 const mode = computed<'hub' | 'project'>(() => (hub.capabilities.value?.mode === 'hub' ? 'hub' : 'project'))
@@ -101,10 +101,6 @@ const intervalDisplay = computed(() => {
   return `Every ${intervalMinutes.value} minutes.`
 })
 
-function openManageProjects() {
-  open.value = false
-  hubUi.openPicker()
-}
 </script>
 
 <template>
@@ -124,15 +120,18 @@ function openManageProjects() {
         </header>
         <p class="text-xs color-muted">Choose which scanned repositories appear in the hub.</p>
         <div>
-          <button
-            type="button"
-            class="btn-action-sm"
-            data-testid="settings-manage-projects"
-            @click="openManageProjects"
-          >
-            <span class="i-ph-sliders-duotone" />
-            <span>Manage projects</span>
-          </button>
+          <UiWithCommand v-slot="{ execute, disabled }" command="hub.manage">
+            <button
+              type="button"
+              class="btn-action-sm"
+              data-testid="settings-manage-projects"
+              :disabled="disabled"
+              @click="execute"
+            >
+              <span class="i-ph-sliders-duotone" />
+              <span>Manage projects</span>
+            </button>
+          </UiWithCommand>
         </div>
       </section>
 
@@ -263,6 +262,18 @@ function openManageProjects() {
           >
             <span :class="isDark ? 'i-ph-moon-duotone' : 'i-ph-sun-duotone'" />
             <span>{{ isDark ? 'Dark' : 'Light' }}</span>
+          </button>
+        </label>
+        <label class="flex items-center justify-between gap-3 text-sm">
+          <span class="color-muted">Collapse bot comments</span>
+          <button
+            type="button"
+            class="btn-action-sm"
+            data-testid="settings-collapse-bot-comments-toggle"
+            @click="collapseBotComments = !collapseBotComments"
+          >
+            <span :class="collapseBotComments ? 'i-ph-toggle-right-fill color-active' : 'i-ph-toggle-left-fill color-muted'" />
+            <span>{{ collapseBotComments ? 'On' : 'Off' }}</span>
           </button>
         </label>
       </section>

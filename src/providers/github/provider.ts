@@ -14,7 +14,7 @@ import type {
   ProviderRepository,
   ProviderReviewState,
   ProviderTimelineEvent,
-  ProviderTimelineEventKind,
+  ProviderTimelineSource,
   ProviderUpdateCounts,
   ReactionTarget,
   RepositoryProvider,
@@ -278,9 +278,9 @@ async function enrichReviewReactions(
   events: ProviderTimelineEvent[],
   bumpRequestCount: BumpRequestCount,
 ): Promise<void> {
-  const reviewIds = events
-    .filter(e => e.kind === 'reviewed' && e.review?.nodeId)
-    .map(e => e.review!.nodeId!)
+  const reviewIds = events.flatMap(e =>
+    e.kind === 'reviewed' && e.review?.nodeId ? [e.review.nodeId] : [],
+  )
   if (reviewIds.length === 0)
     return
 
@@ -754,6 +754,7 @@ function mapIssue(issue: GitHubIssue): ProviderItem {
     title: issue.title,
     body: issue.body,
     author: issue.user?.login ?? null,
+    ...(issue.user?.avatar_url ? { authorAvatarUrl: issue.user.avatar_url } : {}),
     labels: issue.labels
       .map((label) => {
         if (typeof label === 'string')
@@ -780,6 +781,7 @@ function mapComment(comment: GitHubComment): ProviderComment {
     createdAt: comment.created_at,
     updatedAt: comment.updated_at,
     author: comment.user?.login ?? null,
+    ...(comment.user?.avatar_url ? { authorAvatarUrl: comment.user.avatar_url } : {}),
     reactions: mapReactions(comment.reactions),
   }
 }
@@ -817,6 +819,7 @@ function mapTimelineEvent(event: GitHubTimelineEvent): ProviderTimelineEvent | n
       sha: event.sha,
       commitMessage: firstLine,
       body: fullMessage,
+      ...(event.commit_url ? { commitUrl: event.commit_url } : {}),
     }
   }
 
@@ -826,25 +829,64 @@ function mapTimelineEvent(event: GitHubTimelineEvent): ProviderTimelineEvent | n
 
   const id = event.id != null ? String(event.id) : `${eventName}:${createdAt}`
   const actor = event.actor?.login ?? event.user?.login ?? null
-  const base: ProviderTimelineEvent = {
-    id,
-    kind: 'unknown',
-    createdAt,
-    actor,
+  const actorAvatarUrl = event.actor?.avatar_url ?? event.user?.avatar_url ?? undefined
+  const base = { id, createdAt, actor, ...(actorAvatarUrl ? { actorAvatarUrl } : {}) }
+
+  function extractSource(): ProviderTimelineSource | undefined {
+    const issue = event.source?.issue
+    if (!issue?.number)
+      return undefined
+    return {
+      number: issue.number,
+      kind: issue.pull_request ? 'pull' : 'issue',
+      ...(issue.title ? { title: issue.title } : {}),
+      ...(issue.html_url ? { url: issue.html_url } : {}),
+      ...(issue.repository?.full_name ? { repo: issue.repository.full_name } : {}),
+    }
   }
 
   switch (eventName) {
     case 'closed':
+      return {
+        ...base,
+        kind: 'closed',
+        ...(event.state_reason ? { stateReason: event.state_reason } : {}),
+        ...(event.commit_id ? { sha: event.commit_id } : {}),
+        ...(event.commit_url ? { commitUrl: event.commit_url } : {}),
+      }
     case 'reopened':
+      return { ...base, kind: 'reopened' }
     case 'merged':
-    case 'locked':
+      return {
+        ...base,
+        kind: 'merged',
+        ...(event.commit_id ? { sha: event.commit_id } : {}),
+        ...(event.commit_url ? { commitUrl: event.commit_url } : {}),
+      }
+    case 'head_ref_force_pushed':
+      return {
+        ...base,
+        kind: 'head_ref_force_pushed',
+        ...(event.commit_id ? { sha: event.commit_id } : {}),
+        ...(event.commit_url ? { commitUrl: event.commit_url } : {}),
+      }
+    case 'head_ref_deleted':
+    case 'head_ref_restored':
     case 'unlocked':
     case 'ready_for_review':
     case 'convert_to_draft':
-    case 'head_ref_deleted':
-    case 'head_ref_restored':
-    case 'head_ref_force_pushed':
-      return { ...base, kind: eventName as ProviderTimelineEventKind, ...(event.state_reason ? { stateReason: event.state_reason } : {}) }
+    case 'pinned':
+    case 'unpinned':
+    case 'mentioned':
+    case 'subscribed':
+    case 'unsubscribed':
+      return { ...base, kind: eventName }
+    case 'locked':
+      return {
+        ...base,
+        kind: 'locked',
+        ...(event.lock_reason ? { lockReason: event.lock_reason } : {}),
+      }
     case 'labeled':
     case 'unlabeled':
       if (!event.label)
@@ -861,10 +903,17 @@ function mapTimelineEvent(event: GitHubTimelineEvent): ProviderTimelineEvent | n
       return { ...base, kind: eventName, assignee: event.assignee.login }
     case 'review_requested':
     case 'review_request_removed': {
-      const reviewer = event.requested_reviewer?.login ?? event.requested_team?.name
+      const userLogin = event.requested_reviewer?.login
+      const teamName = event.requested_team?.name
+      const reviewer = userLogin ?? teamName
       if (!reviewer)
         return null
-      return { ...base, kind: eventName, requestedReviewer: reviewer }
+      return {
+        ...base,
+        kind: eventName,
+        requestedReviewer: reviewer,
+        ...(userLogin ? {} : { isTeam: true }),
+      }
     }
     case 'reviewed': {
       const rawState = event.state ?? 'commented'
@@ -880,11 +929,26 @@ function mapTimelineEvent(event: GitHubTimelineEvent): ProviderTimelineEvent | n
         body: event.body ?? null,
       }
     }
+    case 'review_dismissed': {
+      const dismissed = event.dismissed_review
+      if (!dismissed)
+        return { ...base, kind: 'unknown', rawKind: eventName }
+      return {
+        ...base,
+        kind: 'review_dismissed',
+        dismissedReview: {
+          state: dismissed.state,
+          reviewId: dismissed.review_id,
+          dismissalMessage: dismissed.dismissal_message,
+        },
+        ...(event.review?.user?.login ? { reviewedBy: event.review.user.login } : {}),
+      }
+    }
     case 'commented':
       return {
         ...base,
         kind: 'commented',
-        commentId: typeof event.id === 'number' ? event.id : undefined,
+        ...(typeof event.id === 'number' ? { commentId: event.id } : {}),
         body: event.body ?? null,
       }
     case 'renamed':
@@ -896,37 +960,14 @@ function mapTimelineEvent(event: GitHubTimelineEvent): ProviderTimelineEvent | n
         rename: { from: event.rename.from, to: event.rename.to },
       }
     case 'referenced':
-    case 'cross-referenced': {
-      const issue = event.source?.issue
-      if (!issue?.number)
-        return { ...base, kind: eventName }
-      const source: NonNullable<ProviderTimelineEvent['source']> = {
-        number: issue.number,
-        kind: issue.pull_request ? 'pull' : 'issue',
-        ...(issue.title ? { title: issue.title } : {}),
-        ...(issue.html_url ? { url: issue.html_url } : {}),
-        ...(issue.repository?.full_name ? { repo: issue.repository.full_name } : {}),
-      }
-      return { ...base, kind: eventName, source }
-    }
-    case 'mentioned':
-    case 'subscribed':
-    case 'unsubscribed':
-    case 'pinned':
-    case 'unpinned':
-    case 'transferred':
+    case 'cross-referenced':
     case 'connected':
     case 'disconnected':
     case 'marked_as_duplicate':
-    case 'unmarked_as_duplicate':
-    case 'auto_merge_enabled':
-    case 'auto_merge_disabled':
-    case 'auto_squash_enabled':
-    case 'auto_squash_disabled':
-    case 'auto_rebase_enabled':
-    case 'auto_rebase_disabled':
-    case 'base_ref_changed':
-      return { ...base, kind: eventName as ProviderTimelineEventKind }
+    case 'unmarked_as_duplicate': {
+      const source = extractSource()
+      return { ...base, kind: eventName, ...(source ? { source } : {}) }
+    }
     case 'milestoned':
     case 'demilestoned':
       return {
@@ -934,9 +975,37 @@ function mapTimelineEvent(event: GitHubTimelineEvent): ProviderTimelineEvent | n
         kind: eventName,
         ...(event.milestone?.title ? { milestone: event.milestone.title } : {}),
       }
+    case 'transferred': {
+      const fromRepo = event.transferred?.from_repository?.full_name ?? event.from_repository?.full_name
+      return {
+        ...base,
+        kind: 'transferred',
+        ...(fromRepo ? { fromRepo } : {}),
+      }
+    }
+    case 'base_ref_changed': {
+      const fromRef = event.changes?.base?.ref?.from ?? event.base_ref?.from
+      const toRef = event.changes?.base?.ref?.to ?? event.base_ref?.to
+      return {
+        ...base,
+        kind: 'base_ref_changed',
+        ...(fromRef ? { oldRef: fromRef } : {}),
+        ...(toRef ? { newRef: toRef } : {}),
+      }
+    }
+    case 'auto_merge_enabled':
+    case 'auto_merge_disabled':
+    case 'auto_squash_enabled':
+    case 'auto_squash_disabled':
+    case 'auto_rebase_enabled':
+    case 'auto_rebase_disabled':
+      return {
+        ...base,
+        kind: eventName,
+        ...(event.commit_title ? { commitTitle: event.commit_title } : {}),
+        ...(event.commit_message ? { commitMessage: event.commit_message } : {}),
+      }
     default:
-      if (!actor)
-        return null
       return { ...base, kind: 'unknown', rawKind: eventName }
   }
 }
@@ -1164,6 +1233,7 @@ interface GitHubIssue {
   body: string | null
   user: {
     login: string
+    avatar_url?: string | null
   } | null
   labels: Array<string | { name?: string | null }>
   assignees: Array<{ login: string }> | null
@@ -1181,6 +1251,7 @@ interface GitHubComment {
   updated_at: string
   user: {
     login: string
+    avatar_url?: string | null
   } | null
   reactions?: GitHubReactions | null
 }
@@ -1236,8 +1307,8 @@ interface GitHubTimelineEvent {
   event?: string
   created_at?: string
   submitted_at?: string
-  actor?: { login: string } | null
-  user?: { login: string } | null
+  actor?: { login: string, avatar_url?: string | null } | null
+  user?: { login: string, avatar_url?: string | null } | null
   label?: { name: string, color?: string | null }
   assignee?: { login: string } | null
   requested_reviewer?: { login: string } | null
@@ -1262,4 +1333,22 @@ interface GitHubTimelineEvent {
   message?: string
   author?: { name?: string | null, date?: string | null } | null
   committer?: { name?: string | null, date?: string | null } | null
+  /** Commit referenced by an event (merged / closed-by-commit / head_ref_force_pushed). */
+  commit_id?: string | null
+  commit_url?: string | null
+  /** Reason supplied to a `locked` event. */
+  lock_reason?: string | null
+  /** Populated for `review_dismissed`. */
+  dismissed_review?: { state: string, review_id: number, dismissal_message: string | null } | null
+  review_id?: number
+  review?: { user?: { login: string } | null } | null
+  /** Populated for `transferred` (REST surfaces this under both paths). */
+  transferred?: { from_repository?: { full_name?: string } | null } | null
+  from_repository?: { full_name?: string } | null
+  /** Populated for `base_ref_changed`. */
+  changes?: { base?: { ref?: { from?: string, to?: string } } } | null
+  base_ref?: { from?: string, to?: string } | null
+  /** Populated for `auto_merge_*` / `auto_squash_*` / `auto_rebase_*`. */
+  commit_title?: string
+  commit_message?: string
 }

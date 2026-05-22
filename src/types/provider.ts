@@ -27,6 +27,7 @@ export interface ProviderItem {
   title: string
   body: string | null
   author: string | null
+  authorAvatarUrl?: string
   labels: string[]
   assignees: string[]
   milestone: string | null
@@ -39,6 +40,7 @@ export interface ProviderComment {
   createdAt: string
   updatedAt: string
   author: string | null
+  authorAvatarUrl?: string
   reactions?: ProviderReactions
 }
 
@@ -62,50 +64,6 @@ export interface ProviderCommit {
   url?: string
 }
 
-export type ProviderTimelineEventKind
-  = | 'committed'
-    | 'closed'
-    | 'reopened'
-    | 'merged'
-    | 'labeled'
-    | 'unlabeled'
-    | 'assigned'
-    | 'unassigned'
-    | 'review_requested'
-    | 'review_request_removed'
-    | 'reviewed'
-    | 'commented'
-    | 'renamed'
-    | 'head_ref_force_pushed'
-    | 'head_ref_deleted'
-    | 'head_ref_restored'
-    | 'locked'
-    | 'unlocked'
-    | 'ready_for_review'
-    | 'convert_to_draft'
-    | 'referenced'
-    | 'cross-referenced'
-    | 'mentioned'
-    | 'subscribed'
-    | 'unsubscribed'
-    | 'pinned'
-    | 'unpinned'
-    | 'transferred'
-    | 'milestoned'
-    | 'demilestoned'
-    | 'marked_as_duplicate'
-    | 'unmarked_as_duplicate'
-    | 'connected'
-    | 'disconnected'
-    | 'auto_merge_enabled'
-    | 'auto_merge_disabled'
-    | 'auto_squash_enabled'
-    | 'auto_squash_disabled'
-    | 'auto_rebase_enabled'
-    | 'auto_rebase_disabled'
-    | 'base_ref_changed'
-    | 'unknown'
-
 /** Cross-reference target: the issue/PR that mentioned this item. */
 export interface ProviderTimelineSource {
   number: number
@@ -117,35 +75,56 @@ export interface ProviderTimelineSource {
 
 export type ProviderReviewState = 'approved' | 'changes_requested' | 'commented' | 'dismissed' | 'pending'
 
-export interface ProviderTimelineEvent {
+interface ProviderTimelineEventBase {
   id: string
-  kind: ProviderTimelineEventKind
   createdAt: string
   actor: string | null
-  sha?: string
-  commitMessage?: string
-  label?: { name: string, color: string }
-  assignee?: string
-  requestedReviewer?: string
-  review?: {
-    state: ProviderReviewState
-    body: string | null
-    submittedAt: string
-    /** GraphQL node ID — required to react to a review body. */
-    nodeId?: string
-    reactions?: ProviderReactions
-  }
-  commentId?: number
-  body?: string | null
-  rename?: { from: string, to: string }
-  stateReason?: string | null
-  /** Populated for `referenced` and `cross-referenced` events. */
-  source?: ProviderTimelineSource
-  /** Populated for `milestoned` / `demilestoned` events. */
-  milestone?: string
-  /** Raw event name for events we don't model explicitly. */
-  rawKind?: string
+  actorAvatarUrl?: string
 }
+
+export type ProviderTimelineEvent
+  = | (ProviderTimelineEventBase & { kind: 'committed', sha: string, commitMessage: string, body?: string | null, commitUrl?: string })
+    | (ProviderTimelineEventBase & { kind: 'closed', stateReason?: string | null, sha?: string, commitUrl?: string })
+    | (ProviderTimelineEventBase & { kind: 'reopened' })
+    | (ProviderTimelineEventBase & { kind: 'merged', sha?: string, commitUrl?: string })
+    | (ProviderTimelineEventBase & { kind: 'labeled' | 'unlabeled', label: { name: string, color: string } })
+    | (ProviderTimelineEventBase & { kind: 'assigned' | 'unassigned', assignee: string })
+    | (ProviderTimelineEventBase & { kind: 'review_requested' | 'review_request_removed', requestedReviewer: string, isTeam?: boolean })
+    | (ProviderTimelineEventBase & {
+      kind: 'reviewed'
+      review: {
+        state: ProviderReviewState
+        body: string | null
+        submittedAt: string
+        /** GraphQL node ID — required to react to a review body. */
+        nodeId?: string
+        reactions?: ProviderReactions
+      }
+      body?: string | null
+    })
+    | (ProviderTimelineEventBase & { kind: 'review_dismissed', dismissedReview: { state: string, reviewId: number, dismissalMessage: string | null }, reviewedBy?: string })
+    | (ProviderTimelineEventBase & { kind: 'commented', commentId?: number, body?: string | null })
+    | (ProviderTimelineEventBase & { kind: 'renamed', rename: { from: string, to: string } })
+    | (ProviderTimelineEventBase & {
+      kind: 'referenced' | 'cross-referenced' | 'connected' | 'disconnected' | 'marked_as_duplicate' | 'unmarked_as_duplicate'
+      source?: ProviderTimelineSource
+    })
+    | (ProviderTimelineEventBase & { kind: 'milestoned' | 'demilestoned', milestone?: string })
+    | (ProviderTimelineEventBase & { kind: 'transferred', fromRepo?: string })
+    | (ProviderTimelineEventBase & { kind: 'base_ref_changed', oldRef?: string, newRef?: string })
+    | (ProviderTimelineEventBase & { kind: 'head_ref_force_pushed', sha?: string, commitUrl?: string })
+    | (ProviderTimelineEventBase & { kind: 'head_ref_deleted' | 'head_ref_restored' })
+    | (ProviderTimelineEventBase & { kind: 'locked', lockReason?: string })
+    | (ProviderTimelineEventBase & { kind: 'unlocked' | 'ready_for_review' | 'convert_to_draft' | 'pinned' | 'unpinned' })
+    | (ProviderTimelineEventBase & { kind: 'mentioned' | 'subscribed' | 'unsubscribed' })
+    | (ProviderTimelineEventBase & {
+      kind: 'auto_merge_enabled' | 'auto_merge_disabled' | 'auto_squash_enabled' | 'auto_squash_disabled' | 'auto_rebase_enabled' | 'auto_rebase_disabled'
+      commitTitle?: string
+      commitMessage?: string
+    })
+    | (ProviderTimelineEventBase & { kind: 'unknown', rawKind?: string })
+
+export type ProviderTimelineEventKind = ProviderTimelineEvent['kind']
 
 export interface ProviderRepository {
   name: string
