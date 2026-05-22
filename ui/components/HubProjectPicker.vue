@@ -16,6 +16,11 @@ const search = ref('')
 const busyPath = ref<string | null>(null)
 
 async function refresh() {
+  if (hub.hubRoots.value.length === 0) {
+    items.value = []
+    error.value = null
+    return
+  }
   loading.value = true
   error.value = null
   try {
@@ -91,7 +96,7 @@ const enabledCount = computed(() => items.value.filter(i => i.enabled).length)
       <IconButton
         icon="i-octicon-sync-16"
         size="sm"
-        tooltip="Re-scan directory"
+        tooltip="Re-scan hub roots"
         aria-label="Re-scan"
         :disabled="loading"
         :spinning="loading"
@@ -166,9 +171,16 @@ const enabledCount = computed(() => items.value.filter(i => i.enabled).length)
     </ul>
 
     <EmptyState
+      v-else-if="hub.hubRoots.value.length === 0"
+      icon="i-ph-folder-duotone"
+      title="No hub roots configured."
+      message="Add a hub root in Settings to scan for projects."
+    />
+
+    <EmptyState
       v-else
       icon="i-ph-magnifying-glass-duotone"
-      :title="search ? `No projects match “${search}”.` : 'No git repositories found in the hub directory.'"
+      :title="search ? `No projects match “${search}”.` : 'No git repositories found in the configured hub roots.'"
     />
 
     <template #footer>

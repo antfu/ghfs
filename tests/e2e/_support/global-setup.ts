@@ -57,13 +57,18 @@ async function setupSingleFixture(): Promise<void> {
   })
 }
 
-async function setupHubFixture(): Promise<void> {
-  const dir = join(FIXTURES_ROOT, 'hub')
-  await rm(dir, { recursive: true, force: true })
-  await mkdir(join(dir, '_home', '.config', 'ghfs'), { recursive: true })
+async function setupHubFixtures(): Promise<void> {
+  const hubDir = join(FIXTURES_ROOT, 'hub')
+  const altDir = join(FIXTURES_ROOT, 'hub-alt')
+  await Promise.all([
+    rm(hubDir, { recursive: true, force: true }),
+    rm(altDir, { recursive: true, force: true }),
+  ])
+  await mkdir(join(hubDir, '_home', '.config', 'ghfs'), { recursive: true })
+  await mkdir(altDir, { recursive: true })
 
   await buildRepoFixture({
-    cwd: join(dir, 'project-a'),
+    cwd: join(hubDir, 'project-a'),
     repo: 'ghfs-test/project-a',
     // Older activity than project-b so it sorts second on the dashboard.
     syncedAt: '2026-01-01T00:00:00.000Z',
@@ -77,7 +82,7 @@ async function setupHubFixture(): Promise<void> {
   })
 
   await buildRepoFixture({
-    cwd: join(dir, 'project-b'),
+    cwd: join(hubDir, 'project-b'),
     repo: 'ghfs-test/project-b',
     // Newer activity → sorts first on the dashboard.
     syncedAt: '2026-04-01T12:00:00.000Z',
@@ -89,26 +94,8 @@ async function setupHubFixture(): Promise<void> {
     executeYml: '[]\n',
   })
 
-  // Seed an enabled-projects file so the hub launches non-interactively.
-  const { saveHubConfig } = await import('../../../src/hub/config')
-  await saveHubConfig({
-    hubCwd: dir,
-    homeDir: join(dir, '_home'),
-    enabledProjects: [
-      { path: join(dir, 'project-a') },
-      { path: join(dir, 'project-b') },
-    ],
-  })
-}
-
-async function setupHubAltFixture(): Promise<void> {
-  // Second hub root used to exercise the "change hub root" flow.
-  const dir = join(FIXTURES_ROOT, 'hub-alt')
-  await rm(dir, { recursive: true, force: true })
-  await mkdir(dir, { recursive: true })
-
   await buildRepoFixture({
-    cwd: join(dir, 'project-c'),
+    cwd: join(altDir, 'project-c'),
     repo: 'ghfs-test/project-c',
     items: [
       { number: 1, kind: 'issue', title: 'Alt hub project C issue' },
@@ -117,22 +104,25 @@ async function setupHubAltFixture(): Promise<void> {
     executeYml: '[]\n',
   })
 
+  // Seed a single shared `_home/.config/ghfs/hub.json` with both roots and
+  // all three projects enabled so the hub launches non-interactively and
+  // every fixture project appears together on /hub.
   const { saveHubConfig } = await import('../../../src/hub/config')
-  const hubHome = join(FIXTURES_ROOT, 'hub', '_home')
-  // Seed both hub roots' enabled lists in the same shared HOME so a single
-  // running hub can swap between them via the UI.
   await saveHubConfig({
-    hubCwd: dir,
-    homeDir: hubHome,
-    enabledProjects: [
-      { path: join(dir, 'project-c') },
-    ],
+    homeDir: join(hubDir, '_home'),
+    config: {
+      roots: [hubDir, altDir],
+      enabledProjects: [
+        { path: join(hubDir, 'project-a') },
+        { path: join(hubDir, 'project-b') },
+        { path: join(altDir, 'project-c') },
+      ],
+    },
   })
 }
 
 export default async function globalSetup(): Promise<void> {
   await mkdir(FIXTURES_ROOT, { recursive: true })
   await setupSingleFixture()
-  await setupHubFixture()
-  await setupHubAltFixture()
+  await setupHubFixtures()
 }

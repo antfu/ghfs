@@ -9,6 +9,10 @@ const projects = computed<ProjectSummary[]>(() => hub.projects.value)
 const pickerOpen = computed({ get: () => hubUi.pickerOpen.value, set: v => (hubUi.pickerOpen.value = v) })
 const focusedIndex = ref(0)
 
+const onboardingOpen = ref(false)
+const onboardingBusy = ref(false)
+let onboardingDismissed = false
+
 const aggregates = computed(() => {
   let issues = 0
   let pulls = 0
@@ -40,7 +44,9 @@ const lastActivitySummary = computed(() => {
 onMounted(async () => {
   try {
     const info = await rpc.hubInfo()
-    hub.setHubCwd(info.cwd)
+    hub.setHubInfo(info)
+    if (!info.launchCwdInRoots && !onboardingDismissed)
+      onboardingOpen.value = true
   }
   catch { /* fall back to title */ }
   try {
@@ -49,6 +55,30 @@ onMounted(async () => {
   }
   catch { /* keep capabilities-provided list */ }
 })
+
+async function acceptOnboarding() {
+  const path = hub.launchCwd.value
+  if (!path || onboardingBusy.value)
+    return
+  onboardingBusy.value = true
+  try {
+    const info = await rpc.hubAddRoot(path)
+    hub.setHubInfo(info)
+    onboardingDismissed = true
+    onboardingOpen.value = false
+  }
+  catch {
+    // Leave the modal open; the user can retry or skip.
+  }
+  finally {
+    onboardingBusy.value = false
+  }
+}
+
+function skipOnboarding() {
+  onboardingDismissed = true
+  onboardingOpen.value = false
+}
 
 function openProject(id: string) {
   navigateTo(`/hub/${id}`)
@@ -200,6 +230,49 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
     </main>
 
     <HubProjectPicker v-if="pickerOpen" @close="pickerOpen = false" />
+
+    <Modal
+      v-if="onboardingOpen"
+      v-model:open="onboardingOpen"
+      icon="i-ph-folder-plus-duotone"
+      title="Add this directory to hub roots?"
+      width="w-[min(92vw,32rem)]"
+      data-testid="hub-add-cwd-modal"
+      :close-on-backdrop="false"
+      :close-on-escape="false"
+      hide-close
+    >
+      <div class="px-5 py-4 flex flex-col gap-3 text-sm">
+        <p class="color-muted">
+          Add the directory the CLI was launched from to your hub roots? Projects under it will be scannable and you can enable them from Manage projects.
+        </p>
+        <div class="rounded border border-base bg-base/40 px-2.5 py-2 font-mono text-xs break-all" data-testid="hub-add-cwd-modal-path">
+          {{ hub.launchCwd.value }}
+        </div>
+      </div>
+      <template #footer>
+        <button
+          type="button"
+          class="btn-action-sm"
+          data-testid="hub-add-cwd-modal-skip"
+          :disabled="onboardingBusy"
+          @click="skipOnboarding"
+        >
+          Skip
+        </button>
+        <button
+          type="button"
+          class="btn-primary text-sm flex items-center gap-1.5"
+          data-testid="hub-add-cwd-modal-add"
+          :disabled="onboardingBusy"
+          @click="acceptOnboarding"
+        >
+          <span :class="onboardingBusy ? 'i-octicon-sync-16 animate-spin' : 'i-ph-plus-bold'" />
+          <span>Add</span>
+        </button>
+      </template>
+    </Modal>
+
     <HelpOverlay />
   </div>
 </template>

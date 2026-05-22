@@ -39,7 +39,13 @@ interface GhfsClientFunctions {
   'ghfs:onQueueChange': (event: { projectId: string, queue: QueueState }) => void
   'ghfs:onRemoteStatusChange': (event: { projectId: string, status: RemoteStatus }) => void
   'ghfs:onProjectsChange': () => void
-  'ghfs:onHubInfoChange': (event: { cwd: string }) => void
+  'ghfs:onHubInfoChange': (event: HubInfo) => void
+}
+
+export interface HubInfo {
+  roots: string[]
+  launchCwd: string
+  launchCwdInRoots: boolean
 }
 
 interface GhfsServerFunctions extends Record<string, (...args: unknown[]) => unknown> {
@@ -61,11 +67,12 @@ interface GhfsServerFunctions extends Record<string, (...args: unknown[]) => unk
   'ghfs:get-pull-patch': (projectId: string, number: number) => Promise<string | null>
   'ghfs:get-project-icon': (projectId: string) => Promise<string | null>
   'ghfs:project-activity': (projectId: string, days?: number) => Promise<ActivityResult>
-  'ghfs:hub-info': () => Promise<{ cwd: string }>
+  'ghfs:hub-info': () => Promise<HubInfo>
   'ghfs:hub-scan': () => Promise<HubScannedProject[]>
   'ghfs:hub-enable': (path: string) => Promise<{ id: string }>
   'ghfs:hub-disable': (id: string) => Promise<{ removed: boolean }>
-  'ghfs:hub-set-root': (path: string) => Promise<{ cwd: string }>
+  'ghfs:hub-add-root': (path: string) => Promise<HubInfo>
+  'ghfs:hub-remove-root': (path: string) => Promise<HubInfo>
   'ghfs:hub-recent-items': (limit?: number) => Promise<HubRecentItem[]>
   'ghfs:hub-queue': () => Promise<HubQueueGroup[]>
   'ghfs:hub-execute-queue': (options: { projectId?: string }) => Promise<ExecutionResult[]>
@@ -117,11 +124,12 @@ export interface GhfsRpc {
   getPullPatch: (projectId: string, number: number) => Promise<string | null>
   getProjectIcon: (projectId: string) => Promise<string | null>
   projectActivity: (projectId: string, days?: number) => Promise<ActivityResult>
-  hubInfo: () => Promise<{ cwd: string }>
+  hubInfo: () => Promise<HubInfo>
   hubScan: () => Promise<HubScannedProject[]>
   hubEnable: (path: string) => Promise<{ id: string }>
   hubDisable: (id: string) => Promise<{ removed: boolean }>
-  hubSetRoot: (path: string) => Promise<{ cwd: string }>
+  hubAddRoot: (path: string) => Promise<HubInfo>
+  hubRemoveRoot: (path: string) => Promise<HubInfo>
   hubRecentItems: (limit?: number) => Promise<HubRecentItem[]>
   hubQueue: () => Promise<HubQueueGroup[]>
   hubExecuteQueue: (options?: { projectId?: string }) => Promise<ExecutionResult[]>
@@ -197,11 +205,12 @@ function createGhfsRpcClient(): GhfsRpc {
     getPullPatch: (projectId, number) => call('ghfs:get-pull-patch', projectId, number) as Promise<string | null>,
     getProjectIcon: projectId => call('ghfs:get-project-icon', projectId) as Promise<string | null>,
     projectActivity: (projectId, days) => call('ghfs:project-activity', projectId, days) as Promise<ActivityResult>,
-    hubInfo: () => call('ghfs:hub-info') as Promise<{ cwd: string }>,
+    hubInfo: () => call('ghfs:hub-info') as Promise<HubInfo>,
     hubScan: () => call('ghfs:hub-scan') as Promise<HubScannedProject[]>,
     hubEnable: path => call('ghfs:hub-enable', path) as Promise<{ id: string }>,
     hubDisable: id => call('ghfs:hub-disable', id) as Promise<{ removed: boolean }>,
-    hubSetRoot: path => call('ghfs:hub-set-root', path) as Promise<{ cwd: string }>,
+    hubAddRoot: path => call('ghfs:hub-add-root', path) as Promise<HubInfo>,
+    hubRemoveRoot: path => call('ghfs:hub-remove-root', path) as Promise<HubInfo>,
     hubRecentItems: limit => call('ghfs:hub-recent-items', limit) as Promise<HubRecentItem[]>,
     hubQueue: () => call('ghfs:hub-queue') as Promise<HubQueueGroup[]>,
     hubExecuteQueue: options => call('ghfs:hub-execute-queue', options ?? {}) as Promise<ExecutionResult[]>,
@@ -302,7 +311,7 @@ function createClientHandlers(): GhfsClientFunctions {
       }).catch(() => {})
     },
     'ghfs:onHubInfoChange': (event) => {
-      useHubState().setHubCwd(event.cwd)
+      useHubState().setHubInfo(event)
     },
   }
 }
@@ -341,7 +350,8 @@ function makeNoopRpc(): GhfsRpc {
     hubScan: reject as never,
     hubEnable: reject as never,
     hubDisable: reject as never,
-    hubSetRoot: reject as never,
+    hubAddRoot: reject as never,
+    hubRemoveRoot: reject as never,
     hubRecentItems: reject as never,
     hubQueue: reject as never,
     hubExecuteQueue: reject as never,

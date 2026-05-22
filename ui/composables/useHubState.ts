@@ -3,7 +3,9 @@ import type { ProjectSummary } from '#ghfs/shared-rpc'
 
 const capabilities = shallowRef<GhfsCapabilities | null>(null)
 const projects = shallowRef<ProjectSummary[]>([])
-const hubCwd = ref<string | null>(null)
+const hubRoots = ref<string[]>([])
+const launchCwd = ref<string | null>(null)
+const launchCwdInRoots = ref<boolean>(true)
 const loading = ref(false)
 
 /**
@@ -28,11 +30,19 @@ export function sortProjectsByActivity(list: ProjectSummary[]): ProjectSummary[]
   })
 }
 
+export interface HubInfoUpdate {
+  roots: string[]
+  launchCwd: string
+  launchCwdInRoots: boolean
+}
+
 export function useHubState() {
   return {
     capabilities,
     projects,
-    hubCwd,
+    hubRoots,
+    launchCwd,
+    launchCwdInRoots,
     loading,
     setCapabilities(next: GhfsCapabilities) {
       capabilities.value = next
@@ -44,8 +54,10 @@ export function useHubState() {
       if (capabilities.value)
         capabilities.value = { ...capabilities.value, projects: sorted }
     },
-    setHubCwd(next: string | null) {
-      hubCwd.value = next
+    setHubInfo(next: HubInfoUpdate) {
+      hubRoots.value = next.roots
+      launchCwd.value = next.launchCwd
+      launchCwdInRoots.value = next.launchCwdInRoots
     },
     setLoading(value: boolean) {
       loading.value = value
