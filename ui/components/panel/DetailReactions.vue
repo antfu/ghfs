@@ -166,7 +166,7 @@ function chipTooltip(content: ReactionContent): string {
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-1.5 mt-3 pt-2 border-t border-base/60">
+  <div class="flex flex-wrap items-center gap-1.5 mt-3 pt-2 border-t border-base">
     <button
       v-for="content in visibleContents"
       :key="content"
