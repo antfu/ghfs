@@ -2,15 +2,38 @@
 import type { QueueEntry } from '#ghfs/server-types'
 import type { SyncItemState } from '../../../src/types/sync-state'
 
+const props = withDefaults(defineProps<{
+  /** Override `state.selectedNumber` (used by cards mode). */
+  number?: number | null
+  /** Override the active project id (used by cards mode for cross-project rendering). */
+  projectId?: string | null
+  /** Compact mode hides the footer composer and the inline execute/discard bar. */
+  compact?: boolean
+  /** Show the project icon + owner/repo above the title. Enabled in cross-project views. */
+  showRepo?: boolean
+}>(), {
+  number: null,
+  projectId: null,
+  compact: false,
+  showRepo: false,
+})
+
 const activeId = useActiveProjectId()
-const state = useAppState()
+const effectiveProjectId = computed(() => props.projectId ?? activeId.value)
+provideDetailScope({ projectId: effectiveProjectId.value })
+
+const state = useAppState(props.projectId)
 const rpc = useRpc()
 const ui = useUiState()
 const { currentUser } = useCurrentUser()
 const userOverrideOpen = ref(false)
 
+const effectiveNumber = computed<number | null>(() =>
+  props.number != null ? props.number : state.selectedNumber.value,
+)
+
 const selected = computed<SyncItemState | null>(() => {
-  const num = state.selectedNumber.value
+  const num = effectiveNumber.value
   if (num == null)
     return null
   return state.payload.value?.syncState.items[String(num)] ?? null
@@ -35,7 +58,7 @@ const prTab = computed<PrTab>({
   },
 })
 
-const pending = usePendingOps(computed(() => item.value?.number ?? null))
+const pending = usePendingOps(computed(() => item.value?.number ?? null), props.projectId)
 
 const effectiveState = computed<'open' | 'closed'>(() => {
   if (!item.value) return 'open'
@@ -61,6 +84,13 @@ const stateLabel = computed(() => {
 
 const kindLabel = computed(() => item.value?.kind === 'pull' ? 'pull request' : 'issue')
 const hasToken = computed(() => state.payload.value?.repo.hasToken ?? false)
+
+const repoProject = computed(() => {
+  const payload = state.payload.value
+  if (!payload)
+    return null
+  return { id: payload.projectId, repo: payload.repo.repo }
+})
 
 const titleText = computed(() => {
   const op = pending.pendingTitle.value?.op
@@ -97,7 +127,7 @@ const commentDraft = computed<string>({
 
 const scrollContainer = ref<HTMLElement | null>(null)
 
-watch(() => state.selectedNumber.value, () => {
+watch(effectiveNumber, () => {
   editingCommentId.value = null
   editingDraft.value = ''
   nextTick(() => {
@@ -127,13 +157,13 @@ async function submitComment() {
       const entry = pending.pendingComments.value.find(e => e.id === editingCommentId.value)
       if (entry) {
         const op = entry.op as { action: string, number: number, body: string }
-        await rpc.$call('ghfs:update-queue-op', activeId.value ?? '__default__', entry.id, { ...op, body } as typeof op)
+        await rpc.$call('ghfs:update-queue-op', effectiveProjectId.value ?? '__default__', entry.id, { ...op, body } as typeof op)
       }
       editingCommentId.value = null
       editingDraft.value = ''
     }
     else {
-      await rpc.$call('ghfs:add-queue-op', activeId.value ?? '__default__', {
+      await rpc.$call('ghfs:add-queue-op', effectiveProjectId.value ?? '__default__', {
         action: 'add-comment',
         number: item.value.number,
         body,
@@ -167,7 +197,7 @@ function cancelEditing() {
 async function removePendingComment(entry: QueueEntry) {
   state.setError(null)
   try {
-    await rpc.$call('ghfs:remove-queue-op', activeId.value ?? '__default__', entry.id)
+    await rpc.$call('ghfs:remove-queue-op', effectiveProjectId.value ?? '__default__', entry.id)
     if (editingCommentId.value === entry.id)
       cancelEditing()
   }
@@ -185,7 +215,7 @@ async function executeThisItem() {
   state.setError(null)
   state.setExecuting(true)
   try {
-    await rpc.$call('ghfs:execute-queue', activeId.value ?? '__default__', { entryIds: ids, continueOnError: true })
+    await rpc.$call('ghfs:execute-queue', effectiveProjectId.value ?? '__default__', { entryIds: ids, continueOnError: true })
   }
   catch (error) {
     state.setError(`Execute failed: ${(error as Error).message}`)
@@ -197,7 +227,7 @@ async function discardThisItem() {
   state.setError(null)
   for (const entry of pending.entries.value) {
     try {
-      await rpc.$call('ghfs:remove-queue-op', activeId.value ?? '__default__', entry.id)
+      await rpc.$call('ghfs:remove-queue-op', effectiveProjectId.value ?? '__default__', entry.id)
     }
     catch (error) {
       state.setError((error as Error).message)
@@ -224,6 +254,14 @@ async function discardThisItem() {
   </div>
 
   <article v-else class="h-full flex flex-col min-h-0 bg-base">
+    <div
+      v-if="showRepo && repoProject"
+      class="flex items-center gap-2 px-6 pt-3 pb-1 text-xs color-muted"
+      data-testid="detail-repo-line"
+    >
+      <DisplayProjectIcon :project="repoProject" :size="16" />
+      <span class="font-mono">{{ repoProject.repo }}</span>
+    </div>
     <header class="flex items-center gap-2 px-6 py-2.5 border-b border-base">
       <DisplayItemStateIcon :item="item" :pull="pullMeta" :pending="pending.direction.value" class="shrink-0" />
       <div class="flex-1 min-w-0 flex items-baseline gap-2 flex-wrap">
@@ -315,24 +353,26 @@ async function discardThisItem() {
         </span>
         <span class="color-muted"> queued for this {{ kindLabel }}</span>
       </div>
-      <button
-        type="button"
-        class="btn-action-sm"
-        :disabled="state.executing.value || !hasToken"
-        :title="hasToken ? 'Execute the pending changes for this item only' : 'No GitHub token available'"
-        @click="executeThisItem"
-      >
-        <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-ph-play-duotone'" />
-        Execute
-      </button>
-      <button
-        type="button"
-        class="btn-action-sm"
-        @click="discardThisItem"
-      >
-        <span class="i-ph-trash-duotone" />
-        Discard
-      </button>
+      <template v-if="!compact">
+        <button
+          type="button"
+          class="btn-action-sm"
+          :disabled="state.executing.value || !hasToken"
+          :title="hasToken ? 'Execute the pending changes for this item only' : 'No GitHub token available'"
+          @click="executeThisItem"
+        >
+          <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-ph-play-duotone'" />
+          Execute
+        </button>
+        <button
+          type="button"
+          class="btn-action-sm"
+          @click="discardThisItem"
+        >
+          <span class="i-ph-trash-duotone" />
+          Discard
+        </button>
+      </template>
     </div>
 
     <TabsRoot
@@ -399,7 +439,7 @@ async function discardThisItem() {
       />
     </div>
 
-    <footer class="border-t border-base px-6 py-3 bg-base flex flex-col gap-2">
+    <footer v-if="!compact" class="border-t border-base px-6 py-3 bg-base flex flex-col gap-2">
       <div class="flex items-center gap-2 text-xs color-muted">
         <DisplayAuthor
           v-if="currentUser?.login"

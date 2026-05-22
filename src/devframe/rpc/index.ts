@@ -20,6 +20,7 @@ import { hubRemoveRoot } from './hub-remove-root'
 import { hubScan } from './hub-scan'
 import { hubSetSettings } from './hub-set-settings'
 import { hubSettings } from './hub-settings'
+import { hubTodos } from './hub-todos'
 import { initialPayload } from './initial-payload'
 import { listProjects } from './list-projects'
 import { openFolder } from './open-folder'
@@ -62,6 +63,7 @@ export const rpcFunctions = [
   hubQueue,
   hubExecuteQueue,
   hubRecentItems,
+  hubTodos,
   hubInfo,
   hubScan,
   hubEnable,

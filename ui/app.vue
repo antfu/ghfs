@@ -10,6 +10,7 @@ const hub = useHubState()
 registerCommands(createAppCommands())
 useCommandHandler()
 useShiki()
+useTodoAutoPrune()
 
 const hubUi = useHubUiState()
 const settingsOpen = computed({

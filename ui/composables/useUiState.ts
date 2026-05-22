@@ -24,6 +24,8 @@ function ensureSaver(): () => void {
       lastPrTab: uiState.lastPrTab,
       userOverride: uiState.userOverride ? { ...uiState.userOverride } : undefined,
       autoSyncIntervalMs: uiState.autoSyncIntervalMs,
+      todos: uiState.todos ? [...uiState.todos] : undefined,
+      ignored: uiState.ignored ? [...uiState.ignored] : undefined,
     }).catch((error) => {
       diagnostics.GHFS0900({ detail: String((error as Error)?.message ?? error), cause: error })
     })
@@ -62,6 +64,8 @@ export function useUiState() {
     uiState.lastPrTab = normalizePrTab(next?.lastPrTab)
     uiState.userOverride = normalizeUserOverride(next?.userOverride)
     uiState.autoSyncIntervalMs = typeof next?.autoSyncIntervalMs === 'number' ? next.autoSyncIntervalMs : undefined
+    uiState.todos = Array.isArray(next?.todos) ? [...next.todos] : undefined
+    uiState.ignored = Array.isArray(next?.ignored) ? [...next.ignored] : undefined
     hydrated = true
   }
 
@@ -122,6 +126,64 @@ export function useUiState() {
     ensureSaver()()
   }
 
+  function getTodos(): number[] {
+    return uiState.todos ?? []
+  }
+
+  function isTodo(number: number | null | undefined): boolean {
+    if (number == null)
+      return false
+    return uiState.todos?.includes(number) ?? false
+  }
+
+  function addTodo(number: number): void {
+    if (!Number.isInteger(number) || number <= 0)
+      return
+    const list = uiState.todos ? [...uiState.todos] : []
+    if (list.includes(number))
+      return
+    list.push(number)
+    uiState.todos = list
+    ensureSaver()()
+  }
+
+  function removeTodo(number: number): void {
+    const list = uiState.todos
+    if (!list || !list.includes(number))
+      return
+    uiState.todos = list.filter(n => n !== number)
+    ensureSaver()()
+  }
+
+  function getIgnored(): number[] {
+    return uiState.ignored ?? []
+  }
+
+  function isIgnored(number: number | null | undefined): boolean {
+    if (number == null)
+      return false
+    return uiState.ignored?.includes(number) ?? false
+  }
+
+  function addIgnored(number: number): void {
+    if (!Number.isInteger(number) || number <= 0)
+      return
+    const list = uiState.ignored ? [...uiState.ignored] : []
+    if (list.includes(number))
+      return
+    list.push(number)
+    uiState.ignored = list
+    ensureSaver()()
+  }
+
+  function removeIgnored(number: number): void {
+    const list = uiState.ignored
+    if (!list || !list.includes(number))
+      return
+    uiState.ignored = list.filter(n => n !== number)
+    ensureSaver()()
+  }
+
   return {
     uiState,
     helpOpen,
@@ -134,5 +196,13 @@ export function useUiState() {
     setLastPrTab,
     setUserOverride,
     setAutoSyncIntervalMs,
+    getTodos,
+    isTodo,
+    addTodo,
+    removeTodo,
+    getIgnored,
+    isIgnored,
+    addIgnored,
+    removeIgnored,
   }
 }

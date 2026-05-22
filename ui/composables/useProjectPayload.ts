@@ -1,39 +1,41 @@
-const loading = ref(false)
 const error = ref<string | null>(null)
-// Tracks the project id whose payload we're currently loading; late responses
-// for a stale request are dropped to avoid clobbering newer state.
-let inflightId: string | null = null
+
+// Inflight project ids — tracks every load currently in flight so concurrent
+// requests for different projects (e.g. peek cards in cards mode) don't drop
+// each other's responses. A repeat request for an id already in flight is
+// deduped — the caller's promise resolves when the original load finishes.
+const inflight = new Map<string, Promise<void>>()
 
 async function load(id: string, options: { force?: boolean } = {}): Promise<void> {
   const bucket = useAppState(id)
   if (!options.force && bucket.payload.value)
     return
-  loading.value = true
-  error.value = null
-  inflightId = id
-  try {
-    const payload = await useRpc().$call('ghfs:initial-payload', id)
-    if (inflightId !== id)
-      return
-    bucket.setPayload(payload)
-    useUiState().hydrate(id, payload.uiState)
-  }
-  catch (err) {
-    if (inflightId !== id)
-      return
-    error.value = (err as Error).message
-  }
-  finally {
-    if (inflightId === id) {
-      loading.value = false
-      inflightId = null
+  const existing = inflight.get(id)
+  if (existing)
+    return existing
+  const task = (async () => {
+    try {
+      const payload = await useRpc().$call('ghfs:initial-payload', id)
+      bucket.setPayload(payload)
+      useUiState().hydrate(id, payload.uiState)
+      error.value = null
     }
-  }
+    catch (err) {
+      error.value = (err as Error).message
+    }
+    finally {
+      inflight.delete(id)
+    }
+  })()
+  inflight.set(id, task)
+  return task
 }
+
+const loading = computed(() => inflight.size > 0)
 
 export function useProjectPayload() {
   return {
-    loading: computed(() => loading.value),
+    loading,
     error: computed(() => error.value),
     loadInitial(id: string) {
       return load(id, { force: true })

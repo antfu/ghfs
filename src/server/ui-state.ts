@@ -22,10 +22,29 @@ export interface UiState {
   userOverride?: UserOverride
   /** When set, the server triggers `sync` on this interval. Honoured in ui mode. */
   autoSyncIntervalMs?: number
+  /** Issue/PR numbers saved to the todo list. Auto-pruned when items close/merge. */
+  todos?: number[]
+  /** Issue/PR numbers hidden from list views via cards mode "mark as ignore". */
+  ignored?: number[]
 }
 
 export function createEmptyUiState(): UiState {
   return { drafts: {} }
+}
+
+function normalizeNumberArray(value: unknown): number[] | undefined {
+  if (!Array.isArray(value))
+    return undefined
+  const out: number[] = []
+  const seen = new Set<number>()
+  for (const entry of value) {
+    const n = typeof entry === 'number' ? entry : Number(entry)
+    if (!Number.isInteger(n) || n <= 0 || seen.has(n))
+      continue
+    seen.add(n)
+    out.push(n)
+  }
+  return out.length > 0 ? out : undefined
 }
 
 function normalizePrTab(value: unknown): PrTabId | undefined {
@@ -65,6 +84,8 @@ export async function loadUiState(storageDirAbsolute: string): Promise<UiState> 
       lastPrTab: normalizePrTab(parsed.lastPrTab),
       userOverride: normalizeUserOverride(parsed.userOverride),
       autoSyncIntervalMs: normalizeAutoSyncInterval(parsed.autoSyncIntervalMs),
+      todos: normalizeNumberArray(parsed.todos),
+      ignored: normalizeNumberArray(parsed.ignored),
     }
   }
   catch {
@@ -85,12 +106,16 @@ export async function saveUiState(storageDirAbsolute: string, state: UiState): P
   const tab = normalizePrTab(state.lastPrTab)
   const override = normalizeUserOverride(state.userOverride)
   const interval = normalizeAutoSyncInterval(state.autoSyncIntervalMs)
+  const todos = normalizeNumberArray(state.todos)
+  const ignored = normalizeNumberArray(state.ignored)
   const clean: UiState = {
     drafts: { ...state.drafts },
     ...(state.listPaneSize != null ? { listPaneSize: state.listPaneSize } : {}),
     ...(tab ? { lastPrTab: tab } : {}),
     ...(override ? { userOverride: override } : {}),
     ...(interval != null ? { autoSyncIntervalMs: interval } : {}),
+    ...(todos ? { todos } : {}),
+    ...(ignored ? { ignored } : {}),
   }
   await writeFile(
     join(storageDirAbsolute, UI_STATE_FILE),

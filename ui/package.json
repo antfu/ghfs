@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tanstack/vue-virtual": "catalog:",
+    "canvas-confetti": "^1.9.4",
     "colorjs.io": "catalog:",
     "devframe": "catalog:",
     "floating-vue": "catalog:",
@@ -28,6 +29,7 @@
     "@iconify-json/octicon": "catalog:",
     "@iconify-json/ph": "catalog:",
     "@iconify-json/ri": "catalog:",
+    "@types/canvas-confetti": "^1.9.0",
     "@unocss/nuxt": "catalog:",
     "@unocss/preset-web-fonts": "catalog:",
     "@unocss/reset": "catalog:",

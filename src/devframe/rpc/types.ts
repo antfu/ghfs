@@ -68,6 +68,19 @@ export interface HubRecentItem {
   labels: string[]
 }
 
+export interface HubTodoItem {
+  projectId: string
+  repo: string
+  kind: 'issue' | 'pull'
+  number: number
+  title: string
+  state: 'open' | 'closed'
+  updatedAt: string
+  author: string | null
+  authorAvatarUrl?: string
+  labels: string[]
+}
+
 export interface HubQueueGroup {
   projectId: string
   repo: string
@@ -126,6 +139,7 @@ export interface GhfsServerFunctions {
   'ghfs:hub-add-root': (path: string) => Promise<HubInfo>
   'ghfs:hub-remove-root': (path: string) => Promise<HubInfo>
   'ghfs:hub-recent-items': (limit?: number) => Promise<HubRecentItem[]>
+  'ghfs:hub-todos': () => Promise<HubTodoItem[]>
   'ghfs:hub-queue': () => Promise<HubQueueGroup[]>
   'ghfs:hub-execute-queue': (options: { projectId?: string }) => Promise<ExecutionResult[]>
   'ghfs:hub-settings': () => Promise<HubSettings>

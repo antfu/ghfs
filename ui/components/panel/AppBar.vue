@@ -13,10 +13,11 @@ const hub = useHubState()
 const hubUi = useHubUiState()
 const router = useRouter()
 const route = useRoute()
-const { counts } = useFilteredItems()
+const { counts, filteredItems } = useFilteredItems()
 const { upCount } = useQueue()
 const { totalCount: hubQueueTotal } = useHubQueue()
 const recentFiltered = useRecentFiltered()
+const todos = useHubTodos()
 
 const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
 const repoName = computed(() => state.payload.value?.repo.repo ?? 'connecting…')
@@ -53,6 +54,7 @@ const queueBadge = computed(() => (props.mode === 'hub' ? hubQueueTotal.value : 
 const showHubBack = computed(() => isHubMode.value && props.mode === 'project')
 const onRecentPage = computed(() => route.path === '/recent')
 const onQueuePage = computed(() => route.path === '/queue')
+const onTodoPage = computed(() => route.path === '/todo')
 
 const forceSyncDialogOpen = ref(false)
 
@@ -73,6 +75,22 @@ const syncTooltip = computed(() => {
 })
 
 const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : state.syncing.value))
+
+const cardsSource = computed(() => {
+  if (onTodoPage.value)
+    return todos.listItems.value
+  if (props.mode === 'hub' && onRecentPage.value)
+    return recentFiltered.filteredItems.value
+  return filteredItems.value
+})
+const cardsAvailable = computed(() => cardsSource.value.length > 0)
+const cardsTooltip = computed(() => {
+  const n = cardsSource.value.length
+  if (n === 0)
+    return 'No items to triage'
+  return `Cards mode — triage ${Math.min(n, 10)} random ${n === 1 ? 'item' : 'items'}`
+})
+
 </script>
 
 <template>
@@ -213,6 +231,19 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
             <span>Recent</span>
           </button>
         </UiWithCommand>
+        <UiWithCommand v-slot="{ execute, disabled }" command="hub.todo">
+          <button
+            type="button"
+            class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 rounded transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
+            :class="onTodoPage ? 'color-active font-medium bg-active' : 'color-muted hover:color-base'"
+            data-testid="navbar-hub-todo-link"
+            :disabled="disabled"
+            @click="execute"
+          >
+            <span class="i-ph-bookmark-simple-duotone" />
+            <span>Todo</span>
+          </button>
+        </UiWithCommand>
         <UiWithCommand v-slot="{ execute, disabled }" command="hub.queue-page">
           <button
             type="button"
@@ -247,6 +278,22 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
     <div class="flex-auto" />
 
     <div class="h-6 border-l border-base mx-1 flex-none" />
+
+    <UiWithCommand
+      v-if="mode === 'project' || onRecentPage || onTodoPage"
+      v-slot="{ execute, disabled }"
+      command="cards.start"
+      placement="badge"
+    >
+      <UiIconButton
+        icon="i-ph-cards-three-duotone"
+        :tooltip="cardsTooltip"
+        aria-label="Start cards mode"
+        data-testid="navbar-cards-mode"
+        :disabled="disabled || !cardsAvailable"
+        @click="execute"
+      />
+    </UiWithCommand>
 
     <UiWithCommand v-if="mode === 'project'" v-slot="{ execute, disabled }" command="action.sync" placement="badge">
       <UiIconButton

@@ -25,6 +25,14 @@ export interface WhenContext extends Record<string, unknown> {
   hubProjectsCount: number
   hasActiveProjectId: boolean
   anyOverlayOpen: boolean
+  onCardsPage: boolean
+  cardsHasCurrent: boolean
+  cardsAdvancing: boolean
+  cardsCanClose: boolean
+  cardsIsTodo: boolean
+  cardsIsIgnored: boolean
+  cardsCommentDialogOpen: boolean
+  cardsDone: boolean
 }
 
 export function useWhenContext(): ComputedRef<WhenContext> {
@@ -39,12 +47,22 @@ export function useWhenContext(): ComputedRef<WhenContext> {
   const { upCount } = useQueue()
   const inputFocused = useInputFocus()
   const palette = useCommandPalette()
+  const cards = useCardsMode()
 
   return computed<WhenContext>(() => {
     const num = state.value.selectedNumber.value
-    const item = num == null
+    let item = num == null
       ? null
       : state.value.payload.value?.syncState.items[String(num)]?.data.item ?? null
+    // On the cards page the "active item" is the current card. Resolve it so
+    // shortcuts that read the active item (g/J/K/etc.) keep working.
+    if (!item) {
+      const card = cards.currentCard.value
+      if (card) {
+        const cardState = useAppState(card.projectId)
+        item = cardState.payload.value?.syncState.items[String(card.number)]?.data.item ?? null
+      }
+    }
     const hubMode = hub.capabilities.value?.mode === 'hub'
     const helpOpen = ui.helpOpen.value
     const labelEditorOpen = ui.labelEditorOpen.value
@@ -54,6 +72,9 @@ export function useWhenContext(): ComputedRef<WhenContext> {
     const hubSettingsOpen = hubUi.settingsOpen.value
     const hubQueueDrawerOpen = hubUi.queueDrawerOpen.value
     const onRecent = route.path === '/recent'
+    const onCardsPage = route.path === '/cards'
+    const cardsAdvancing = cards.advancing.value
+    const cardsCommentDialogOpen = cards.commentDialogOpen.value
     return {
       route: route.path,
       hubMode,
@@ -82,7 +103,16 @@ export function useWhenContext(): ComputedRef<WhenContext> {
       hasActiveProjectId: Boolean(activeId.value),
       anyOverlayOpen: helpOpen || labelEditorOpen || queueOpen
         || executeConfirmOpen || hubPickerOpen
-        || hubSettingsOpen || hubQueueDrawerOpen,
+        || hubSettingsOpen || hubQueueDrawerOpen
+        || cardsCommentDialogOpen,
+      onCardsPage,
+      cardsHasCurrent: Boolean(cards.currentCard.value),
+      cardsAdvancing,
+      cardsCanClose: cards.currentCanClose.value,
+      cardsIsTodo: cards.currentIsTodo.value,
+      cardsIsIgnored: cards.currentIsIgnored.value,
+      cardsCommentDialogOpen,
+      cardsDone: cards.done.value,
     }
   })
 }

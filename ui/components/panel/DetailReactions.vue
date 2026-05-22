@@ -15,9 +15,11 @@ interface Props {
 const props = defineProps<Props>()
 
 const activeId = useActiveProjectId()
+const scope = useDetailScope()
+const effectiveProjectId = computed(() => scope?.projectId ?? activeId.value)
 const rpc = useRpc()
-const state = useAppState()
-const pending = usePendingOps(computed(() => props.itemNumber))
+const state = useAppState(scope?.projectId)
+const pending = usePendingOps(computed(() => props.itemNumber), scope?.projectId)
 
 const viewerReactions = ref<Set<ReactionContent>>(new Set())
 const viewerLoaded = ref(false)
@@ -87,7 +89,7 @@ async function ensureViewerLoaded(): Promise<void> {
   try {
     const result = await rpc.$call(
       'ghfs:get-viewer-reactions',
-      activeId.value ?? '__default__',
+      effectiveProjectId.value ?? '__default__',
       props.itemNumber,
       props.target,
     )
@@ -108,7 +110,7 @@ async function toggle(content: ReactionContent): Promise<void> {
   const p = pendingFor(content)
   if (p) {
     try {
-      await rpc.$call('ghfs:remove-queue-op', activeId.value ?? '__default__', p.entry.id)
+      await rpc.$call('ghfs:remove-queue-op', effectiveProjectId.value ?? '__default__', p.entry.id)
     }
     catch (err) {
       state.setError((err as Error).message)
@@ -124,7 +126,7 @@ async function toggle(content: ReactionContent): Promise<void> {
     ...(props.target.kind !== 'item' ? { target: props.target } : {}),
   }
   try {
-    await rpc.$call('ghfs:add-queue-op', activeId.value ?? '__default__', op)
+    await rpc.$call('ghfs:add-queue-op', effectiveProjectId.value ?? '__default__', op)
   }
   catch (err) {
     state.setError((err as Error).message)

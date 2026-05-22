@@ -31,7 +31,8 @@ const emit = defineEmits<{
 }>()
 
 const { currentUser } = useCurrentUser()
-const appState = useAppState()
+const scope = useDetailScope()
+const appState = useAppState(scope?.projectId)
 const repo = computed(() => appState.payload.value?.repo.repo ?? null)
 const collapseBotComments = useCollapseBotComments()
 const bots = computed(() => appState.payload.value?.bots ?? [])

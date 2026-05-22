@@ -6,6 +6,7 @@ import { fromSyncItem } from '../types/list-item'
 
 export function useFilteredItems() {
   const state = useAppState()
+  const ui = useUiState()
 
   const allItems = computed<ListItem[]>(() => {
     const payload = state.payload.value
@@ -32,6 +33,8 @@ export function useFilteredItems() {
     return allItems.value.filter((item) => {
       if (item.state !== 'open')
         return false
+      if (ui.isIgnored(item.number))
+        return false
       // When not searching, restrict by kind tab; when searching, show both.
       if (!searching && state.filters.kind !== item.kind)
         return false
@@ -52,6 +55,8 @@ export function useFilteredItems() {
     let pulls = 0
     for (const item of allItems.value) {
       if (item.state !== 'open')
+        continue
+      if (ui.isIgnored(item.number))
         continue
       if (item.kind === 'issue')
         issues += 1

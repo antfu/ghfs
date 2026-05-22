@@ -2,7 +2,9 @@
 import type { RepoLabel } from '#ghfs/server-types'
 
 const activeId = useActiveProjectId()
-const state = useAppState()
+const scope = useDetailScope()
+const effectiveProjectId = computed(() => scope?.projectId ?? activeId.value)
+const state = useAppState(scope?.projectId)
 const rpc = useRpc()
 const ui = useUiState()
 const isDark = useDark()
@@ -15,7 +17,7 @@ const selectedItem = computed(() => {
 })
 
 const item = computed(() => selectedItem.value?.data.item ?? null)
-const pending = usePendingOps(computed(() => item.value?.number ?? null))
+const pending = usePendingOps(computed(() => item.value?.number ?? null), scope?.projectId)
 
 const repoLabels = computed<RepoLabel[]>(() => state.payload.value?.repositoryLabels ?? [])
 
@@ -75,14 +77,14 @@ async function commitIfChanged() {
   try {
     const setOp = pending.entries.value.find(e => e.op.action === 'set-labels')
     if (setOp) {
-      await rpc.$call('ghfs:update-queue-op', activeId.value ?? '__default__', setOp.id, {
+      await rpc.$call('ghfs:update-queue-op', effectiveProjectId.value ?? '__default__', setOp.id, {
         action: 'set-labels',
         number: item.value.number,
         labels,
       })
     }
     else {
-      await rpc.$call('ghfs:add-queue-op', activeId.value ?? '__default__', {
+      await rpc.$call('ghfs:add-queue-op', effectiveProjectId.value ?? '__default__', {
         action: 'set-labels',
         number: item.value.number,
         labels,

@@ -6,6 +6,8 @@ const collapseBotComments = useCollapseBotComments()
 const hub = useHubState()
 const hubSettings = useHubSettings()
 const ui = useUiState()
+const ignoredDialogOpen = ref(false)
+const ignoredCount = computed(() => (ui.uiState.ignored ?? []).length)
 
 const mode = computed<'hub' | 'project'>(() => (hub.capabilities.value?.mode === 'hub' ? 'hub' : 'project'))
 
@@ -276,8 +278,22 @@ const intervalDisplay = computed(() => {
             <span>{{ collapseBotComments ? 'On' : 'Off' }}</span>
           </button>
         </label>
+        <label class="flex items-center justify-between gap-3 text-sm">
+          <span class="color-muted">Ignored items</span>
+          <button
+            type="button"
+            class="btn-action-sm"
+            data-testid="settings-manage-ignored"
+            @click="ignoredDialogOpen = true"
+          >
+            <span class="i-ph-eye-slash-duotone" />
+            <span>Manage ({{ ignoredCount }})</span>
+          </button>
+        </label>
       </section>
     </div>
+
+    <PanelIgnoredDialog v-model:open="ignoredDialogOpen" />
 
     <template #footer>
       <button

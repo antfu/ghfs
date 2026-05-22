@@ -20,8 +20,11 @@ export interface PendingItemState {
 
 const CLOSE_ACTIONS = new Set(['close', 'close-with-comment'])
 
-export function usePendingOps(numberRef: Ref<number | null | undefined>): PendingItemState {
-  const state = useAppState()
+export function usePendingOps(
+  numberRef: Ref<number | null | undefined>,
+  projectId?: string | null,
+): PendingItemState {
+  const state = useAppState(projectId)
 
   const entries = computed<QueueEntry[]>(() => {
     const num = numberRef.value

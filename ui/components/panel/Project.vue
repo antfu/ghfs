@@ -73,7 +73,7 @@ const showError = computed(() => Boolean(props.loadError) && !props.hasPayload)
 
         <Pane :size="100 - listPaneSize" class="bg-base">
           <div class="h-full" data-testid="detail-panel">
-            <PanelDetail :key="activeProjectId ?? '__none__'" />
+            <PanelDetail :key="activeProjectId ?? '__none__'" :show-repo="showRepoName" />
           </div>
         </Pane>
       </Splitpanes>
