@@ -125,11 +125,13 @@ async function confirmExecute() {
           <span class="i-ph-trash-duotone" />
           <span>Clear</span>
         </button>
-        <UiIconButton
-          icon="i-ph-x"
-          tooltip="Close panel"
-          @click="state.closeQueue()"
-        />
+        <UiWithCommand v-slot="{ execute }" command="action.queue">
+          <UiIconButton
+            icon="i-ph-x"
+            tooltip="Close panel"
+            @click="execute"
+          />
+        </UiWithCommand>
       </header>
 
       <div v-if="warnings.length" class="px-4 py-2 bg-yellow-500/10 border-b border-base text-xs color-muted">

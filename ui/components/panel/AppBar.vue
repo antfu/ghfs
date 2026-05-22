@@ -131,16 +131,19 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
     <template v-else-if="mode === 'hub'">
       <div class="h-6 border-l border-base mx-1 flex-none" />
       <nav class="flex items-center gap-1 flex-none" aria-label="Hub sections">
-        <button
-          type="button"
-          class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 rounded transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
-          :class="route.path === '/' ? 'color-active font-medium bg-active' : 'color-muted hover:color-base'"
-          data-testid="navbar-hub-home-link"
-          @click="router.push('/')"
-        >
-          <span class="i-octicon-organization-16" />
-          <span>Projects</span>
-        </button>
+        <UiWithCommand v-slot="{ execute, disabled }" command="hub.home">
+          <button
+            type="button"
+            class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 rounded transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
+            :class="route.path === '/' ? 'color-active font-medium bg-active' : 'color-muted hover:color-base'"
+            data-testid="navbar-hub-home-link"
+            :disabled="disabled"
+            @click="execute"
+          >
+            <span class="i-octicon-organization-16" />
+            <span>Projects</span>
+          </button>
+        </UiWithCommand>
         <UiWithCommand v-slot="{ execute, disabled }" command="hub.recent">
           <button
             type="button"
@@ -189,7 +192,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
 
     <div class="h-6 border-l border-base mx-1 flex-none" />
 
-    <UiWithCommand v-if="mode === 'project'" v-slot="{ execute, disabled }" command="action.sync">
+    <UiWithCommand v-if="mode === 'project'" v-slot="{ execute, disabled }" command="action.sync" placement="badge">
       <UiIconButton
         icon="i-octicon-sync-16"
         :tooltip="syncTooltip"
@@ -198,7 +201,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
         @click="execute"
       />
     </UiWithCommand>
-    <UiWithCommand v-else v-slot="{ execute }" command="hub.sync-all">
+    <UiWithCommand v-else v-slot="{ execute }" command="hub.sync-all" placement="badge">
       <UiIconButton
         icon="i-octicon-sync-16"
         :tooltip="syncTooltip"
@@ -209,7 +212,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
       />
     </UiWithCommand>
 
-    <UiWithCommand v-if="mode === 'project'" v-slot="{ execute, disabled }" command="action.queue">
+    <UiWithCommand v-if="mode === 'project'" v-slot="{ execute, disabled }" command="action.queue" placement="badge">
       <UiIconButton
         icon="i-octicon-list-unordered-16"
         tooltip="Queue"
@@ -227,7 +230,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
         </template>
       </UiIconButton>
     </UiWithCommand>
-    <UiWithCommand v-else-if="mode === 'hub' && !onQueuePage" v-slot="{ execute, disabled }" command="action.queue">
+    <UiWithCommand v-else-if="mode === 'hub' && !onQueuePage" v-slot="{ execute, disabled }" command="action.queue" placement="badge">
       <UiIconButton
         icon="i-ph-list-checks-duotone"
         tooltip="Quick view queue"
@@ -245,7 +248,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
       </UiIconButton>
     </UiWithCommand>
 
-    <UiWithCommand v-slot="{ execute, disabled }" command="settings.open">
+    <UiWithCommand v-slot="{ execute, disabled }" command="settings.open" placement="badge">
       <UiIconButton
         icon="i-ph-gear-six-duotone"
         tooltip="Settings"
@@ -255,7 +258,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
       />
     </UiWithCommand>
 
-    <UiWithCommand v-slot="{ execute }" command="action.theme">
+    <UiWithCommand v-slot="{ execute }" command="action.theme" placement="badge">
       <UiIconButton
         :icon="isDark ? 'i-ph-sun-duotone' : 'i-ph-moon-duotone'"
         :tooltip="isDark ? 'Light mode' : 'Dark mode'"
