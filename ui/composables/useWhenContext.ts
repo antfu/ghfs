@@ -33,6 +33,7 @@ export interface WhenContext extends Record<string, unknown> {
   cardsIsIgnored: boolean
   cardsCommentDialogOpen: boolean
   cardsDone: boolean
+  cardsCanGoBack: boolean
 }
 
 export function useWhenContext(): ComputedRef<WhenContext> {
@@ -101,10 +102,13 @@ export function useWhenContext(): ComputedRef<WhenContext> {
       hubQueueDrawerOpen,
       hubProjectsCount: hub.projects.value.length,
       hasActiveProjectId: Boolean(activeId.value),
+      // NB: cardsCommentDialogOpen is deliberately *not* in anyOverlayOpen.
+      // The cards comment dialog is a Reka UiModal that handles its own
+      // Escape via closeOnEscape, so propagating Escape to panel.close (which
+      // would fall through to closing the queue etc.) just causes conflicts.
       anyOverlayOpen: helpOpen || labelEditorOpen || queueOpen
         || executeConfirmOpen || hubPickerOpen
-        || hubSettingsOpen || hubQueueDrawerOpen
-        || cardsCommentDialogOpen,
+        || hubSettingsOpen || hubQueueDrawerOpen,
       onCardsPage,
       cardsHasCurrent: Boolean(cards.currentCard.value),
       cardsAdvancing,
@@ -113,6 +117,7 @@ export function useWhenContext(): ComputedRef<WhenContext> {
       cardsIsIgnored: cards.currentIsIgnored.value,
       cardsCommentDialogOpen,
       cardsDone: cards.done.value,
+      cardsCanGoBack: cards.canGoBack.value,
     }
   })
 }

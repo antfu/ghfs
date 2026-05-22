@@ -43,6 +43,15 @@ function exit() {
   cards.reset()
   router.push('/')
 }
+
+/** Composer just finished queuing an op for the current card — record it
+ *  for the finishing screen and slide to the next card. */
+async function onCommentSubmitted(opId: string | null) {
+  const card = cards.currentCard.value
+  if (card && opId)
+    cards.recordOp(card.projectId, opId)
+  await cards.advance()
+}
 </script>
 
 <template>
@@ -79,6 +88,20 @@ function exit() {
       <div v-if="!showDone && currentCard" class="flex items-center gap-2 text-sm color-muted">
         <span class="font-mono tabular-nums">{{ progressIndex }} / {{ total }}</span>
       </div>
+
+      <UiWithCommand v-if="!showDone" v-slot="{ execute, disabled }" command="cards.previous">
+        <button
+          type="button"
+          class="btn-action-sm"
+          title="Previous card"
+          data-testid="cards-previous"
+          :disabled="disabled"
+          @click="execute"
+        >
+          <span class="i-ph-skip-back-duotone" />
+          Previous
+        </button>
+      </UiWithCommand>
 
       <div class="h-6 border-l border-base mx-1 flex-none" />
 
@@ -156,10 +179,10 @@ function exit() {
     <CardsCommentDialog
       v-if="currentCard"
       v-model:open="cards.commentDialogOpen.value"
+      :project-id="currentCard.projectId"
       :item-number="currentCard.number"
       :kind="currentCard.kind"
-      :can-close="cards.currentCanClose.value"
-      @submit="(body: string, options: { close: boolean }) => cards.submitComment(body, options)"
+      @submitted="onCommentSubmitted"
     />
   </div>
 </template>

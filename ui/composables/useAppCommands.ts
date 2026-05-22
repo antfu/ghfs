@@ -514,6 +514,16 @@ export function createAppCommands(): Command[] {
       run: () => cards.doSkip(),
     },
     {
+      id: 'cards.previous',
+      title: 'Cards: Previous card',
+      category: 'Cards',
+      icon: 'i-ph-skip-back-duotone',
+      keybindings: [{ key: 'shift+n', label: ['⇧', 'N'] }],
+      when: 'onCardsPage && cardsCanGoBack && !cardsAdvancing && !cardsCommentDialogOpen && !labelEditorOpen',
+      help: 'onCardsPage',
+      run: () => cards.goBack(),
+    },
+    {
       id: 'cards.exit',
       title: 'Cards: Exit',
       category: 'Cards',

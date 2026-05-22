@@ -2,94 +2,54 @@
 const open = defineModel<boolean>('open', { required: true })
 
 const props = defineProps<{
-  itemNumber: number | null
+  /** Card project the composer should target. */
+  projectId: string
+  itemNumber: number
   kind: 'issue' | 'pull'
-  /** True when the close action is meaningful (item still open, no pending close). */
-  canClose?: boolean
 }>()
 
 const emit = defineEmits<{
-  submit: [body: string, options: { close: boolean }]
-  cancel: []
+  /** Any composer action (comment / close-with-comment / reopen / etc.) successfully queued.
+   *  Forwards the new queue entry id when the composer reported one. */
+  submitted: [opId: string | null]
 }>()
 
-const body = ref('')
-const textarea = ref<HTMLTextAreaElement | null>(null)
+// Provide a detail scope locally so PanelDetailComposer reads the right
+// project's pending ops + state.
+provideDetailScope({ projectId: props.projectId })
 
-const kindLabel = computed(() => (props.kind === 'pull' ? 'pull request' : 'issue'))
-const hasBody = computed(() => body.value.trim().length > 0)
+const composerRef = ref<{ focus: () => void } | null>(null)
 
 watch(open, async (next) => {
   if (next) {
-    body.value = ''
     await nextTick()
-    textarea.value?.focus()
+    composerRef.value?.focus()
   }
 })
 
-function submitComment() {
-  emit('submit', body.value, { close: false })
+function onSubmitted(opId: string | null) {
   open.value = false
-}
-
-function submitCloseWithComment() {
-  emit('submit', body.value, { close: true })
-  open.value = false
-}
-
-function cancel() {
-  emit('cancel')
-  open.value = false
+  emit('submitted', opId)
 }
 </script>
 
 <template>
   <UiModal
     v-model:open="open"
-    :title="`Comment on ${kindLabel}${itemNumber != null ? ` #${itemNumber}` : ''}`"
+    :title="`Comment on ${kind === 'pull' ? 'pull request' : 'issue'} #${itemNumber}`"
     icon="i-octicon-comment-16"
-    width="w-[min(92vw,38rem)]"
+    width="w-[min(92vw,40rem)]"
   >
-    <div class="px-5 py-4 flex flex-col gap-3">
-      <textarea
-        ref="textarea"
-        v-model="body"
-        rows="7"
-        :placeholder="`Leave a comment on this ${kindLabel}…`"
-        class="w-full border border-base rounded-lg bg-base outline-none px-3 py-2 text-sm resize-none font-sans focus:border-active focus:ring-2 focus:ring-primary-500/30"
-        @keydown.meta.enter.prevent="submitComment"
-        @keydown.ctrl.enter.prevent="submitComment"
+    <div class="px-5 py-4 flex flex-col gap-2">
+      <PanelDetailComposer
+        ref="composerRef"
+        :number="itemNumber"
+        :kind="kind"
+        @submitted="onSubmitted"
       />
       <p class="text-xs color-faint">
-        Submit as a comment, or close the {{ kindLabel }} together with your comment.
+        <span class="kbd">Esc</span> to cancel.
       </p>
     </div>
-    <template #footer>
-      <button type="button" class="btn-action text-sm" @click="cancel">
-        Cancel
-      </button>
-      <button
-        type="button"
-        class="btn-action text-sm"
-        :disabled="!canClose"
-        :title="canClose ? `Close this ${kindLabel} together with the comment` : `This ${kindLabel} is already closed or has a pending close`"
-        data-testid="comment-dialog-close-with-comment"
-        @click="submitCloseWithComment"
-      >
-        <span class="i-octicon-x-circle-16 color-red-500 dark:color-red-400" />
-        Close in the comment
-      </button>
-      <button
-        type="button"
-        class="btn-primary text-sm"
-        :disabled="!hasBody"
-        data-testid="comment-dialog-comment"
-        @click="submitComment"
-      >
-        <span class="i-octicon-comment-16" />
-        Comment
-        <UiKbd keys="⌘ ↵" tone="muted" />
-      </button>
-    </template>
   </UiModal>
 </template>

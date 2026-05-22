@@ -96,7 +96,6 @@ async function performAdvance(): Promise<void> {
 export function useCardsMode() {
   const router = useRouter()
   const ui = useUiState()
-  const rpc = useRpc()
   const { ensureLoaded } = useProjectPayload()
 
   const currentCard = computed<CardRef | null>(() => currentCardSync())
@@ -220,6 +219,19 @@ export function useCardsMode() {
     await performAdvance()
   }
 
+  /**
+   * Step back to the previous card. Decrements the index; any ops the user
+   * queued for the card they're going back from stay queued — they can clear
+   * them from the regular queue drawer.
+   */
+  function goBack(): void {
+    if (index.value <= 0)
+      return
+    index.value -= 1
+  }
+
+  const canGoBack = computed(() => index.value > 0)
+
   async function doMarkTodo(): Promise<void> {
     const card = currentCard.value
     if (!card)
@@ -257,49 +269,6 @@ export function useCardsMode() {
     commentDialogOpen.value = true
   }
 
-  async function submitComment(body: string, options: { close: boolean }): Promise<void> {
-    const card = currentCard.value
-    if (!card)
-      return
-    const trimmed = body.trim()
-    try {
-      if (options.close) {
-        const queue = trimmed.length > 0
-          ? await rpc.$call('ghfs:add-queue-op', card.projectId, {
-              action: 'close-with-comment',
-              number: card.number,
-              body: trimmed,
-            })
-          : await rpc.$call('ghfs:add-queue-op', card.projectId, {
-              action: 'close',
-              number: card.number,
-            })
-        const newest = newestOpId(queue.entries, card.number, [
-          'close-with-comment',
-          'close',
-        ])
-        if (newest)
-          recordOp(card.projectId, newest)
-      }
-      else if (trimmed.length > 0) {
-        const queue = await rpc.$call('ghfs:add-queue-op', card.projectId, {
-          action: 'add-comment',
-          number: card.number,
-          body: trimmed,
-        })
-        const newest = newestOpId(queue.entries, card.number, ['add-comment'])
-        if (newest)
-          recordOp(card.projectId, newest)
-      }
-    }
-    catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Cards: failed to queue op', error)
-    }
-    commentDialogOpen.value = false
-    await performAdvance()
-  }
-
   return {
     pile: computed(() => pile.value),
     currentCard,
@@ -326,21 +295,8 @@ export function useCardsMode() {
     doMarkIgnore,
     doOpenLabels,
     doOpenComment,
-    submitComment,
+    goBack,
+    canGoBack,
   }
 }
 
-function newestOpId(
-  entries: { id: string, op: { number: number, action: string } }[],
-  number: number,
-  actions: string[],
-): string | null {
-  for (let i = entries.length - 1; i >= 0; i -= 1) {
-    const entry = entries[i]
-    if (!entry)
-      continue
-    if (entry.op.number === number && actions.includes(entry.op.action))
-      return entry.id
-  }
-  return null
-}
