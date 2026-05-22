@@ -39,6 +39,8 @@ const timeAgo = computed<[string | number, string]>(() => {
     return ['', '']
   if (daysAgo.value < 1) {
     const minutesAgo = Math.floor(props.ms / (1000 * 60))
+    if (minutesAgo < 1)
+      return ['just now', '']
     if (minutesAgo < 60)
       return [minutesAgo, 'min']
     if (props.mode === 'day')
