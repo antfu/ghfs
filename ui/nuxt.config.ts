@@ -54,6 +54,17 @@ export default defineNuxtConfig({
       logsSDK.vite(),
       logsSDKServer.vite({ logFile: resolve(rootDir, '../.diagnostics.log') }),
     ],
+    optimizeDeps: {
+      include: [
+        'devframe/rpc/client',
+        'devframe/rpc/transports/ws-client',
+        'floating-vue',
+        'logs-sdk',
+        'logs-sdk/reporters/dev',
+        'shiki',
+        'whenexpr',
+      ],
+    },
     resolve: {
       alias: {
         '#ghfs/server-types': resolve(rootDir, '../src/server/types.ts'),
