@@ -27,6 +27,7 @@ export interface ProviderItem {
   title: string
   body: string | null
   author: string | null
+  authorAvatarUrl?: string
   labels: string[]
   assignees: string[]
   milestone: string | null
@@ -39,6 +40,7 @@ export interface ProviderComment {
   createdAt: string
   updatedAt: string
   author: string | null
+  authorAvatarUrl?: string
   reactions?: ProviderReactions
 }
 
@@ -77,6 +79,7 @@ interface ProviderTimelineEventBase {
   id: string
   createdAt: string
   actor: string | null
+  actorAvatarUrl?: string
 }
 
 export type ProviderTimelineEvent

@@ -125,7 +125,7 @@ const bodySnippetHtml = computed(() => {
       <div class="flex items-center gap-2 flex-wrap text-xs color-muted mt-1">
         <DisplayAuthor
           v-if="item.author"
-          :author="item.author"
+          :author="{ login: item.author, avatarUrl: item.authorAvatarUrl }"
           :size="14"
           :link="false"
         />

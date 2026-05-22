@@ -48,6 +48,7 @@ export async function buildRepoMeta(ctx: ProjectContext): Promise<RepoMeta> {
   return {
     repo: ctx.repo,
     storageDir: ctx.config.directory,
+    projectPath: ctx.path,
     ghfsVersion: GHFS_VERSION,
     lastSyncedAt: syncState.lastSyncedAt,
     lastSince: syncState.lastSince,

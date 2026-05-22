@@ -19,7 +19,34 @@ const recentFiltered = useRecentFiltered()
 
 const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
 const repoName = computed(() => state.payload.value?.repo.repo ?? 'connecting…')
+const projectPath = computed(() => state.payload.value?.repo.projectPath ?? '')
 const hasToken = computed(() => state.payload.value?.repo.hasToken ?? false)
+const pathCopied = ref(false)
+let copiedTimer: ReturnType<typeof setTimeout> | null = null
+
+async function copyProjectPath() {
+  if (!projectPath.value)
+    return
+  try {
+    await navigator.clipboard.writeText(projectPath.value)
+    pathCopied.value = true
+    if (copiedTimer)
+      clearTimeout(copiedTimer)
+    copiedTimer = setTimeout(() => { pathCopied.value = false }, 1200)
+  }
+  catch {}
+}
+
+async function openProjectFolder() {
+  if (!activeId.value)
+    return
+  try {
+    await rpc.$call('ghfs:open-folder', activeId.value)
+  }
+  catch (error) {
+    state.setError(`Open folder failed: ${(error as Error).message}`)
+  }
+}
 const searching = computed(() => state.filters.search.trim().length > 0)
 const queueBadge = computed(() => (props.mode === 'hub' ? hubQueueTotal.value : upCount.value))
 const showHubBack = computed(() => isHubMode.value && props.mode === 'project')
@@ -71,6 +98,22 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
         class="font-mono text-sm truncate max-w-60"
         data-testid="navbar-repo"
       >{{ repoName }}</span>
+      <template v-if="mode === 'project' && projectPath">
+        <UiIconButton
+          icon="i-ph-folder-open-duotone"
+          tooltip="Open project folder"
+          aria-label="Open project folder"
+          data-testid="navbar-open-folder"
+          @click="openProjectFolder"
+        />
+        <UiIconButton
+          :icon="pathCopied ? 'i-ph-check-bold' : 'i-ph-copy-duotone'"
+          :tooltip="pathCopied ? 'Copied!' : 'Copy project path'"
+          aria-label="Copy project path"
+          data-testid="navbar-copy-path"
+          @click="copyProjectPath"
+        />
+      </template>
     </div>
 
     <template v-if="mode === 'project'">

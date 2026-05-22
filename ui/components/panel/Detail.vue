@@ -246,7 +246,7 @@ async function discardThisItem() {
         </UiBadge>
         <DisplayAuthor
           v-if="item.author"
-          :author="item.author"
+          :author="{ login: item.author, avatarUrl: item.authorAvatarUrl }"
           :size="14"
         />
         <span class="text-xs color-muted flex items-center gap-1">

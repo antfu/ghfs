@@ -2,6 +2,7 @@
 const open = defineModel<boolean>('open', { required: true })
 
 const isDark = useDark()
+const collapseBotComments = useCollapseBotComments()
 const hub = useHubState()
 const hubSettings = useHubSettings()
 const ui = useUiState()
@@ -261,6 +262,18 @@ const intervalDisplay = computed(() => {
           >
             <span :class="isDark ? 'i-ph-moon-duotone' : 'i-ph-sun-duotone'" />
             <span>{{ isDark ? 'Dark' : 'Light' }}</span>
+          </button>
+        </label>
+        <label class="flex items-center justify-between gap-3 text-sm">
+          <span class="color-muted">Collapse bot comments</span>
+          <button
+            type="button"
+            class="btn-action-sm"
+            data-testid="settings-collapse-bot-comments-toggle"
+            @click="collapseBotComments = !collapseBotComments"
+          >
+            <span :class="collapseBotComments ? 'i-ph-toggle-right-fill color-active' : 'i-ph-toggle-left-fill color-muted'" />
+            <span>{{ collapseBotComments ? 'On' : 'Off' }}</span>
           </button>
         </label>
       </section>

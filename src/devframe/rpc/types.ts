@@ -64,6 +64,7 @@ export interface HubRecentItem {
   state: 'open' | 'closed'
   updatedAt: string
   author: string | null
+  authorAvatarUrl?: string
   labels: string[]
 }
 
@@ -110,6 +111,7 @@ export interface GhfsServerFunctions {
   'ghfs:clear-queue': (projectId: string) => Promise<QueueState>
   'ghfs:check-remote': (projectId: string) => Promise<RemoteStatus>
   'ghfs:open-in-editor': (projectId: string, filePath: string) => Promise<void>
+  'ghfs:open-folder': (projectId: string) => Promise<void>
   'ghfs:save-ui-state': (projectId: string, state: UiState) => Promise<void>
   'ghfs:get-pull-patch': (projectId: string, number: number) => Promise<string | null>
   'ghfs:get-viewer-reactions': (projectId: string, number: number, target: ReactionTarget) => Promise<ReactionContent[]>

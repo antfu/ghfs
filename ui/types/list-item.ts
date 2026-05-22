@@ -10,6 +10,7 @@ export interface ListItem {
   number: number
   title: string
   author?: string | null
+  authorAvatarUrl?: string
   updatedAt?: string | null
   labels?: string[]
   state?: IssueState
@@ -34,6 +35,7 @@ export function fromSyncItem(entry: SyncItemState, projectId: string, repo: stri
     number: item.number,
     title: item.title,
     author: item.author,
+    authorAvatarUrl: item.authorAvatarUrl,
     updatedAt: item.updatedAt,
     labels: item.labels,
     state: item.state,
@@ -55,6 +57,7 @@ export function fromHubRecent(item: HubRecentItem, repoLookup?: (id: string) => 
     number: item.number,
     title: item.title,
     author: item.author,
+    authorAvatarUrl: item.authorAvatarUrl,
     updatedAt: item.updatedAt,
     labels: item.labels,
     state: item.state,
