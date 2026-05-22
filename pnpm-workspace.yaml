@@ -46,7 +46,6 @@ catalog:
   floating-vue: ^5.2.2
   jiti: ^2.7.0
   lint-staged: ^17.0.5
-  listhen: ^1.10.0
   marked: ^18.0.4
   nostics: ^0.2.0
   nuxt: ^4.4.6
@@ -77,7 +76,7 @@ onlyBuiltDependencies:
   - simple-git-hooks
   - vue-demi
 allowBuilds:
-  '@parcel/watcher': true
+  '@parcel/watcher': false
   esbuild: true
   simple-git-hooks: true
   vue-demi: true
