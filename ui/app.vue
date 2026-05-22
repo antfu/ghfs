@@ -47,5 +47,6 @@ onMounted(async () => {
     <HubQueueDrawer />
     <PanelCommandPalette />
     <PanelHelp />
+    <CardsStartDialog />
   </div>
 </template>

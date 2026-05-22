@@ -464,6 +464,18 @@ export function createAppCommands(): Command[] {
       run: () => cards.startFromCurrentContext(),
     },
     {
+      id: 'cards.dismiss',
+      title: 'Cards: Dismiss this pile',
+      category: 'Cards',
+      icon: 'i-ph-trash-duotone',
+      when: 'onCardsPage && cardsHasCurrent',
+      help: 'onCardsPage',
+      run: async () => {
+        await cards.dismiss()
+        router.push('/')
+      },
+    },
+    {
       id: 'cards.comment',
       title: 'Cards: Comment / close',
       category: 'Cards',

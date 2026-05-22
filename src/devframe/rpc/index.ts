@@ -1,6 +1,7 @@
 import type { DevToolsNodeContext } from 'devframe'
 import { addQueueOp } from './add-queue-op'
 import { capabilities } from './capabilities'
+import { cardsPileClear, cardsPileGet, cardsPileSet } from './cards-pile'
 import { checkRemote } from './check-remote'
 import { clearQueue } from './clear-queue'
 import { executeQueue } from './execute-queue'
@@ -64,6 +65,9 @@ export const rpcFunctions = [
   hubExecuteQueue,
   hubRecentItems,
   hubTodos,
+  cardsPileGet,
+  cardsPileSet,
+  cardsPileClear,
   hubInfo,
   hubScan,
   hubEnable,

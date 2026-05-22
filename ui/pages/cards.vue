@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { ListItem } from '../types/list-item'
+import { fromSyncItem } from '../types/list-item'
+
 const router = useRouter()
 const cards = useCardsMode()
 const ui = useUiState()
@@ -8,6 +11,8 @@ const state = useAppState()
 const isDark = useDark()
 const { upCount } = useQueue()
 const { totalCount: hubQueueTotal } = useHubQueue()
+const { currentUser } = useCurrentUser()
+const { ensureLoaded } = useProjectPayload()
 
 const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
 const queueBadge = computed(() => (isHubMode.value ? hubQueueTotal.value : upCount.value))
@@ -22,8 +27,14 @@ const hasMoreItems = computed(() => total.value > 0)
 const source = cards.source
 const sourceLabel = computed(() => source.value.label)
 const sourceProject = computed(() => source.value.project ?? null)
+const userLogin = computed(() => currentUser.value?.login ?? null)
 
-onMounted(() => {
+const hydrating = ref(true)
+
+onMounted(async () => {
+  // Pull any persisted pile state from the server (survives client refresh).
+  await cards.hydrate()
+  hydrating.value = false
   if (total.value === 0) {
     // No pile loaded — drop back to the hub home.
     router.replace('/')
@@ -44,13 +55,58 @@ function exit() {
   router.push('/')
 }
 
-/** Composer just finished queuing an op for the current card — record it
- *  for the finishing screen and slide to the next card. */
 async function onCommentSubmitted(opId: string | null) {
   const card = cards.currentCard.value
   if (card && opId)
     cards.recordOp(card.projectId, opId)
   await cards.advance()
+}
+
+/**
+ * Re-fetch the source items for the saved pile descriptor. Used by Restart
+ * and "Another pile" — neither persists the source snapshot, so we re-pick
+ * from the freshest local state.
+ */
+async function resolveSourceItems(): Promise<ListItem[]> {
+  const src = cards.source.value
+  if (!src.project && src.label === 'Recent') {
+    const hubRecent = useHubRecent()
+    if (hubRecent.items.value.length === 0)
+      await hubRecent.load()
+    return useRecentFiltered().filteredItems.value
+  }
+  if (!src.project && src.label === 'Todo') {
+    const todos = useHubTodos()
+    if (todos.items.value.length === 0)
+      await todos.load()
+    return todos.listItems.value
+  }
+  if (src.project) {
+    await ensureLoaded(src.project.id)
+    const payload = useAppState(src.project.id).payload.value
+    if (!payload)
+      return []
+    const wantKind = src.label === 'Pull requests' ? 'pull' : 'issue'
+    return Object.values(payload.syncState.items)
+      .filter(s => s.data.item.kind === wantKind && s.data.item.state === 'open')
+      .map(s => fromSyncItem(s, src.project!.id, payload.repo.repo))
+  }
+  return []
+}
+
+async function doAnotherPile() {
+  const items = await resolveSourceItems()
+  cards.anotherPile(items, userLogin.value)
+}
+
+async function doRestart() {
+  const items = await resolveSourceItems()
+  cards.restartPile(items, userLogin.value)
+}
+
+async function doDismiss() {
+  await cards.dismiss()
+  router.push('/')
 }
 </script>
 
@@ -103,6 +159,32 @@ async function onCommentSubmitted(opId: string | null) {
         </button>
       </UiWithCommand>
 
+      <button
+        v-if="total > 0"
+        type="button"
+        class="btn-action-sm"
+        title="Re-generate the pile with the same options"
+        data-testid="cards-restart"
+        @click="doRestart"
+      >
+        <span class="i-ph-arrow-clockwise-duotone" />
+        Restart
+      </button>
+
+      <UiWithCommand v-if="total > 0" v-slot="{ execute, disabled }" command="cards.dismiss">
+        <button
+          type="button"
+          class="btn-action-sm"
+          title="Dismiss this pile"
+          data-testid="cards-dismiss"
+          :disabled="disabled"
+          @click="execute"
+        >
+          <span class="i-ph-trash-duotone" />
+          Dismiss
+        </button>
+      </UiWithCommand>
+
       <div class="h-6 border-l border-base mx-1 flex-none" />
 
       <UiWithCommand v-slot="{ execute, disabled }" command="action.queue" placement="badge">
@@ -143,14 +225,21 @@ async function onCommentSubmitted(opId: string | null) {
     </header>
 
     <main class="flex-1 relative overflow-hidden">
+      <template v-if="hydrating">
+        <div class="h-full flex flex-col items-center justify-center gap-3 color-muted">
+          <span class="i-octicon-sync-16 animate-spin text-2xl color-active" />
+          <p class="text-sm">Loading pile…</p>
+        </div>
+      </template>
+
       <!-- While `advancing` is true the last card may still be sliding off,
            so we keep the stack mounted even when showDone has flipped on. -->
-      <template v-if="showDone && !advancing">
+      <template v-else-if="showDone && !advancing">
         <CardsDone
           :pile-size="total"
           :processed-ops="cards.processedOps.value"
           :has-more-items="hasMoreItems"
-          @another="cards.anotherPile"
+          @another="doAnotherPile"
           @done="exit"
         />
       </template>

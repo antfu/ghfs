@@ -81,6 +81,53 @@ export interface HubTodoItem {
   labels: string[]
 }
 
+export interface CardRef {
+  projectId: string
+  repo: string
+  kind: 'issue' | 'pull'
+  number: number
+  title: string
+  authorAvatarUrl?: string
+  author?: string | null
+}
+
+export interface CardsSource {
+  /** Human-readable label, displayed in the cards page header. */
+  label: string
+  /** When set, the header renders a ProjectIcon + this repo's owner/name. */
+  project?: { id: string, repo: string }
+}
+
+export type PilePick = 'recent' | 'random' | 'stale'
+
+/**
+ * Which kinds of items to include in the pile.
+ * - `issue` / `pull` restrict to that kind
+ * - `all` includes both
+ */
+export type PileKindFilter = 'issue' | 'pull' | 'all'
+
+export interface PileOptions {
+  size: number
+  pick: PilePick
+  kind: PileKindFilter
+  excludeBots: boolean
+  excludeSelfInteracted: boolean
+}
+
+export interface QueuedCardOp {
+  projectId: string
+  opId: string
+}
+
+export interface CardsPileState {
+  pile: CardRef[]
+  index: number
+  processedOps: QueuedCardOp[]
+  source: CardsSource
+  options: PileOptions
+}
+
 export interface HubQueueGroup {
   projectId: string
   repo: string
@@ -140,6 +187,9 @@ export interface GhfsServerFunctions {
   'ghfs:hub-remove-root': (path: string) => Promise<HubInfo>
   'ghfs:hub-recent-items': (limit?: number) => Promise<HubRecentItem[]>
   'ghfs:hub-todos': () => Promise<HubTodoItem[]>
+  'ghfs:cards-pile-get': () => Promise<CardsPileState | null>
+  'ghfs:cards-pile-set': (state: CardsPileState) => Promise<void>
+  'ghfs:cards-pile-clear': () => Promise<void>
   'ghfs:hub-queue': () => Promise<HubQueueGroup[]>
   'ghfs:hub-execute-queue': (options: { projectId?: string }) => Promise<ExecutionResult[]>
   'ghfs:hub-settings': () => Promise<HubSettings>

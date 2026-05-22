@@ -1,47 +1,62 @@
-import type { QueueEntry } from '#ghfs/server-types'
+import type {
+  CardRef,
+  CardsPileState,
+  CardsSource,
+  PileKindFilter,
+  PileOptions,
+  PilePick,
+  QueueEntry,
+  QueuedCardOp,
+} from '#ghfs/server-types'
 import type { ListItem } from '../types/list-item'
+import { useDebounceFn } from '@vueuse/core'
 
-export interface CardRef {
-  projectId: string
-  repo: string
-  kind: 'issue' | 'pull'
-  number: number
-  title: string
-  authorAvatarUrl?: string
-  author?: string | null
+export type { CardRef, CardsSource, PileKindFilter, PileOptions, PilePick, QueuedCardOp }
+
+export const PILE_SIZE_CHOICES = [5, 10, 15, 30, 50] as const
+export const PILE_PICK_CHOICES: ReadonlyArray<{ value: PilePick, label: string, hint: string }> = [
+  { value: 'random', label: 'Random', hint: 'pick at random' },
+  { value: 'recent', label: 'Most recent', hint: 'latest activity first' },
+  { value: 'stale', label: 'Least activity', hint: 'oldest update first' },
+]
+export const PILE_KIND_CHOICES: ReadonlyArray<{ value: PileKindFilter, label: string }> = [
+  { value: 'all', label: 'Issues + PRs' },
+  { value: 'issue', label: 'Issues only' },
+  { value: 'pull', label: 'PRs only' },
+]
+
+export const DEFAULT_PILE_OPTIONS: PileOptions = {
+  size: 10,
+  pick: 'random',
+  kind: 'all',
+  excludeBots: true,
+  excludeSelfInteracted: true,
 }
 
-export interface QueuedOp {
-  projectId: string
-  opId: string
-}
-
-/**
- * Describes where the current pile came from. Drives the title shown in the
- * cards page header — e.g. "Recent" for the hub recent list, or a project's
- * repo for a single-project list.
- */
-export interface CardsSource {
-  /** Free-form label, displayed when there's no single repo (e.g. "Recent"). */
-  label: string
-  /** When set, the header renders a ProjectIcon + this repo's owner/name. */
-  project?: { id: string, repo: string }
-}
-
-const PILE_SIZE = 10
 const TRANSITION_MS = 360
 
 const pile = ref<CardRef[]>([])
 const index = ref(0)
-const processedOps = ref<QueuedOp[]>([])
-const sourceItems = ref<ListItem[] | null>(null)
+const processedOps = ref<QueuedCardOp[]>([])
 const source = ref<CardsSource>({ label: 'Cards' })
+const options = ref<PileOptions>({ ...DEFAULT_PILE_OPTIONS })
 const processedKeys = ref<Set<string>>(new Set())
 
 // UI state — exposed so the cards page renders them and commands gate on them.
 const advancing = ref(false)
 const commentDialogOpen = ref(false)
 const labelsPendingFor = ref<CardRef | null>(null)
+
+// Pending source for the StartDialog: when the user clicks "Cards mode", the
+// caller stashes the candidate items + descriptor here for the dialog to pick
+// from. Becomes null again after the dialog closes.
+const startDialogOpen = ref(false)
+const pendingSourceItems = ref<ListItem[] | null>(null)
+const pendingSource = ref<CardsSource>({ label: 'Cards' })
+
+let hydrated = false
+let hydratingPromise: Promise<void> | null = null
+let saveFn: (() => void) | null = null
 
 function shuffle<T>(input: T[]): T[] {
   const arr = [...input]
@@ -70,9 +85,109 @@ function toCardRef(it: ListItem): CardRef {
   }
 }
 
-function pickPile(items: ListItem[]): CardRef[] {
-  const usable = items.filter(it => !processedKeys.value.has(itemKey(it)))
-  return shuffle(usable).slice(0, PILE_SIZE).map(toCardRef)
+function isBotAuthor(it: ListItem): boolean {
+  const author = it.author
+  if (!author)
+    return false
+  const lower = author.toLowerCase()
+  if (lower.endsWith('[bot]') || lower.endsWith('-bot') || lower === 'github-actions')
+    return true
+  // Project's bots list (only available when item.raw is present).
+  // The raw sync state doesn't directly include the bots list; we approximate
+  // by checking suffix above. The full bot list comes from project config and
+  // applies to timeline rendering, not pile filtering — this stays best-effort.
+  return false
+}
+
+/** Has the current user already interacted with this item (created or commented)? */
+function isSelfInteracted(it: ListItem, login: string): boolean {
+  if (!login)
+    return false
+  if (it.author === login)
+    return true
+  const comments = it.raw?.data.comments ?? []
+  if (comments.some(c => c.author === login))
+    return true
+  return false
+}
+
+export function filterCandidates(
+  items: ListItem[],
+  opts: PileOptions,
+  currentUserLogin: string | null,
+): ListItem[] {
+  let usable = items.filter(it => it.state === 'open')
+  if (opts.kind === 'issue')
+    usable = usable.filter(it => it.kind === 'issue')
+  else if (opts.kind === 'pull')
+    usable = usable.filter(it => it.kind === 'pull')
+  if (opts.excludeBots)
+    usable = usable.filter(it => !isBotAuthor(it))
+  if (opts.excludeSelfInteracted && currentUserLogin)
+    usable = usable.filter(it => !isSelfInteracted(it, currentUserLogin))
+  return usable
+}
+
+function pickFromCandidates(
+  candidates: ListItem[],
+  opts: PileOptions,
+  excludeKeys: Set<string>,
+): CardRef[] {
+  const usable = candidates.filter(it => !excludeKeys.has(itemKey(it)))
+  let ordered: ListItem[]
+  switch (opts.pick) {
+    case 'recent':
+      ordered = [...usable].sort((a, b) =>
+        (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''),
+      )
+      break
+    case 'stale':
+      ordered = [...usable].sort((a, b) =>
+        (a.updatedAt ?? '').localeCompare(b.updatedAt ?? ''),
+      )
+      break
+    case 'random':
+    default:
+      ordered = shuffle(usable)
+      break
+  }
+  return ordered.slice(0, opts.size).map(toCardRef)
+}
+
+function snapshot(): CardsPileState {
+  return {
+    pile: pile.value,
+    index: index.value,
+    processedOps: processedOps.value,
+    source: source.value,
+    options: options.value,
+  }
+}
+
+function applyServerState(next: CardsPileState | null): void {
+  if (!next) {
+    pile.value = []
+    index.value = 0
+    processedOps.value = []
+    source.value = { label: 'Cards' }
+    options.value = { ...DEFAULT_PILE_OPTIONS }
+    processedKeys.value = new Set()
+    return
+  }
+  pile.value = next.pile
+  index.value = next.index
+  processedOps.value = next.processedOps
+  source.value = next.source
+  options.value = next.options
+  // Rebuild processedKeys from the cards we've already moved past so
+  // anotherPile() / restartPile() exclude them.
+  const keys = new Set<string>()
+  for (let i = 0; i < Math.min(next.index, next.pile.length); i += 1) {
+    const c = next.pile[i]
+    if (c)
+      keys.add(itemKey(c))
+  }
+  processedKeys.value = keys
 }
 
 function currentCardSync(): CardRef | null {
@@ -89,24 +204,38 @@ async function performAdvance(): Promise<void> {
   if (card)
     processedKeys.value.add(itemKey(card))
   index.value += 1
+  scheduleSave()
   await new Promise(resolve => setTimeout(resolve, TRANSITION_MS))
   advancing.value = false
+}
+
+function ensureSaver(): () => void {
+  if (saveFn)
+    return saveFn
+  const rpc = useRpc()
+  saveFn = useDebounceFn(() => {
+    if (pile.value.length === 0)
+      return
+    rpc.$call('ghfs:cards-pile-set', snapshot()).catch(() => {})
+  }, 300)
+  return saveFn
+}
+
+function scheduleSave(): void {
+  ensureSaver()()
 }
 
 export function useCardsMode() {
   const router = useRouter()
   const ui = useUiState()
   const { ensureLoaded } = useProjectPayload()
+  const rpc = useRpc()
 
   const currentCard = computed<CardRef | null>(() => currentCardSync())
   const total = computed(() => pile.value.length)
   const remaining = computed(() => Math.max(0, pile.value.length - index.value))
   const done = computed(() => pile.value.length > 0 && index.value >= pile.value.length)
 
-  /**
-   * Is the current card in a state where a "close" op is meaningful — i.e.
-   * the underlying item is open and has no pending close already queued?
-   */
   const currentCanClose = computed<boolean>(() => {
     const card = currentCard.value
     if (!card)
@@ -128,9 +257,6 @@ export function useCardsMode() {
     const card = currentCard.value
     if (!card)
       return false
-    // Reads the singleton ui-state which is hydrated to the card's project
-    // once `doMarkTodo`/`ensureLoaded` has run for that project. May briefly
-    // be stale on the first card; ok for MVP.
     return ui.isTodo(card.number)
   })
 
@@ -141,74 +267,109 @@ export function useCardsMode() {
     return ui.isIgnored(card.number)
   })
 
-  async function start(items: ListItem[], next?: CardsSource): Promise<void> {
-    sourceItems.value = items
-    processedOps.value = []
-    processedKeys.value = new Set()
-    pile.value = pickPile(items)
-    index.value = 0
-    source.value = next ?? { label: 'Cards' }
-    await router.push('/cards')
+  async function hydrate(): Promise<void> {
+    if (hydrated)
+      return
+    if (hydratingPromise)
+      return hydratingPromise
+    hydratingPromise = (async () => {
+      try {
+        const fetched = await rpc.$call('ghfs:cards-pile-get')
+        applyServerState(fetched ?? null)
+        hydrated = true
+      }
+      catch {
+        // Treat hydration failure as an empty pile — user can start fresh.
+        applyServerState(null)
+      }
+      finally {
+        hydratingPromise = null
+      }
+    })()
+    return hydratingPromise
+  }
+
+  /** Open the start dialog. Stash the candidate items + source for the dialog. */
+  function openStartDialog(items: ListItem[], src: CardsSource): void {
+    pendingSourceItems.value = items
+    pendingSource.value = src
+    startDialogOpen.value = true
   }
 
   /**
-   * Resolve a source list from the current route and start cards mode. Lets
-   * a single global command (`cards.start`) wire up correctly from any list.
+   * Generate a pile from `items` using `opts`, persist server-side, and
+   * navigate to /cards. Used both by the start dialog (initial start) and
+   * Restart (re-generate with same options).
    */
-  async function startFromCurrentContext(): Promise<void> {
-    const route = useRoute()
-    if (route.path === '/recent') {
-      const recent = useRecentFiltered()
-      const items = recent.filteredItems.value
-      if (items.length === 0)
-        return
-      await start(items, { label: 'Recent' })
+  async function start(
+    items: ListItem[],
+    src: CardsSource,
+    opts: PileOptions,
+    currentUserLogin: string | null,
+  ): Promise<void> {
+    const candidates = filterCandidates(items, opts, currentUserLogin)
+    const next = pickFromCandidates(candidates, opts, new Set())
+    if (next.length === 0)
       return
-    }
-    if (route.path === '/todo') {
-      const todos = useHubTodos()
-      const items = todos.listItems.value
-      if (items.length === 0)
-        return
-      await start(items, { label: 'Todo' })
-      return
-    }
-    const { filteredItems } = useFilteredItems()
-    const items = filteredItems.value
-    if (items.length === 0)
-      return
-    const state = useAppState()
-    const activeId = useActiveProjectId().value
-    if (activeId && state.payload.value) {
-      const kindLabel = state.filters.kind === 'pull' ? 'Pull requests' : 'Issues'
-      await start(items, {
-        label: kindLabel,
-        project: { id: activeId, repo: state.payload.value.repo.repo },
-      })
-      return
-    }
-    await start(items, { label: 'Cards' })
+    pile.value = next
+    index.value = 0
+    processedOps.value = []
+    processedKeys.value = new Set()
+    source.value = src
+    options.value = { ...opts }
+    hydrated = true
+    await rpc.$call('ghfs:cards-pile-set', snapshot()).catch(() => {})
+    startDialogOpen.value = false
+    pendingSourceItems.value = null
+    if (router.currentRoute.value.path !== '/cards')
+      await router.push('/cards')
   }
 
   function recordOp(projectId: string, opId: string): void {
-    processedOps.value.push({ projectId, opId })
+    processedOps.value = [...processedOps.value, { projectId, opId }]
+    scheduleSave()
   }
 
-  function anotherPile(): void {
-    if (!sourceItems.value)
+  /** Re-pick from the original source items, excluding cards already touched. */
+  function anotherPile(items: ListItem[], currentUserLogin: string | null): void {
+    const candidates = filterCandidates(items, options.value, currentUserLogin)
+    const fresh = pickFromCandidates(candidates, options.value, processedKeys.value)
+    if (fresh.length === 0)
       return
-    processedOps.value = []
-    pile.value = pickPile(sourceItems.value)
+    pile.value = fresh
     index.value = 0
+    processedOps.value = []
+    scheduleSave()
   }
 
-  function reset(): void {
+  /** Re-generate using the same options but a fresh source snapshot. */
+  function restartPile(items: ListItem[], currentUserLogin: string | null): void {
+    const candidates = filterCandidates(items, options.value, currentUserLogin)
+    const fresh = pickFromCandidates(candidates, options.value, new Set())
+    if (fresh.length === 0)
+      return
+    pile.value = fresh
+    index.value = 0
+    processedOps.value = []
+    processedKeys.value = new Set()
+    scheduleSave()
+  }
+
+  /** Clear pile both client- and server-side. */
+  async function dismiss(): Promise<void> {
     pile.value = []
     index.value = 0
     processedOps.value = []
-    sourceItems.value = null
     processedKeys.value = new Set()
+    options.value = { ...DEFAULT_PILE_OPTIONS }
     source.value = { label: 'Cards' }
+    commentDialogOpen.value = false
+    labelsPendingFor.value = null
+    await rpc.$call('ghfs:cards-pile-clear').catch(() => {})
+  }
+
+  /** Local reset (no server clear) — used when navigating away mid-pile. */
+  function reset(): void {
     commentDialogOpen.value = false
     labelsPendingFor.value = null
   }
@@ -219,15 +380,11 @@ export function useCardsMode() {
     await performAdvance()
   }
 
-  /**
-   * Step back to the previous card. Decrements the index; any ops the user
-   * queued for the card they're going back from stay queued — they can clear
-   * them from the regular queue drawer.
-   */
   function goBack(): void {
     if (index.value <= 0)
       return
     index.value -= 1
+    scheduleSave()
   }
 
   const canGoBack = computed(() => index.value > 0)
@@ -269,6 +426,37 @@ export function useCardsMode() {
     commentDialogOpen.value = true
   }
 
+  /**
+   * Resolve a source list from the current route and open the start dialog.
+   * Lets a single global command (`cards.start`) wire up correctly from any
+   * list.
+   */
+  function startFromCurrentContext(): void {
+    const route = useRoute()
+    if (route.path === '/recent') {
+      const recent = useRecentFiltered()
+      openStartDialog(recent.filteredItems.value, { label: 'Recent' })
+      return
+    }
+    if (route.path === '/todo') {
+      const todos = useHubTodos()
+      openStartDialog(todos.listItems.value, { label: 'Todo' })
+      return
+    }
+    const { filteredItems } = useFilteredItems()
+    const state = useAppState()
+    const activeId = useActiveProjectId().value
+    if (activeId && state.payload.value) {
+      const kindLabel = state.filters.kind === 'pull' ? 'Pull requests' : 'Issues'
+      openStartDialog(filteredItems.value, {
+        label: kindLabel,
+        project: { id: activeId, repo: state.payload.value.repo.repo },
+      })
+      return
+    }
+    openStartDialog(filteredItems.value, { label: 'Cards' })
+  }
+
   return {
     pile: computed(() => pile.value),
     currentCard,
@@ -278,17 +466,25 @@ export function useCardsMode() {
     done,
     advancing: computed(() => advancing.value),
     source: computed(() => source.value),
+    options: computed(() => options.value),
     commentDialogOpen,
     labelsPendingFor,
     processedOps: computed(() => processedOps.value),
     currentCanClose,
     currentIsTodo,
     currentIsIgnored,
-    start,
+    startDialogOpen,
+    pendingSourceItems: computed(() => pendingSourceItems.value),
+    pendingSource: computed(() => pendingSource.value),
+    hydrate,
+    openStartDialog,
     startFromCurrentContext,
+    start,
     advance: performAdvance,
     recordOp,
     anotherPile,
+    restartPile,
+    dismiss,
     reset,
     doSkip,
     doMarkTodo,
@@ -299,4 +495,3 @@ export function useCardsMode() {
     canGoBack,
   }
 }
-
