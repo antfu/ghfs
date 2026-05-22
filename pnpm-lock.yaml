@@ -156,6 +156,9 @@ catalogs:
     vue-tsc:
       specifier: ^3.3.1
       version: 3.3.1
+    whenexpr:
+      specifier: ^0.1.2
+      version: 0.1.2
     yaml:
       specifier: ^2.9.0
       version: 2.9.0
@@ -298,6 +301,9 @@ importers:
       vue-data-ui:
         specifier: 'catalog:'
         version: 3.19.9(vue@3.5.34(typescript@6.0.3))
+      whenexpr:
+        specifier: 'catalog:'
+        version: 0.1.2
     devDependencies:
       '@iconify-json/carbon':
         specifier: 'catalog:'
@@ -6548,6 +6554,9 @@ packages:
 
   whatwg-url@5.0.0:
     resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
+
+  whenexpr@0.1.2:
+    resolution: {integrity: sha512-VVSufnKy206AoAYrxiZ0xof2nx0fqHCFYi7Ox/kAn7azSHsEc4geVlENPb4Nq8mKKlYPRKQrgIQbjrWldMvGCg==}
 
   which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
@@ -13371,6 +13380,8 @@ snapshots:
     dependencies:
       tr46: 0.0.3
       webidl-conversions: 3.0.1
+
+  whenexpr@0.1.2: {}
 
   which@2.0.2:
     dependencies:

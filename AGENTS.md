@@ -9,12 +9,14 @@
 
 ## Keyboard accessibility (UI)
 
-- Every interactive element under `ui/` must be operable without a mouse. When adding a button, tab, pill, or dialog action, pair it with either (a) native `Tab` + `Enter`/`Space` — the default focus ring must be visible — or (b) a shortcut registered in `ui/composables/useAppShortcuts.ts`, and render `<Kbd shortcut-id="..." />` next to it so the binding is discoverable.
-- Text inputs & textareas get a single-key focus shortcut (e.g. `/` for search, `n` for comment). `Escape` already blurs focused inputs globally via `ui/composables/useShortcuts.ts` — do not re-implement it. Tag the element with `data-shortcut="<id>"` so the shortcut's `run()` can `querySelector` it.
-- Submit-from-input (e.g. `Cmd`/`Ctrl` + `Enter` on a textarea): add a local `@keydown.meta.enter` / `@keydown.ctrl.enter` handler on the element. The global handler intentionally ignores modified key events so the registry stays simple.
-- Prefer single-key shortcuts. The registry supports multi-key sequences via an 800 ms tail-match buffer (longer sequences win), but multi-key bindings are reserved for cases where every reasonable single letter already collides.
+- Every interactive element under `ui/` must be operable without a mouse. When adding a button, tab, pill, or dialog action, pair it with either (a) native `Tab` + `Enter`/`Space` — the default focus ring must be visible — or (b) a command registered in `ui/composables/useAppCommands.ts`, and render `<Kbd command="..." />` next to it so the binding is discoverable.
+- Text inputs & textareas get a single-key focus shortcut (e.g. `/` for search, `n` for comment). `Escape` already blurs focused inputs globally via `ui/composables/useCommandHandler.ts` — do not re-implement it. Tag the element with `data-shortcut="<id>"` so the command's `run()` can `querySelector` it.
+- Submit-from-input (e.g. `Cmd`/`Ctrl` + `Enter` on a textarea): add a local `@keydown.meta.enter` / `@keydown.ctrl.enter` handler on the element. The global handler routes modifier combos to keybindings (e.g. `mod+k` opens the command palette); element-local Cmd/Ctrl+Enter handlers are still preferred for textarea submit so the registry stays focused on app-level actions.
+- Prefer single-key shortcuts. The handler supports multi-key sequences via an 800 ms tail-match buffer (longer sequences win), and modifier combos via `mod+x` / `mod+shift+x` (alias `mod` resolves to Cmd on Mac, Ctrl elsewhere). Multi-key bindings are reserved for cases where every reasonable single letter already collides.
+- Gate commands declaratively via the `when` field — a [whenexpr](https://github.com/antfu/whenexpr) string evaluated against `useWhenContext()` (e.g. `'hasActiveItem && activeItemState == "open"'`). Add a new key to `WhenContext` in `ui/composables/useWhenContext.ts` rather than reaching for a JS predicate.
+- Every command is callable from the command palette (`mod+k` / `mod+shift+p`). Use `help: false` on internal palette commands to keep them out of `<HelpOverlay>`, or `help: '<when>'` to scope visibility (e.g. `help: 'hubMode'`).
 - Every new `btn-*` variant in `ui/uno.config.ts` must include `outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40`, matching the existing `tab-trigger` shortcut.
-- The `?` help overlay (`ui/components/HelpOverlay.vue`) auto-renders every registered shortcut grouped by id prefix — keep each `description` short and user-facing.
+- The `?` help overlay (`ui/components/HelpOverlay.vue`) auto-renders every registered command grouped by its `category` — keep each command `title` short and user-facing.
 
 ## Design language (UI)
 
@@ -43,10 +45,13 @@
 - **Empty states**: `<EmptyState>` for "no items", "loading", "error" placeholders. Use its `hint` slot for keyboard-shortcut footers or follow-up CTAs.
 - **Testid forwarding**: every shared primitive (`Modal`, `IconButton`, `Panel`, `Badge`, `SearchField`, `Toggle`, `Drawer`, `DateBadge`, `AuthorEntry`, `VirtualItemList`, `SettingsDialog`, `ActivitySparkline`) accepts a `dataTestid` prop that lands on the root element. Add the same forwarding when introducing new primitives — the Playwright suite depends on `data-testid` staying on stable nodes.
 
-## Keyboard shortcuts (UI)
+## Commands & keybindings (UI)
 
-Global shortcuts are registered in `ui/composables/useAppShortcuts.ts` and rendered next to their trigger via `<Kbd shortcut-id="..." />`. Notable global keys:
+Commands are the unit of action: every keyboard shortcut, every palette entry, and every `<Kbd>` hint resolves through the registry in `ui/composables/useAppCommands.ts`. A command bundles an `id`, `title`, `category`, optional `when` (whenexpr string), optional inline `keybindings` (string shorthand or `{ key, when?, label? }`), and a `run()` handler. Render the bound key next to a trigger via `<Kbd command="..." />`.
 
+Notable global keys:
+
+- `mod+k` / `mod+shift+p` — Open the command palette
 - `,` — Open Settings dialog
 - `?` — Help overlay
 - `u` — Hub recent activity page (hub mode)

@@ -20,7 +20,8 @@
     "reka-ui": "catalog:",
     "shiki": "catalog:",
     "splitpanes": "catalog:",
-    "vue-data-ui": "catalog:"
+    "vue-data-ui": "catalog:",
+    "whenexpr": "catalog:"
   },
   "devDependencies": {
     "@iconify-json/carbon": "catalog:",

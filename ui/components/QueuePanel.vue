@@ -233,7 +233,7 @@ async function confirmExecute() {
         >
           <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-ph-play-duotone'" />
           <span>Execute {{ entries.length }} op{{ entries.length === 1 ? '' : 's' }}</span>
-          <Kbd shortcut-id="action.execute" />
+          <Kbd command="action.execute" />
         </button>
       </footer>
     </aside>

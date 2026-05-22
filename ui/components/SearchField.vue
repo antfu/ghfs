@@ -2,7 +2,7 @@
 withDefaults(defineProps<{
   placeholder?: string
   icon?: string
-  shortcutId?: string
+  command?: string
   dataTestid?: string
   dataShortcut?: string
   ariaLabel?: string
@@ -31,7 +31,7 @@ defineExpose({ inputRef, focus: () => inputRef.value?.focus() })
       :autofocus="autofocus"
       class="bg-transparent outline-none w-full font-sans text-sm min-w-0"
     >
-    <Kbd v-if="!value && shortcutId" :shortcut-id="shortcutId" class="shrink-0" />
+    <Kbd v-if="!value && command" :command="command" class="shrink-0" />
     <button
       v-else-if="value"
       type="button"

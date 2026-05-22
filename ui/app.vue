@@ -6,8 +6,8 @@ useHead({
 
 useRpc()
 
-installShortcuts(createAppShortcuts())
-useShortcutsHandler()
+registerCommands(createAppCommands())
+useCommandHandler()
 useShiki()
 
 const hubUi = useHubUiState()
@@ -22,5 +22,6 @@ const settingsOpen = computed({
     <NuxtPage />
     <SettingsDialog v-model:open="settingsOpen" />
     <HubQueueDrawer />
+    <CommandPalette />
   </div>
 </template>

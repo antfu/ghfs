@@ -121,7 +121,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
           <span class="i-octicon-issue-opened-16" />
           <span class="font-mono tabular-nums">{{ counts.issues }}</span>
           <span>Issues</span>
-          <Kbd shortcut-id="tab.issues" />
+          <Kbd command="tab.issues" />
         </button>
         <button
           type="button"
@@ -139,7 +139,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
           <span class="i-octicon-git-pull-request-16" />
           <span class="font-mono tabular-nums">{{ counts.pulls }}</span>
           <span>Pull requests</span>
-          <Kbd shortcut-id="tab.pulls" />
+          <Kbd command="tab.pulls" />
         </button>
       </nav>
 
@@ -150,7 +150,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
         placeholder="Search title, body, author, labels…"
         data-shortcut="search"
         data-testid="navbar-search"
-        shortcut-id="search.focus"
+        command="search.focus"
       />
     </template>
 
@@ -176,7 +176,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
         >
           <span class="i-octicon-history-16" />
           <span>Recent</span>
-          <Kbd shortcut-id="hub.recent" />
+          <Kbd command="hub.recent" />
         </button>
         <button
           type="button"
@@ -208,7 +208,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
       @click="triggerSync"
     >
       <template #badge>
-        <Kbd shortcut-id="action.sync" class="absolute -bottom-1 -right-1" />
+        <Kbd command="action.sync" class="absolute -bottom-1 -right-1" />
       </template>
     </IconButton>
     <IconButton
@@ -260,7 +260,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
       @click="hubUi.openSettings()"
     >
       <template #badge>
-        <Kbd shortcut-id="settings.open" class="absolute -bottom-1 -right-1" />
+        <Kbd command="settings.open" class="absolute -bottom-1 -right-1" />
       </template>
     </IconButton>
 
@@ -270,7 +270,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
       @click="isDark = !isDark"
     >
       <template #badge>
-        <Kbd shortcut-id="action.theme" class="absolute -bottom-1 -right-1" />
+        <Kbd command="action.theme" class="absolute -bottom-1 -right-1" />
       </template>
     </IconButton>
   </header>
