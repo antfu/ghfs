@@ -50,6 +50,8 @@ export interface HubSettings {
 export interface HubScannedProject {
   path: string
   name: string
+  /** Resolved `owner/repo` from git remotes / package.json. Scans drop repos that can't be resolved. */
+  repo: string
   enabled: boolean
   /** Data URL of a logo found in the project directory, or null. */
   iconDataUrl: string | null

@@ -129,13 +129,13 @@ const enabledCount = computed(() => items.value.filter(i => i.enabled).length)
         :data-path="entry.path"
       >
         <DisplayProjectIcon
-          :project="{ id: entry.path, repo: entry.name }"
+          :project="{ id: entry.path, repo: entry.repo }"
           :icon-data-url="entry.iconDataUrl"
           :size="32"
           :class="entry.enabled ? 'ring-1 ring-primary-500/30' : ''"
         />
         <div class="flex-1 min-w-0">
-          <div class="text-sm font-medium font-mono truncate" :class="entry.enabled ? '' : 'color-muted'">{{ entry.name }}</div>
+          <div class="text-sm font-medium font-mono truncate" :class="entry.enabled ? '' : 'color-muted'">{{ entry.repo }}</div>
           <div class="text-[11px] color-faint font-mono truncate" :title="entry.path">{{ entry.path }}</div>
         </div>
         <button

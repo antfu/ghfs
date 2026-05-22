@@ -20,7 +20,10 @@ const props = withDefaults(defineProps<{
 
 const icon = useProjectIcon(() => props.project.id)
 
-const owner = computed(() => props.project.repo.split('/')[0] ?? '')
+const owner = computed(() => {
+  const parts = (props.project.repo ?? '').split('/')
+  return parts.length === 2 && parts[0] && parts[1] ? parts[0] : ''
+})
 const avatarSrc = computed(() => owner.value ? `https://avatars.githubusercontent.com/${owner.value}` : '')
 
 const localFailed = ref(false)
