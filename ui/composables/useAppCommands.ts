@@ -155,6 +155,12 @@ export function createAppCommands(): Command[] {
     state.value.askExecute()
   }
   function toggleQueue() {
+    const isHub = hub.capabilities.value?.mode === 'hub'
+    if (isHub) {
+      if (hubUi.queueDrawerOpen.value) hubUi.closeQueueDrawer()
+      else hubUi.openQueueDrawer()
+      return
+    }
     if (state.value.queueOpen.value) state.value.closeQueue()
     else state.value.openQueue()
   }

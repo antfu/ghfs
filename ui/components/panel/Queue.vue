@@ -81,12 +81,6 @@ async function confirmClear() {
   }
 }
 
-function askExecute() {
-  if (!hasToken.value || entries.value.length === 0 || state.executing.value)
-    return
-  executeConfirmOpen.value = true
-}
-
 async function confirmExecute() {
   executeConfirmOpen.value = false
   const ids = entries.value.map(e => e.id)
@@ -214,16 +208,17 @@ async function confirmExecute() {
         <div class="text-xs color-muted flex-1">
           Runs every op against GitHub.
         </div>
-        <button
-          class="btn-primary text-sm"
-          :disabled="entries.length === 0 || state.executing.value || !hasToken"
-          :title="!hasToken ? 'No GitHub token available' : undefined"
-          @click="askExecute"
-        >
-          <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-ph-play-duotone'" />
-          <span>Execute {{ entries.length }} op{{ entries.length === 1 ? '' : 's' }}</span>
-          <UiKbd command="action.execute" />
-        </button>
+        <UiWithCommand v-slot="{ execute, disabled }" command="action.execute">
+          <button
+            class="btn-primary text-sm"
+            :disabled="entries.length === 0 || state.executing.value || !hasToken || disabled"
+            :title="!hasToken ? 'No GitHub token available' : undefined"
+            @click="execute"
+          >
+            <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-ph-play-duotone'" />
+            <span>Execute {{ entries.length }} op{{ entries.length === 1 ? '' : 's' }}</span>
+          </button>
+        </UiWithCommand>
       </footer>
     </aside>
   </Transition>
