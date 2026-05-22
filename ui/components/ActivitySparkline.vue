@@ -31,13 +31,14 @@ const dataset = computed(() =>
   })),
 )
 
-// Extend the y-scale below 0 so the plotted line floats above the bottom
-// edge while the area fill still reaches the panel bottom — much easier
-// to read than a line that kisses the container edge on zero-activity days.
-const scaleMin = computed(() => {
-  const peak = Math.max(0, ...props.points)
-  return peak > 0 ? -peak * 0.15 : -1
-})
+// Pin the y-axis to a minimum range so quiet projects don't visually
+// scream: when the peak is small (or zero), low activity still maps to
+// the bottom of the chart instead of filling the whole container.
+// Extend the scale slightly below zero so the line floats above the
+// edge while the area fill still reaches the panel bottom.
+const MIN_SCALE = 10
+const scaleMax = computed(() => Math.max(MIN_SCALE, ...props.points))
+const scaleMin = computed(() => -scaleMax.value * 0.15)
 
 // vue-data-ui sparkline expects `area`, `plot`, etc. at the top level of
 // `style` — NOT nested under `line`. Color must be a real hex value because
@@ -52,6 +53,7 @@ const config = computed(() => ({
     // `{ top, right, bottom, left }`; an array silently becomes all-undefined.
     padding: { top: 4, right: 0, bottom: 0, left: 0 },
     scaleMin: scaleMin.value,
+    scaleMax: scaleMax.value,
     animation: { show: false },
     line: {
       color: props.color,
