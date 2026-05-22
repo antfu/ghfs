@@ -31,6 +31,7 @@ const config = computed(() => ({
     fontFamily: 'inherit',
     backgroundColor: 'transparent',
     padding: [4, 0, 0, 0],
+    animation: { show: false },
     line: {
       color: props.color,
       strokeWidth: 1.25,
