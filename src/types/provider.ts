@@ -1,4 +1,5 @@
 import type { IssueKind, IssueState } from '../types'
+import type { ReactionContent } from '../utils/reactions'
 
 export interface ProviderReactions {
   totalCount: number
@@ -86,7 +87,18 @@ export type ProviderTimelineEvent
     | (ProviderTimelineEventBase & { kind: 'labeled' | 'unlabeled', label: { name: string, color: string } })
     | (ProviderTimelineEventBase & { kind: 'assigned' | 'unassigned', assignee: string })
     | (ProviderTimelineEventBase & { kind: 'review_requested' | 'review_request_removed', requestedReviewer: string, isTeam?: boolean })
-    | (ProviderTimelineEventBase & { kind: 'reviewed', review: { state: ProviderReviewState, body: string | null, submittedAt: string }, body?: string | null })
+    | (ProviderTimelineEventBase & {
+      kind: 'reviewed'
+      review: {
+        state: ProviderReviewState
+        body: string | null
+        submittedAt: string
+        /** GraphQL node ID — required to react to a review body. */
+        nodeId?: string
+        reactions?: ProviderReactions
+      }
+      body?: string | null
+    })
     | (ProviderTimelineEventBase & { kind: 'review_dismissed', dismissedReview: { state: string, reviewId: number, dismissalMessage: string | null }, reviewedBy?: string })
     | (ProviderTimelineEventBase & { kind: 'commented', commentId?: number, body?: string | null })
     | (ProviderTimelineEventBase & { kind: 'renamed', rename: { from: string, to: string } })
@@ -171,6 +183,16 @@ export interface ProviderUpdateCounts {
 
 export type ProviderLockReason = 'resolved' | 'off-topic' | 'too heated' | 'too-heated' | 'spam'
 
+/**
+ * Where a reaction is applied. `item` = issue/PR body (uses `op.number`).
+ * `comment` = issue/PR conversation comment. `review` = a PR review body
+ * (review reactions go through GraphQL and need the review's node ID).
+ */
+export type ReactionTarget
+  = | { kind: 'item' }
+    | { kind: 'comment', commentId: number }
+    | { kind: 'review', reviewId: string }
+
 export interface PaginateItemsOptions {
   state: IssueState | 'all'
   since?: string
@@ -213,4 +235,7 @@ export interface RepositoryProvider {
   actionRemoveReviewers: (number: number, reviewers: string[]) => Promise<void>
   actionMarkReadyForReview: (number: number) => Promise<void>
   actionConvertToDraft: (number: number) => Promise<void>
+  actionAddReaction: (number: number, reaction: ReactionContent, target: ReactionTarget) => Promise<void>
+  actionRemoveReaction: (number: number, reaction: ReactionContent, target: ReactionTarget) => Promise<void>
+  fetchViewerReactions: (number: number, target: ReactionTarget) => Promise<ReactionContent[]>
 }

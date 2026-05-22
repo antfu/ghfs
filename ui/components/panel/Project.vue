@@ -23,6 +23,7 @@ const emit = defineEmits<{
 }>()
 
 const ui = useUiState()
+const activeProjectId = useActiveProjectId()
 const listPaneSize = computed(() => ui.uiState.listPaneSize ?? 30)
 
 function onResize(panes: Array<{ size: number }>) {
@@ -72,13 +73,13 @@ const showError = computed(() => Boolean(props.loadError) && !props.hasPayload)
 
         <Pane :size="100 - listPaneSize" class="bg-base">
           <div class="h-full" data-testid="detail-panel">
-            <PanelDetail />
+            <PanelDetail :key="activeProjectId ?? '__none__'" />
           </div>
         </Pane>
       </Splitpanes>
     </main>
 
     <PanelQueue />
-    <UiProgressToast />
+    <UiProgressToast :key="activeProjectId ?? '__none__'" />
   </div>
 </template>

@@ -144,6 +144,10 @@ export const diagnostics = defineDiagnostics({
       why: (p: { value: string }) => `Milestone not found: ${p.value}`,
       fix: 'Create the milestone on GitHub, or pass its numeric id.',
     },
+    GHFS0302: {
+      why: 'Cannot remove a reaction without an authenticated user.',
+      fix: 'Ensure GH_TOKEN/GITHUB_TOKEN is set so ghfs knows which user\'s reaction to remove.',
+    },
 
     // Sync (0400–0449)
     GHFS0400: {

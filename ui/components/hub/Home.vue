@@ -211,14 +211,16 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
             <h2 class="text-sm font-semibold">Projects</h2>
             <span class="color-muted text-xs">{{ projects.length }} enabled · sorted by recent activity</span>
             <div class="flex-1" />
-            <button
-              v-if="projects.length > 0"
-              class="text-xs color-muted hover:color-active transition"
-              data-testid="hub-manage-projects"
-              @click="pickerOpen = true"
-            >
-              + add or remove
-            </button>
+            <UiWithCommand v-if="projects.length > 0" v-slot="{ execute, disabled }" command="hub.manage">
+              <button
+                class="text-xs color-muted hover:color-active transition"
+                data-testid="hub-manage-projects"
+                :disabled="disabled"
+                @click="execute"
+              >
+                + add or remove
+              </button>
+            </UiWithCommand>
           </div>
 
           <UiEmptyState
@@ -228,14 +230,17 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
             message="Click Manage projects to scan this directory and choose which repositories appear in the hub."
           >
             <template #hint>
-              <button
-                class="btn-primary text-xs flex items-center gap-1.5 mt-1"
-                data-testid="hub-empty-cta"
-                @click="pickerOpen = true"
-              >
-                <span class="i-ph-sliders-duotone" />
-                <span>Manage projects</span>
-              </button>
+              <UiWithCommand v-slot="{ execute, disabled }" command="hub.manage">
+                <button
+                  class="btn-primary text-xs flex items-center gap-1.5 mt-1"
+                  data-testid="hub-empty-cta"
+                  :disabled="disabled"
+                  @click="execute"
+                >
+                  <span class="i-ph-sliders-duotone" />
+                  <span>Manage projects</span>
+                </button>
+              </UiWithCommand>
             </template>
           </UiEmptyState>
 

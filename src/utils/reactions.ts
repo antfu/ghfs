@@ -11,6 +11,70 @@ const REACTION_KEYS = [
   'eyes',
 ] as const
 
+export type ReactionKey = typeof REACTION_KEYS[number]
+
+/**
+ * GitHub's wire format for reaction content (REST + GraphQL accept these
+ * strings, sometimes uppercased in GraphQL). Order matches REACTION_KEYS.
+ */
+export const REACTION_CONTENTS = [
+  '+1',
+  '-1',
+  'laugh',
+  'hooray',
+  'confused',
+  'heart',
+  'rocket',
+  'eyes',
+] as const
+
+export type ReactionContent = typeof REACTION_CONTENTS[number]
+
+export const REACTION_EMOJI: Record<ReactionContent, string> = {
+  '+1': '👍',
+  '-1': '👎',
+  'laugh': '😄',
+  'hooray': '🎉',
+  'confused': '😕',
+  'heart': '❤️',
+  'rocket': '🚀',
+  'eyes': '👀',
+}
+
+const CONTENT_TO_KEY: Record<ReactionContent, ReactionKey> = {
+  '+1': 'plusOne',
+  '-1': 'minusOne',
+  'laugh': 'laugh',
+  'hooray': 'hooray',
+  'confused': 'confused',
+  'heart': 'heart',
+  'rocket': 'rocket',
+  'eyes': 'eyes',
+}
+
+const KEY_TO_CONTENT: Record<ReactionKey, ReactionContent> = {
+  plusOne: '+1',
+  minusOne: '-1',
+  laugh: 'laugh',
+  hooray: 'hooray',
+  confused: 'confused',
+  heart: 'heart',
+  rocket: 'rocket',
+  eyes: 'eyes',
+}
+
+export function reactionKeyFromContent(content: ReactionContent): ReactionKey {
+  return CONTENT_TO_KEY[content]
+}
+
+export function reactionContentFromKey(key: ReactionKey): ReactionContent {
+  return KEY_TO_CONTENT[key]
+}
+
+export function isReactionContent(value: unknown): value is ReactionContent {
+  return typeof value === 'string' && (REACTION_CONTENTS as readonly string[]).includes(value)
+}
+
 export function createEmptyReactions(): ProviderReactions {
   return {
     totalCount: 0,

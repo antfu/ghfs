@@ -1,4 +1,4 @@
-import type { PendingLockOp, PendingOp } from './types'
+import type { PendingLockOp, PendingOp, PendingReactionOp } from './types'
 
 type LockReason = PendingLockOp['reason']
 
@@ -326,9 +326,57 @@ export function compressOps(ops: PendingOp[]): PendingOp[] {
   const result: PendingOp[] = []
   for (const [number, { list }] of sorted) {
     const state = createEmptyState()
-    for (const op of list)
-      applyOp(state, op)
+    const reactionOps: PendingReactionOp[] = []
+    for (const op of list) {
+      if (op.action === 'add-reaction' || op.action === 'remove-reaction')
+        reactionOps.push(op)
+      else
+        applyOp(state, op)
+    }
     result.push(...emit(number, state))
+    result.push(...compressReactionOps(reactionOps))
   }
   return result
+}
+
+/**
+ * Dedupe and cancel reaction ops within a single item. Same (action, reaction,
+ * target) is collapsed to one; opposite actions on the same (reaction, target)
+ * cancel out, leaving GitHub state untouched.
+ */
+function compressReactionOps(ops: PendingReactionOp[]): PendingReactionOp[] {
+  function targetKey(op: PendingReactionOp): string {
+    const t = op.target
+    if (!t || t.kind === 'item')
+      return 'item:'
+    if (t.kind === 'comment')
+      return `comment:${t.commentId}`
+    return `review:${t.reviewId}`
+  }
+
+  type Status = 'add' | 'remove'
+  const status = new Map<string, Status>()
+  const opByKey = new Map<string, PendingReactionOp>()
+  const order: string[] = []
+
+  for (const op of ops) {
+    const key = `${op.reaction}|${targetKey(op)}`
+    const next: Status = op.action === 'add-reaction' ? 'add' : 'remove'
+    const prev = status.get(key)
+    if (prev === next)
+      continue
+    if (prev && prev !== next) {
+      status.delete(key)
+      opByKey.delete(key)
+      const idx = order.indexOf(key)
+      if (idx >= 0)
+        order.splice(idx, 1)
+      continue
+    }
+    status.set(key, next)
+    opByKey.set(key, op)
+    order.push(key)
+  }
+
+  return order.map(k => opByKey.get(k)!)
 }

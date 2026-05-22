@@ -292,6 +292,9 @@ function createProviderMock(overrides: Partial<RepositoryProvider> = {}): Reposi
     actionRemoveReviewers: vi.fn(async () => {}),
     actionMarkReadyForReview: vi.fn(async () => {}),
     actionConvertToDraft: vi.fn(async () => {}),
+    actionAddReaction: vi.fn(async () => {}),
+    actionRemoveReaction: vi.fn(async () => {}),
+    fetchViewerReactions: vi.fn(async () => []),
     ...overrides,
   }
 }

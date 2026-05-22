@@ -3,6 +3,7 @@ import type { QueueEntry } from '#ghfs/server-types'
 import type {
   ProviderComment,
   ProviderItem,
+  ProviderReactions,
   ProviderTimelineEvent,
 } from '../../../src/types/provider'
 import {
@@ -35,9 +36,11 @@ const repo = computed(() => state.payload.value?.repo.repo ?? null)
 interface StreamComment {
   kind: 'comment'
   id: string
+  commentId: number
   createdAt: string
   author: string | null
   body: string | null
+  reactions?: ProviderReactions
 }
 
 interface StreamEvent {
@@ -58,9 +61,11 @@ const entries = computed<StreamEntry[]>(() => {
     out.push({
       kind: 'comment',
       id: `comment-${comment.id}`,
+      commentId: comment.id,
       createdAt: comment.createdAt,
       author: comment.author,
       body: comment.body,
+      reactions: comment.reactions,
     })
   }
 
@@ -116,6 +121,11 @@ function shortSha(sha: string | undefined): string {
             <div class="px-4 py-3">
               <div v-if="entry.body" class="markdown-body text-sm" v-html="renderMarkdown(entry.body)" />
               <p v-else class="text-sm color-muted italic">Empty comment.</p>
+              <PanelDetailReactions
+                :item-number="item.number"
+                :target="{ kind: 'comment', commentId: entry.commentId }"
+                :reactions="entry.reactions"
+              />
             </div>
           </div>
         </div>
@@ -138,6 +148,12 @@ function shortSha(sha: string | undefined): string {
               </div>
               <div class="px-4 py-3">
                 <div class="markdown-body text-sm" v-html="renderMarkdown(entry.event.review.body)" />
+                <PanelDetailReactions
+                  v-if="entry.event.review.nodeId"
+                  :item-number="item.number"
+                  :target="{ kind: 'review', reviewId: entry.event.review.nodeId }"
+                  :reactions="entry.event.review.reactions"
+                />
               </div>
             </div>
           </div>

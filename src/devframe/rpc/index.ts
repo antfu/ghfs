@@ -6,6 +6,7 @@ import { clearQueue } from './clear-queue'
 import { executeQueue } from './execute-queue'
 import { getProjectIcon } from './get-project-icon'
 import { getPullPatch } from './get-pull-patch'
+import { getViewerReactions } from './get-viewer-reactions'
 import { hubActivity } from './hub-activity'
 import { hubAddRoot } from './hub-add-root'
 import { hubDisable } from './hub-disable'
@@ -50,6 +51,7 @@ export const rpcFunctions = [
   openInEditor,
   saveUiState,
   getPullPatch,
+  getViewerReactions,
   getProjectIcon,
   projectActivity,
   hubActivity,
