@@ -40,7 +40,11 @@ const config = computed(() => ({
   style: {
     fontFamily: 'inherit',
     backgroundColor: 'transparent',
-    padding: [4, 0, 0, 0],
+    // Padding must be the object form — the library destructures
+    // `{ top, right, bottom, left }`; an array silently becomes all-undefined.
+    // The bottom inset lifts the line off the container edge so even
+    // zero-activity days stay visible.
+    padding: { top: 4, right: 0, bottom: 6, left: 0 },
     animation: { show: false },
     line: {
       color: props.color,
