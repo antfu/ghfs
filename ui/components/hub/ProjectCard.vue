@@ -64,10 +64,22 @@ const sparklinePoints = computed(() => activity.data.value?.buckets ?? [])
       <span class="flex items-center gap-1 color-muted" :title="`${project.openIssues} open issue${project.openIssues === 1 ? '' : 's'}`">
         <span class="i-octicon-issue-opened-16" />
         <span class="font-mono tabular-nums color-base">{{ project.openIssues }}</span>
+        <span
+          v-if="project.newIssuesToday > 0"
+          class="text-xs font-medium tabular-nums color-green-600 dark:color-green-400"
+          :title="`${project.newIssuesToday} opened today`"
+          data-testid="hub-project-card-new-issues"
+        >+{{ project.newIssuesToday }}</span>
       </span>
       <span class="flex items-center gap-1 color-muted" :title="`${project.openPulls} open pull request${project.openPulls === 1 ? '' : 's'}`">
         <span class="i-octicon-git-pull-request-16" />
         <span class="font-mono tabular-nums color-base">{{ project.openPulls }}</span>
+        <span
+          v-if="project.newPullsToday > 0"
+          class="text-xs font-medium tabular-nums color-green-600 dark:color-green-400"
+          :title="`${project.newPullsToday} opened today`"
+          data-testid="hub-project-card-new-pulls"
+        >+{{ project.newPullsToday }}</span>
       </span>
     </div>
 
