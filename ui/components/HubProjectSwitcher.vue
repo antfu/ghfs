@@ -51,8 +51,11 @@ function toggle() {
 
 function select(id: string) {
   open.value = false
-  if (id !== props.projectId)
-    router.push(`/hub/${id}`)
+  if (id === props.projectId)
+    return
+  const target = projects.value.find(p => p.id === id)
+  if (target)
+    router.push(`/${target.repo}`)
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -170,7 +173,7 @@ onClickOutside(root, () => {
             <span class="kbd">↑</span><span class="kbd">↓</span> navigate · <span class="kbd">↵</span> select · <span class="kbd">Esc</span> close
           </span>
           <NuxtLink
-            to="/hub"
+            to="/"
             class="hover:color-active transition inline-flex items-center gap-1"
             @click="close()"
           >

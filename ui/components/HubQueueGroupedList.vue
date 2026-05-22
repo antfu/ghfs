@@ -24,8 +24,8 @@ function summarize(op: Record<string, unknown>): string {
   return details.join(' ')
 }
 
-function openItem(projectId: string, number: number) {
-  router.push(`/hub/${projectId}/${number}`)
+function openItem(repo: string, number: number) {
+  router.push(`/${repo}/${number}`)
 }
 </script>
 
@@ -65,7 +65,7 @@ function openItem(projectId: string, number: number) {
           v-for="entry in group.queue.entries.filter((e: QueueEntry) => e.source !== 'per-item')"
           :key="entry.id"
           class="flex items-start gap-2 px-4 py-2 hover:bg-active transition cursor-pointer"
-          @click="openItem(group.projectId, entry.op.number)"
+          @click="openItem(group.repo, entry.op.number)"
         >
           <span
             class="badge font-mono text-xs flex-none"

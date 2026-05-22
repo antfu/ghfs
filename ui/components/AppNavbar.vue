@@ -23,8 +23,8 @@ const hasToken = computed(() => state.payload.value?.repo.hasToken ?? false)
 const searching = computed(() => state.filters.search.trim().length > 0)
 const queueBadge = computed(() => (props.mode === 'hub' ? hubQueueTotal.value : upCount.value))
 const showHubBack = computed(() => isHubMode.value && props.mode === 'project')
-const onRecentPage = computed(() => route.path === '/hub/recent')
-const onQueuePage = computed(() => route.path === '/hub/queue')
+const onRecentPage = computed(() => route.path === '/recent')
+const onQueuePage = computed(() => route.path === '/queue')
 
 async function triggerSync() {
   if (props.mode === 'hub') {
@@ -78,7 +78,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
         aria-label="Hub home"
         data-testid="navbar-hub-home"
         active
-        @click="router.push('/hub')"
+        @click="router.push('/')"
       />
       <template v-else-if="mode === 'hub'">
         <span class="i-octicon-organization-16 text-lg color-active shrink-0" />
@@ -160,9 +160,9 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
         <button
           type="button"
           class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 rounded transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
-          :class="route.path === '/hub' ? 'color-active font-medium bg-active' : 'color-muted hover:color-base'"
+          :class="route.path === '/' ? 'color-active font-medium bg-active' : 'color-muted hover:color-base'"
           data-testid="navbar-hub-home-link"
-          @click="router.push('/hub')"
+          @click="router.push('/')"
         >
           <span class="i-octicon-organization-16" />
           <span>Projects</span>
@@ -172,7 +172,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
           class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 rounded transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
           :class="onRecentPage ? 'color-active font-medium bg-active' : 'color-muted hover:color-base'"
           data-testid="navbar-hub-recent-link"
-          @click="router.push('/hub/recent')"
+          @click="router.push('/recent')"
         >
           <span class="i-octicon-history-16" />
           <span>Recent</span>
@@ -183,7 +183,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
           class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 rounded transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
           :class="onQueuePage ? 'color-active font-medium bg-active' : 'color-muted hover:color-base'"
           data-testid="navbar-hub-queue-link"
-          @click="router.push('/hub/queue')"
+          @click="router.push('/queue')"
         >
           <span class="i-octicon-list-unordered-16" />
           <span>Queue</span>

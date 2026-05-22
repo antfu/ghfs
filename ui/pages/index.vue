@@ -5,6 +5,8 @@ const rpc = useRpc()
 const hub = useHubState()
 const hubUi = useHubUiState()
 
+const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
+
 const projects = computed<ProjectSummary[]>(() => hub.projects.value)
 const pickerOpen = computed({ get: () => hubUi.pickerOpen.value, set: v => (hubUi.pickerOpen.value = v) })
 const focusedIndex = ref(0)
@@ -41,7 +43,11 @@ const lastActivitySummary = computed(() => {
   return mostRecent
 })
 
+const singleProjectId = computed(() => hub.projects.value[0]?.id ?? '')
+
 onMounted(async () => {
+  if (!isHubMode.value)
+    return
   try {
     const info = await rpc.hubInfo()
     hub.setHubInfo(info)
@@ -80,8 +86,8 @@ function skipOnboarding() {
   onboardingOpen.value = false
 }
 
-function openProject(id: string) {
-  navigateTo(`/hub/${id}`)
+function openProject(repo: string) {
+  navigateTo(`/${repo}`)
 }
 
 const cardRefs = ref<HTMLButtonElement[]>([])
@@ -140,7 +146,7 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
 </script>
 
 <template>
-  <div class="h-full flex flex-col" data-testid="hub-home">
+  <div v-if="isHubMode" class="h-full flex flex-col" data-testid="hub-home">
     <AppNavbar mode="hub" />
 
     <main class="flex-1 overflow-y-auto">
@@ -220,7 +226,8 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
               :project="project"
               data-testid="hub-project-card"
               :data-project-id="project.id"
-              @click="openProject(project.id)"
+              :data-project-repo="project.repo"
+              @click="openProject(project.repo)"
               @keydown="onCardKeydown($event, index)"
               @focus="focusedIndex = index"
             />
@@ -274,5 +281,9 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
     </Modal>
 
     <HelpOverlay />
+  </div>
+  <ProjectView v-else-if="singleProjectId" :project-id="singleProjectId" :initial-number="null" />
+  <div v-else class="flex flex-col items-center justify-center h-full color-muted">
+    <p class="text-sm">No project configured.</p>
   </div>
 </template>

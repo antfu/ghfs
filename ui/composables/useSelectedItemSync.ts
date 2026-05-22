@@ -3,7 +3,7 @@
  * segment. Used by `ProjectView` so the URL reflects (and restores) the
  * currently-open issue/PR without history pollution.
  *
- * - In hub mode, the URL shape is `/hub/{projectId}` <-> `/hub/{projectId}/{number}`.
+ * - In hub mode, the URL shape is `/{owner}/{repo}` <-> `/{owner}/{repo}/{number}`.
  * - In ui mode, the URL shape is `/` <-> `/{number}`.
  */
 export function useSelectedItemSync(projectId: MaybeRefOrGetter<string>, initialNumber: MaybeRefOrGetter<number | null | undefined>): void {
@@ -17,9 +17,10 @@ export function useSelectedItemSync(projectId: MaybeRefOrGetter<string>, initial
 
   function buildBase(id: string): string {
     const mode = hub.capabilities.value?.mode
-    if (mode === 'hub')
-      return `/hub/${id}`
-    return '/'
+    if (mode !== 'hub')
+      return '/'
+    const project = hub.projects.value.find(p => p.id === id)
+    return project ? `/${project.repo}` : '/'
   }
 
   // Apply the URL number on mount/route change.

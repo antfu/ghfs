@@ -12,7 +12,7 @@ function close() {
 
 function openQueuePage() {
   close()
-  router.push('/hub/queue')
+  router.push('/queue')
 }
 </script>
 

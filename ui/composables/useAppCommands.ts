@@ -159,7 +159,7 @@ export function createAppCommands(): Command[] {
       : (currentIdx + delta + projects.length) % projects.length
     const next = projects[nextIdx]
     if (next)
-      router.push(`/hub/${next.id}`)
+      router.push(`/${next.repo}`)
   }
 
   return [
@@ -419,9 +419,9 @@ export function createAppCommands(): Command[] {
       category: 'Hub',
       icon: 'i-ph-clock-counter-clockwise-duotone',
       keybindings: ['u'],
-      when: 'hubMode && route != "/hub/recent"',
+      when: 'hubMode && route != "/recent"',
       help: 'hubMode',
-      run: () => { router.push('/hub/recent') },
+      run: () => { router.push('/recent') },
     },
     {
       id: 'hub.queue-page',
@@ -429,9 +429,9 @@ export function createAppCommands(): Command[] {
       category: 'Hub',
       icon: 'i-octicon-checklist-16',
       keybindings: ['Q'],
-      when: 'hubMode && route != "/hub/queue"',
+      when: 'hubMode && route != "/queue"',
       help: 'hubMode',
-      run: () => { router.push('/hub/queue') },
+      run: () => { router.push('/queue') },
     },
     {
       id: 'hub.prev-project',
@@ -459,7 +459,7 @@ export function createAppCommands(): Command[] {
       keybindings: ['b'],
       when: 'hubMode && hasActiveProjectId',
       help: 'hubMode',
-      run: () => { router.push('/hub') },
+      run: () => { router.push('/') },
     },
     {
       id: 'hub.sync-all',

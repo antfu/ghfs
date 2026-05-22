@@ -58,7 +58,7 @@ export function useWhenContext(): ComputedRef<WhenContext> {
       panel: activePanel.value,
       route: route.path,
       hubMode,
-      hubHome: hubMode && route.path === '/hub',
+      hubHome: hubMode && route.path === '/',
       hasActiveItem: !!item,
       activeItemKind: (item?.kind as WhenContext['activeItemKind']) ?? null,
       activeItemState: (item?.state as WhenContext['activeItemState']) ?? null,

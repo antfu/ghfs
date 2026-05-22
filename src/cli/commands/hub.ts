@@ -118,7 +118,7 @@ async function runHubServer(options: HubCommandOptions, runOpts: RunHubServerOpt
   })
 
   const urlHost = host === '0.0.0.0' ? 'localhost' : host
-  const directUrl = `http://${urlHost}:${port}/hub`
+  const directUrl = `http://${urlHost}:${port}/`
   printer.info(`ghfs hub running at ${directUrl}`)
   printer.info('Pick the projects to include from the UI (top-right "Manage projects" button).')
   if (!initialToken)
@@ -160,7 +160,7 @@ async function startHubDaemon(options: HubCommandOptions, printer?: CliPrinter):
   const existing = await readDaemonState()
   if (existing) {
     const urlHost = existing.host === '0.0.0.0' ? 'localhost' : existing.host
-    out.error(`ghfs hub is already running (pid ${existing.pid}) at http://${urlHost}:${existing.port}/hub`)
+    out.error(`ghfs hub is already running (pid ${existing.pid}) at http://${urlHost}:${existing.port}/`)
     out.info(`Use 'ghfs hub restart' to restart it, or 'ghfs hub stop' first.`)
     process.exit(1)
   }
@@ -181,7 +181,7 @@ async function startHubDaemon(options: HubCommandOptions, printer?: CliPrinter):
   }
 
   const urlHost = state.host === '0.0.0.0' ? 'localhost' : state.host
-  const directUrl = `http://${urlHost}:${state.port}/hub`
+  const directUrl = `http://${urlHost}:${state.port}/`
   out.success(`ghfs hub daemon started (pid ${state.pid}) at ${directUrl}`)
   out.info(`Log file: ${resolveDaemonLogPath()}`)
 
