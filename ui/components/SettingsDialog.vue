@@ -4,6 +4,7 @@ const open = defineModel<boolean>('open', { required: true })
 const isDark = useDark()
 const hub = useHubState()
 const hubSettings = useHubSettings()
+const hubUi = useHubUiState()
 const ui = useUiState()
 
 const mode = computed<'hub' | 'project'>(() => (hub.capabilities.value?.mode === 'hub' ? 'hub' : 'project'))
@@ -99,6 +100,11 @@ const intervalDisplay = computed(() => {
     return 'Every minute.'
   return `Every ${intervalMinutes.value} minutes.`
 })
+
+function openManageProjects() {
+  open.value = false
+  hubUi.openPicker()
+}
 </script>
 
 <template>
@@ -110,6 +116,26 @@ const intervalDisplay = computed(() => {
     data-testid="settings-dialog"
   >
     <div class="px-5 py-4 flex flex-col gap-6">
+      <!-- Projects (hub mode only) -->
+      <section v-if="mode === 'hub'" class="flex flex-col gap-2">
+        <header class="flex items-center gap-1.5">
+          <span class="i-ph-sliders-duotone color-active text-sm" />
+          <h3 class="text-sm font-medium">Projects</h3>
+        </header>
+        <p class="text-xs color-muted">Choose which scanned repositories appear in the hub.</p>
+        <div>
+          <button
+            type="button"
+            class="btn-action-sm"
+            data-testid="settings-manage-projects"
+            @click="openManageProjects"
+          >
+            <span class="i-ph-sliders-duotone" />
+            <span>Manage projects</span>
+          </button>
+        </div>
+      </section>
+
       <!-- Hub roots (hub mode only) -->
       <section v-if="mode === 'hub'" class="flex flex-col gap-2">
         <header class="flex items-center gap-1.5">

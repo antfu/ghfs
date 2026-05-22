@@ -16,6 +16,7 @@ const route = useRoute()
 const { counts } = useFilteredItems()
 const { upCount } = useQueue()
 const { totalCount: hubQueueTotal } = useHubQueue()
+const recentFiltered = useRecentFiltered()
 
 const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
 const repoName = computed(() => state.payload.value?.repo.repo ?? 'connecting…')
@@ -193,6 +194,17 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
           >{{ hubQueueTotal }}</span>
         </button>
       </nav>
+
+      <template v-if="onRecentPage">
+        <div class="h-6 border-l border-base mx-1 flex-none" />
+        <SearchField
+          v-model="recentFiltered.search.value"
+          placeholder="Search across all projects…"
+          data-shortcut="search"
+          data-testid="navbar-search"
+          command="search.focus"
+        />
+      </template>
     </template>
 
     <div class="flex-auto" />

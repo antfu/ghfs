@@ -172,7 +172,7 @@ function fallbackLabel(event: ProviderTimelineEvent): string {
     <div class="flex flex-col gap-4">
       <template v-for="entry in entries" :key="entry.id">
         <!-- Full comment card -->
-        <div v-if="entry.kind === 'comment'" class="relative pl-10">
+        <div v-if="entry.kind === 'comment'" class="relative pl-10" :data-comment-id="entry.id">
           <span
             class="absolute left-0 top-3 inline-flex items-center justify-center w-8 h-8 rounded-full bg-base border border-base"
           >

@@ -1,4 +1,11 @@
 <script setup lang="ts">
+// Stable key so navigation between `/owner/repo` and `/owner/repo/:number`
+// reuses the same page instance — without this Nuxt's default key includes
+// the optional :number, causing a remount + payload refetch on every select.
+definePageMeta({
+  key: route => `/${route.params.owner}/${route.params.repo}`,
+})
+
 const route = useRoute()
 const router = useRouter()
 const hub = useHubState()
@@ -29,6 +36,6 @@ function backHome() {
       <p class="text-sm mb-3">Project not found.</p>
       <button class="btn-primary text-xs" @click="backHome">Back to hub</button>
     </div>
-    <ProjectView v-else :project-id="projectId" :initial-number="numberParam" />
+    <SingleProjectPage v-else :project-id="projectId" :initial-number="numberParam" />
   </div>
 </template>

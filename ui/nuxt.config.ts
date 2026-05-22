@@ -56,12 +56,18 @@ export default defineNuxtConfig({
     ],
     optimizeDeps: {
       include: [
+        '@tanstack/vue-virtual',
+        'colorjs.io',
         'devframe/rpc/client',
         'devframe/rpc/transports/ws-client',
         'floating-vue',
+        'marked',
         'nostics',
         'nostics/reporters/dev',
+        'parse-diff', // CJS
         'shiki',
+        'splitpanes',
+        'vue-data-ui',
         'whenexpr',
       ],
     },

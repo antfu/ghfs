@@ -45,5 +45,6 @@ onMounted(async () => {
     <SettingsDialog v-model:open="settingsOpen" />
     <HubQueueDrawer />
     <CommandPalette />
+    <HelpOverlay />
   </div>
 </template>

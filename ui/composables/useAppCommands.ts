@@ -1,5 +1,51 @@
 import type { Command } from './useCommands'
 
+const SCROLL_STEP = 120
+
+function scrollDetail(delta: number): void {
+  if (typeof document === 'undefined')
+    return
+  const el = document.querySelector<HTMLElement>('[data-scroll="detail"]')
+  if (!el)
+    return
+  el.scrollBy({ top: delta, behavior: 'smooth' })
+}
+
+function navigateComment(delta: number): void {
+  if (typeof document === 'undefined')
+    return
+  const container = document.querySelector<HTMLElement>('[data-scroll="detail"]')
+  if (!container)
+    return
+  const comments = Array.from(container.querySelectorAll<HTMLElement>('[data-comment-id]'))
+  if (comments.length === 0)
+    return
+  const containerTop = container.getBoundingClientRect().top
+  // "Current" comment = last one whose top is at or above the container top
+  // (with a small 8px threshold). When scrolled above the first comment,
+  // currentIdx stays -1 so moving down lands on index 0.
+  let currentIdx = -1
+  for (let i = 0; i < comments.length; i++) {
+    const top = comments[i]!.getBoundingClientRect().top - containerTop
+    if (top <= 8)
+      currentIdx = i
+    else
+      break
+  }
+  let targetIdx: number
+  if (delta > 0)
+    targetIdx = currentIdx < 0 ? 0 : Math.min(comments.length - 1, currentIdx + delta)
+  else if (currentIdx < 0)
+    return
+  else
+    targetIdx = Math.max(0, currentIdx + delta)
+  if (targetIdx === currentIdx)
+    return
+  const target = comments[targetIdx]!
+  const offset = target.getBoundingClientRect().top - containerTop
+  container.scrollBy({ top: offset - 8, behavior: 'smooth' })
+}
+
 export function createAppCommands(): Command[] {
   const activeId = useActiveProjectId()
   // Resolve state lazily so commands always operate on the *currently*
@@ -11,9 +57,8 @@ export function createAppCommands(): Command[] {
   const hub = useHubState()
   const hubUi = useHubUiState()
   const router = useRouter()
-  const { filteredEntries } = useFilteredItems()
+  const { filteredItems } = useFilteredItems()
   const { upCount } = useQueue()
-  const { activePanel, setPanel } = useActivePanel()
   const palette = useCommandPalette()
 
   function focusFirstHubCard(): void {
@@ -27,24 +72,27 @@ export function createAppCommands(): Command[] {
     return state.value.payload.value?.syncState.items[String(num)]?.data.item ?? null
   })
 
-  const SCROLL_STEP = 120
-  function navDown() {
-    if (activePanel.value === 'detail') {
-      scrollDetail(SCROLL_STEP)
-      return
-    }
-    moveFocus(1)
-  }
-  function navUp() {
-    if (activePanel.value === 'detail') {
-      scrollDetail(-SCROLL_STEP)
-      return
-    }
-    moveFocus(-1)
-  }
+  const route = useRoute()
+  const recent = useHubRecent()
+  const { filteredItems: recentFilteredItems } = useRecentFiltered()
+  const isRecentRoute = computed(() => route.path === '/recent')
 
   function moveFocus(delta: number) {
-    const entries = filteredEntries.value
+    if (isRecentRoute.value) {
+      const list = recentFilteredItems.value
+      if (!list.length)
+        return
+      const currentIdx = recent.selectedKey.value == null
+        ? -1
+        : list.findIndex(it => it.key === recent.selectedKey.value)
+      const nextIdx = currentIdx < 0
+        ? (delta > 0 ? 0 : list.length - 1)
+        : Math.max(0, Math.min(list.length - 1, currentIdx + delta))
+      const target = list[nextIdx]
+      if (target) void recent.selectItem(target)
+      return
+    }
+    const entries = filteredItems.value
     if (!entries.length)
       return
     const current = state.value.selectedNumber.value == null
@@ -57,11 +105,22 @@ export function createAppCommands(): Command[] {
     if (target) state.value.selectItem(target.number)
   }
   function focusFirst() {
-    const first = filteredEntries.value[0]
+    if (isRecentRoute.value) {
+      const first = recentFilteredItems.value[0]
+      if (first) void recent.selectItem(first)
+      return
+    }
+    const first = filteredItems.value[0]
     if (first) state.value.selectItem(first.number)
   }
   function focusLast() {
-    const last = filteredEntries.value[filteredEntries.value.length - 1]
+    if (isRecentRoute.value) {
+      const list = recentFilteredItems.value
+      const last = list[list.length - 1]
+      if (last) void recent.selectItem(last)
+      return
+    }
+    const last = filteredItems.value[filteredItems.value.length - 1]
     if (last) state.value.selectItem(last.number)
   }
 
@@ -180,23 +239,23 @@ export function createAppCommands(): Command[] {
     // ─── Navigate ───────────────────────────────────────────────────────
     {
       id: 'nav.down',
-      title: 'Next item / scroll down',
+      title: 'Next item',
       category: 'Navigate',
-      keybindings: ['j', 'ArrowDown'],
-      when: 'panel != "list" || hasEntries',
-      run: navDown,
+      keybindings: ['j'],
+      when: 'hasEntries',
+      run: () => moveFocus(1),
     },
     {
       id: 'nav.up',
-      title: 'Previous item / scroll up',
+      title: 'Previous item',
       category: 'Navigate',
-      keybindings: ['k', 'ArrowUp'],
-      when: 'panel != "list" || hasEntries',
-      run: navUp,
+      keybindings: ['k'],
+      when: 'hasEntries',
+      run: () => moveFocus(-1),
     },
     {
       id: 'nav.next-tab',
-      title: 'Next item',
+      title: 'Next item (Tab)',
       category: 'Navigate',
       keybindings: [{ key: 'Tab', label: ['Tab'] }],
       when: 'hasEntries',
@@ -204,25 +263,41 @@ export function createAppCommands(): Command[] {
     },
     {
       id: 'nav.prev-tab',
-      title: 'Previous item',
+      title: 'Previous item (Shift+Tab)',
       category: 'Navigate',
       keybindings: [{ key: 'shift+Tab', label: ['⇧', 'Tab'] }],
       when: 'hasEntries',
       run: () => moveFocus(-1),
     },
     {
-      id: 'panel.focus-list',
-      title: 'Focus list panel',
+      id: 'detail.scroll-down',
+      title: 'Scroll detail down',
       category: 'Navigate',
-      keybindings: ['ArrowLeft'],
-      run: () => setPanel('list'),
+      keybindings: ['ArrowDown'],
+      run: () => scrollDetail(SCROLL_STEP),
     },
     {
-      id: 'panel.focus-detail',
-      title: 'Focus detail panel',
+      id: 'detail.scroll-up',
+      title: 'Scroll detail up',
       category: 'Navigate',
-      keybindings: ['ArrowRight'],
-      run: () => setPanel('detail'),
+      keybindings: ['ArrowUp'],
+      run: () => scrollDetail(-SCROLL_STEP),
+    },
+    {
+      id: 'comment.next',
+      title: 'Next comment',
+      category: 'Navigate',
+      keybindings: ['J'],
+      when: 'hasActiveItem',
+      run: () => navigateComment(1),
+    },
+    {
+      id: 'comment.prev',
+      title: 'Previous comment',
+      category: 'Navigate',
+      keybindings: ['K'],
+      when: 'hasActiveItem',
+      run: () => navigateComment(-1),
     },
 
     // ─── List ───────────────────────────────────────────────────────────
@@ -231,7 +306,7 @@ export function createAppCommands(): Command[] {
       title: 'First item',
       category: 'List',
       keybindings: ['g g'],
-      when: 'panel == "list" && hasEntries',
+      when: 'hasEntries',
       run: focusFirst,
     },
     {
@@ -239,7 +314,7 @@ export function createAppCommands(): Command[] {
       title: 'Last item',
       category: 'List',
       keybindings: ['G'],
-      when: 'panel == "list" && hasEntries',
+      when: 'hasEntries',
       run: focusLast,
     },
     {
@@ -438,7 +513,7 @@ export function createAppCommands(): Command[] {
       title: 'Hub: Previous project',
       category: 'Hub',
       keybindings: ['['],
-      when: 'hubMode && hubProjectsCount > 1 && hasActiveProjectId',
+      when: 'hubMode && hubProjectsCount > 1 && hasActiveProjectId && route != "/recent"',
       help: 'hubMode',
       run: () => navigateProject(-1),
     },
@@ -447,7 +522,7 @@ export function createAppCommands(): Command[] {
       title: 'Hub: Next project',
       category: 'Hub',
       keybindings: [']'],
-      when: 'hubMode && hubProjectsCount > 1 && hasActiveProjectId',
+      when: 'hubMode && hubProjectsCount > 1 && hasActiveProjectId && route != "/recent"',
       help: 'hubMode',
       run: () => navigateProject(1),
     },

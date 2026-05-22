@@ -22,5 +22,5 @@ watchEffect(() => {
 </script>
 
 <template>
-  <ProjectView v-if="!isHubMode && projectId" :project-id="projectId" :initial-number="numberParam" />
+  <SingleProjectPage v-if="!isHubMode && projectId" :project-id="projectId" :initial-number="numberParam" />
 </template>

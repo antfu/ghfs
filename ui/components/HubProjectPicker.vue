@@ -128,19 +128,12 @@ const enabledCount = computed(() => items.value.filter(i => i.enabled).length)
         :data-testid="entry.enabled ? 'hub-picker-enabled' : 'hub-picker-disabled'"
         :data-path="entry.path"
       >
-        <span
-          class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-md overflow-hidden bg-#8881"
+        <ProjectIcon
+          :project="{ id: entry.path, repo: entry.name }"
+          :icon-data-url="entry.iconDataUrl"
+          :size="32"
           :class="entry.enabled ? 'ring-1 ring-primary-500/30' : ''"
-        >
-          <img
-            v-if="entry.iconDataUrl"
-            :src="entry.iconDataUrl"
-            :alt="entry.name"
-            class="w-full h-full object-contain"
-            loading="lazy"
-          >
-          <span v-else class="i-octicon-repo-16 color-muted" />
-        </span>
+        />
         <div class="flex-1 min-w-0">
           <div class="text-sm font-medium font-mono truncate" :class="entry.enabled ? '' : 'color-muted'">{{ entry.name }}</div>
           <div class="text-[11px] color-faint font-mono truncate" :title="entry.path">{{ entry.path }}</div>

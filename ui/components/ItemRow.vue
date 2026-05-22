@@ -1,63 +1,97 @@
 <script setup lang="ts">
-import type { SyncItemState } from '../../src/types/sync-state'
+import type { ListItem } from '../types/list-item'
 
-const props = defineProps<{ entry: SyncItemState, selected?: boolean }>()
+const props = withDefaults(defineProps<{
+  item: ListItem
+  selected?: boolean
+  showRepoName?: boolean
+  searchHighlight?: string
+}>(), {
+  searchHighlight: '',
+})
 
-const state = useAppState()
+const emit = defineEmits<{
+  select: [item: ListItem]
+}>()
 
-const item = computed(() => props.entry.data.item)
-const pull = computed(() => props.entry.data.pull)
-const search = computed(() => state.filters.search)
-const labels = computed(() => item.value.labels ?? [])
-const assignees = computed(() => item.value.assignees ?? [])
+const rawItem = computed(() => props.item.raw?.data.item)
+const rawPull = computed(() => props.item.raw?.data.pull)
 
-const pending = usePendingOps(computed(() => item.value.number))
+const labels = computed(() => props.item.labels ?? [])
+const assignees = computed(() => props.item.assignees ?? [])
+
+// Pending ops are per-active-project (via useAppState). They only make sense
+// when this row belongs to the active project — i.e. when `raw` is present.
+const pendingNumber = computed(() => props.item.raw ? props.item.number : null)
+const pending = usePendingOps(pendingNumber)
 
 const titleText = computed(() => pending.pendingTitle.value?.op.action === 'set-title'
   ? (pending.pendingTitle.value.op as { title: string }).title
-  : item.value.title,
+  : props.item.title,
 )
 const titleHtml = computed(() => {
-  if (search.value.trim())
-    return highlight(titleText.value, search.value)
+  if (props.searchHighlight.trim())
+    return highlight(titleText.value, props.searchHighlight)
   return renderMarkdownInline(titleText.value)
 })
 const bodySnippetHtml = computed(() => {
-  const q = search.value.trim()
+  const q = props.searchHighlight.trim()
   if (!q)
     return ''
   if ((titleText.value ?? '').toLowerCase().includes(q.toLowerCase()))
     return ''
-  return snippet(item.value.body, q, 80)
+  return snippet(props.item.body ?? null, q, 80)
 })
-
-function selectItem() {
-  state.selectItem(item.value.number)
-}
 </script>
 
 <template>
-  <button
+  <div class="border-b border-base">
+ <button
     type="button"
-    class="group w-full text-left flex items-start gap-2.5 px-3 py-2 text-sm border-b border-base transition-colors relative outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40"
+    class="group w-full text-left flex items-start gap-2.5 px-3 py-2 text-sm transition-colors relative outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40"
     :class="props.selected
       ? 'bg-primary-500/8 dark:bg-primary-400/8 border-l-2 border-l-primary-500 dark:border-l-primary-400 pl-[10px]'
       : 'hover:bg-active'"
     data-testid="item-row"
     :data-item-number="item.number"
-    @click="selectItem"
+    @click="emit('select', item)"
   >
-    <ItemStateIcon :item="item" :pull="pull" :pending="pending.direction.value" class="mt-0.5 shrink-0" />
+    <template v-if="showRepoName">
+      <ProjectIcon
+        :project="{ id: item.projectId, repo: item.repo }"
+        :size="16"
+        class="mt-0.5 shrink-0"
+      />
+    </template>
+    <ItemStateIcon
+      v-if="rawItem"
+      :item="rawItem"
+      :pull="rawPull"
+      :pending="pending.direction.value"
+      class="mt-0.5 shrink-0"
+    />
+    <span
+      v-else
+      :class="item.kind === 'pull' ? 'i-octicon-git-pull-request-16' : 'i-octicon-issue-opened-16'"
+      class="mt-0.5 shrink-0"
+      :title="item.kind"
+    />
 
     <div class="flex-1 min-w-0">
       <div class="flex items-baseline gap-2 flex-wrap">
+        <span
+          v-if="showRepoName"
+          class="font-mono text-xs color-muted truncate max-w-40"
+          :title="item.repo"
+        >{{ item.repo }}</span>
         <span
           class="font-medium truncate"
           :class="{ 'italic': pending.pendingTitle.value }"
           v-html="titleHtml"
         />
         <a
-          :href="item.url || `#${item.number}`"
+          v-if="item.url"
+          :href="item.url"
           target="_blank"
           rel="noreferrer"
           tabindex="-1"
@@ -65,6 +99,10 @@ function selectItem() {
           :aria-label="`Open #${item.number} on GitHub`"
           @click.stop
         >#{{ item.number }}</a>
+        <span
+          v-else
+          class="font-mono text-xs color-muted tabular-nums"
+        >#{{ item.number }}</span>
         <Badge
           v-if="pending.hasPending.value"
           color="yellow"
@@ -91,8 +129,10 @@ function selectItem() {
           :size="14"
           :link="false"
         />
-        <span class="color-faint">·</span>
-        <DateBadge :time="item.updatedAt" mode="day" />
+        <template v-if="item.updatedAt">
+          <span v-if="item.author" class="color-faint">·</span>
+          <DateBadge :time="item.updatedAt" mode="day" />
+        </template>
         <template v-if="assignees.length">
           <span class="color-faint">·</span>
           <span class="flex items-center gap-1">
@@ -105,11 +145,12 @@ function selectItem() {
             <span v-if="assignees.length > 3" class="font-mono">+{{ assignees.length - 3 }}</span>
           </span>
         </template>
-        <template v-if="item.reactions && item.reactions.totalCount > 0">
+        <template v-if="item.reactionsTotal && item.reactionsTotal > 0">
           <span class="color-faint">·</span>
-          <span class="font-mono">{{ item.reactions.totalCount }}</span>
+          <span class="font-mono">{{ item.reactionsTotal }}</span>
         </template>
       </div>
     </div>
   </button>
+  </div>
 </template>

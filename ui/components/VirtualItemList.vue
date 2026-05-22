@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import type { SyncItemState } from '../../src/types/sync-state'
+import type { ListItem } from '../types/list-item'
 import { useVirtualizer } from '@tanstack/vue-virtual'
-import { computed, ref, watch } from 'vue'
 
-const props = defineProps<{
-  entries: SyncItemState[]
+const props = withDefaults(defineProps<{
+  items: ListItem[]
+  selectedKey: string | null
+  showRepoName?: boolean
+  searchHighlight?: string
+}>(), {
+  searchHighlight: '',
+})
+
+const emit = defineEmits<{
+  select: [item: ListItem]
 }>()
-
-const state = useAppState()
 
 const scrollRef = ref<HTMLDivElement | null>(null)
 
@@ -16,23 +22,23 @@ const scrollRef = ref<HTMLDivElement | null>(null)
 // Passing a computed makes count + getScrollElement reactive — without it,
 // the virtualizer captures the initial empty count and never refreshes.
 const virtualizer = useVirtualizer(computed(() => ({
-  count: props.entries.length,
+  count: props.items.length,
   getScrollElement: () => scrollRef.value,
   estimateSize: () => 64,
   overscan: 6,
   getItemKey: (index: number) => {
-    const entry = props.entries[index]
-    return entry ? `${entry.kind}-${entry.number}` : index
+    const it = props.items[index]
+    return it ? it.key : index
   },
 })))
 
 // Keep the selected row in view when the user navigates with j/k or via URL.
 watch(
-  () => state.selectedNumber.value,
-  (number) => {
-    if (number == null)
+  () => props.selectedKey,
+  (key) => {
+    if (key == null)
       return
-    const index = props.entries.findIndex(e => e.number === number)
+    const index = props.items.findIndex(it => it.key === key)
     if (index < 0)
       return
     virtualizer.value.scrollToIndex(index, { align: 'auto', behavior: 'auto' })
@@ -54,7 +60,7 @@ function measureRow(el: Element | { $el?: Element } | null): void {
 <template>
   <div ref="scrollRef" class="overflow-y-auto" data-testid="virtual-item-list">
     <EmptyState
-      v-if="entries.length === 0"
+      v-if="items.length === 0"
       icon="i-octicon-inbox-16"
       title="No items match the current filter"
       message="Change filters, or use the sync icon to pull from GitHub."
@@ -74,8 +80,11 @@ function measureRow(el: Element | { $el?: Element } | null): void {
         }"
       >
         <ItemRow
-          :entry="entries[virtualRow.index]!"
-          :selected="state.selectedNumber.value === entries[virtualRow.index]!.number"
+          :item="items[virtualRow.index]!"
+          :selected="selectedKey === items[virtualRow.index]!.key"
+          :show-repo-name="showRepoName"
+          :search-highlight="searchHighlight"
+          @select="emit('select', $event)"
         />
       </div>
     </div>

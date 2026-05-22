@@ -6,9 +6,16 @@ const props = withDefaults(defineProps<{
   size?: number
   /** Tailwind/icon utility classes applied to the fallback octicon (e.g. color-active). */
   fallbackClass?: string
+  /**
+   * Pre-resolved icon data URL. When set, skips the project-icon lookup and
+   * GitHub-avatar fallback. Used by HubProjectPicker where the scanned project
+   * has no id yet and the server already produced the icon.
+   */
+  iconDataUrl?: string | null
 }>(), {
   size: 20,
   fallbackClass: 'color-muted',
+  iconDataUrl: null,
 })
 
 const icon = useProjectIcon(() => props.project.id)
@@ -18,17 +25,23 @@ const avatarSrc = computed(() => owner.value ? `https://avatars.githubuserconten
 
 const localFailed = ref(false)
 const avatarFailed = ref(false)
+const explicitFailed = ref(false)
 
 watch(() => props.project.id, () => {
   localFailed.value = false
   avatarFailed.value = false
 })
 
+watch(() => props.iconDataUrl, () => {
+  explicitFailed.value = false
+})
+
+const showExplicit = computed(() => !!props.iconDataUrl && !explicitFailed.value)
 const showLocal = computed(() =>
-  !icon.value.pending && !!icon.value.dataUrl && !localFailed.value,
+  !showExplicit.value && !icon.value.pending && !!icon.value.dataUrl && !localFailed.value,
 )
 const showAvatar = computed(() =>
-  !showLocal.value && !!avatarSrc.value && !avatarFailed.value,
+  !showExplicit.value && !showLocal.value && !!avatarSrc.value && !avatarFailed.value,
 )
 </script>
 
@@ -38,7 +51,17 @@ const showAvatar = computed(() =>
     class="inline-flex shrink-0 items-center justify-center rounded-md overflow-hidden bg-#8881 align-middle"
   >
     <img
-      v-if="showLocal"
+      v-if="showExplicit"
+      :src="iconDataUrl!"
+      :alt="project.repo"
+      :width="size"
+      :height="size"
+      loading="lazy"
+      class="h-full w-full object-contain"
+      @error="explicitFailed = true"
+    >
+    <img
+      v-else-if="showLocal"
       :src="(icon as { dataUrl: string }).dataUrl"
       :alt="project.repo"
       :width="size"

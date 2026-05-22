@@ -238,14 +238,10 @@ async function discardThisItem() {
   }
 }
 
-const { activePanel } = useActivePanel()
-const ringClass = computed(() =>
-  activePanel.value === 'detail' ? 'panel-active' : '',
-)
 </script>
 
 <template>
-  <div v-if="!item" class="h-full flex flex-col items-center justify-center transition" :class="ringClass">
+  <div v-if="!item" class="h-full flex flex-col items-center justify-center">
     <EmptyState
       icon="i-octicon-inbox-16"
       title="Select an item on the left to view it here"
@@ -253,13 +249,13 @@ const ringClass = computed(() =>
     >
       <template #hint>
         <p class="text-xs color-faint">
-          Use <span class="kbd">j</span> <span class="kbd">k</span> or <span class="kbd">↑</span> <span class="kbd">↓</span> to navigate.
+          Use <span class="kbd">j</span> <span class="kbd">k</span> to navigate items, <span class="kbd">↑</span> <span class="kbd">↓</span> to scroll.
         </p>
       </template>
     </EmptyState>
   </div>
 
-  <article v-else class="h-full flex flex-col min-h-0 bg-base transition" :class="ringClass">
+  <article v-else class="h-full flex flex-col min-h-0 bg-base">
     <header class="flex items-center gap-2 px-6 py-2.5 border-b border-base">
       <ItemStateIcon :item="item" :pull="pullMeta" :pending="pending.direction.value" class="shrink-0" />
       <div class="flex-1 min-w-0 flex items-baseline gap-2 flex-wrap">

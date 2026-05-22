@@ -1,5 +1,4 @@
 export interface WhenContext extends Record<string, unknown> {
-  panel: 'list' | 'detail'
   route: string
   hubMode: boolean
   hubHome: boolean
@@ -35,8 +34,8 @@ export function useWhenContext(): ComputedRef<WhenContext> {
   const hub = useHubState()
   const hubUi = useHubUiState()
   const route = useRoute()
-  const { activePanel } = useActivePanel()
-  const { filteredEntries } = useFilteredItems()
+  const { filteredItems } = useFilteredItems()
+  const { filteredItems: recentFiltered } = useRecentFiltered()
   const { upCount } = useQueue()
   const inputFocused = useInputFocus()
   const palette = useCommandPalette()
@@ -54,15 +53,15 @@ export function useWhenContext(): ComputedRef<WhenContext> {
     const hubPickerOpen = hubUi.pickerOpen.value
     const hubSettingsOpen = hubUi.settingsOpen.value
     const hubQueueDrawerOpen = hubUi.queueDrawerOpen.value
+    const onRecent = route.path === '/recent'
     return {
-      panel: activePanel.value,
       route: route.path,
       hubMode,
       hubHome: hubMode && route.path === '/',
       hasActiveItem: !!item,
       activeItemKind: (item?.kind as WhenContext['activeItemKind']) ?? null,
       activeItemState: (item?.state as WhenContext['activeItemState']) ?? null,
-      hasEntries: filteredEntries.value.length > 0,
+      hasEntries: onRecent ? recentFiltered.value.length > 0 : filteredItems.value.length > 0,
       searching: state.value.filters.search.trim().length > 0,
       hasToken: state.value.payload.value?.repo.hasToken ?? false,
       hasSyncableProjects: hub.projects.value.some(p => p.hasToken),

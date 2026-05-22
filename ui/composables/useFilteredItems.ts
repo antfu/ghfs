@@ -1,19 +1,24 @@
 import type { SyncItemState } from '../../src/types/sync-state'
+import type { ListItem } from '../types/list-item'
 import { refThrottled } from '@vueuse/core'
 import { getEffectiveUpdatedAt } from '../../src/sync/effective-updated'
+import { fromSyncItem } from '../types/list-item'
 
 export function useFilteredItems() {
   const state = useAppState()
 
-  const allEntries = computed<SyncItemState[]>(() => {
-    const syncState = state.payload.value?.syncState
-    if (!syncState)
+  const allItems = computed<ListItem[]>(() => {
+    const payload = state.payload.value
+    if (!payload)
       return []
-    const bots: string[] = state.payload.value?.bots ?? []
-    const items = Object.values(syncState.items) as SyncItemState[]
-    return items.sort((a, b) =>
+    const projectId = payload.projectId
+    const repo = payload.repo.repo
+    const bots: string[] = payload.bots ?? []
+    const items = Object.values(payload.syncState.items) as SyncItemState[]
+    items.sort((a, b) =>
       getEffectiveUpdatedAt(b, bots).localeCompare(getEffectiveUpdatedAt(a, bots)),
     )
+    return items.map(entry => fromSyncItem(entry, projectId, repo))
   })
 
   // Input updates `state.filters.search` instantly (so typing feels live),
@@ -21,11 +26,10 @@ export function useFilteredItems() {
   // responsive. trailing=true ensures the last keystroke isn't dropped.
   const throttledSearch = refThrottled(computed(() => state.filters.search), 150, true)
 
-  const filteredEntries = computed<SyncItemState[]>(() => {
+  const filteredItems = computed<ListItem[]>(() => {
     const search = throttledSearch.value.trim().toLowerCase()
     const searching = search.length > 0
-    return allEntries.value.filter((entry) => {
-      const item = entry.data.item
+    return allItems.value.filter((item) => {
       if (item.state !== 'open')
         return false
       // When not searching, restrict by kind tab; when searching, show both.
@@ -46,10 +50,10 @@ export function useFilteredItems() {
   const counts = computed(() => {
     let issues = 0
     let pulls = 0
-    for (const entry of allEntries.value) {
-      if (entry.data.item.state !== 'open')
+    for (const item of allItems.value) {
+      if (item.state !== 'open')
         continue
-      if (entry.data.item.kind === 'issue')
+      if (item.kind === 'issue')
         issues += 1
       else
         pulls += 1
@@ -58,8 +62,8 @@ export function useFilteredItems() {
   })
 
   return {
-    allEntries,
-    filteredEntries,
+    allItems,
+    filteredItems,
     counts,
   }
 }
