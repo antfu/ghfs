@@ -87,7 +87,7 @@ const sparklinePoints = computed(() => activity.data.value?.buckets ?? [])
       <div class="flex items-center gap-1.5 color-muted">
         <span class="w-13 shrink-0">updated</span>
         <template v-if="project.lastActivityAt">
-          <DisplayDateBadge :time="project.lastActivityAt" mode="day" colorize="freshness" />
+          <DisplayDateBadge :time="project.lastActivityAt" colorize="freshness" />
         </template>
         <span v-else class="color-faint">—</span>
       </div>
@@ -101,7 +101,7 @@ const sparklinePoints = computed(() => activity.data.value?.buckets ?? [])
           <span v-if="percent != null" class="font-mono tabular-nums color-active">{{ percent }}%</span>
         </template>
         <template v-else-if="project.lastSyncedAt">
-          <DisplayDateBadge :time="project.lastSyncedAt" mode="day" colorize="staleness" />
+          <DisplayDateBadge :time="project.lastSyncedAt" colorize="staleness" />
         </template>
         <span v-else class="color-faint">never</span>
       </div>

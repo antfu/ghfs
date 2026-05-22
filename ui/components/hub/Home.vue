@@ -202,7 +202,7 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
           <div class="relative z-1 flex-1" />
           <div class="relative z-1 flex flex-col leading-tight text-right">
             <span class="text-[11px] uppercase tracking-wide color-muted font-medium">Last activity</span>
-            <DisplayDateBadge :time="lastActivitySummary" mode="day" />
+            <DisplayDateBadge :time="lastActivitySummary" />
           </div>
         </section>
 

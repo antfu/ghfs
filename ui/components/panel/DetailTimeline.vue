@@ -147,7 +147,7 @@ function shortSha(sha: string | undefined): string {
             <span class="font-mono font-medium">@{{ entry.author || 'ghost' }}</span>
             <span class="color-muted">commented</span>
             <span class="color-faint">·</span>
-            <DisplayDateBadge :time="entry.createdAt" mode="day" />
+            <DisplayDateBadge :time="entry.createdAt" />
             <span class="i-ph-caret-right-duotone color-faint text-xs ml-auto shrink-0" />
           </button>
 
@@ -166,7 +166,7 @@ function shortSha(sha: string | undefined): string {
               >
                 <span class="text-sm">
                   <span class="font-medium">@{{ entry.author || 'ghost' }}</span>
-                  <span class="color-muted inline-flex items-center gap-1"> commented <DisplayDateBadge :time="entry.createdAt" mode="day" /></span>
+                  <span class="color-muted inline-flex items-center gap-1"> commented <DisplayDateBadge :time="entry.createdAt" /></span>
                 </span>
                 <span v-if="isBotEntry(entry)" class="i-ph-caret-down-duotone color-faint text-xs ml-auto" />
               </div>
@@ -204,7 +204,7 @@ function shortSha(sha: string | undefined): string {
               <DisplayAuthor :author="entry.event.actor ? { login: entry.event.actor, avatarUrl: entry.event.actorAvatarUrl } : 'ghost'" :size="16" />
               <span class="color-muted">{{ reviewStyle(entry.event.review.state).label }}</span>
               <span class="color-faint">·</span>
-              <DisplayDateBadge :time="entry.createdAt" mode="day" />
+              <DisplayDateBadge :time="entry.createdAt" />
               <span class="i-ph-caret-right-duotone color-faint text-xs ml-auto shrink-0" />
             </button>
 
@@ -224,7 +224,7 @@ function shortSha(sha: string | undefined): string {
                   <span :class="[reviewStyle(entry.event.review.state).icon, reviewStyle(entry.event.review.state).color]" />
                   <span class="text-sm">
                     <span class="font-medium">@{{ entry.event.actor || 'ghost' }}</span>
-                    <span class="color-muted inline-flex items-center gap-1"> {{ reviewStyle(entry.event.review.state).label }} <DisplayDateBadge :time="entry.createdAt" mode="day" /></span>
+                    <span class="color-muted inline-flex items-center gap-1"> {{ reviewStyle(entry.event.review.state).label }} <DisplayDateBadge :time="entry.createdAt" /></span>
                   </span>
                   <span v-if="isBotEntry(entry)" class="i-ph-caret-down-duotone color-faint text-xs ml-auto" />
                 </div>

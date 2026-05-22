@@ -36,7 +36,7 @@ const hasAnyActivity = computed(() =>
           <DisplayAuthor :author="item.author ? { login: item.author, avatarUrl: item.authorAvatarUrl } : 'ghost'" :size="20" />
           <span class="text-sm color-muted flex items-center gap-1.5">
             <span>opened this {{ item.kind === 'pull' ? 'pull request' : 'issue' }}</span>
-            <DisplayDateBadge :time="item.createdAt" mode="day" colorize="text" />
+            <DisplayDateBadge :time="item.createdAt" colorize="text" />
           </span>
         </div>
         <div class="px-4 py-4">

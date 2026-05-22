@@ -70,7 +70,7 @@ async function copy(sha: string) {
               <span v-if="commit.authorLogin" class="font-mono">@{{ commit.authorLogin }}</span>
               <span v-else-if="commit.authorName">{{ commit.authorName }}</span>
               <span class="color-faint">·</span>
-              <DisplayDateBadge :time="commit.authorDate" mode="day" />
+              <DisplayDateBadge :time="commit.authorDate" />
             </div>
           </div>
           <div class="flex items-center gap-1 shrink-0">

@@ -251,7 +251,7 @@ async function discardThisItem() {
         />
         <span class="text-xs color-muted flex items-center gap-1">
           <span class="color-faint">·</span>
-          <DisplayDateBadge :time="item.createdAt" mode="day" />
+          <DisplayDateBadge :time="item.createdAt" />
         </span>
       </div>
       <div class="flex items-center gap-1 shrink-0">

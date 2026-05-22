@@ -131,7 +131,7 @@ const bodySnippetHtml = computed(() => {
         />
         <template v-if="item.updatedAt">
           <span v-if="item.author" class="color-faint">·</span>
-          <DisplayDateBadge :time="item.updatedAt" mode="day" />
+          <DisplayDateBadge :time="item.updatedAt" />
         </template>
         <template v-if="assignees.length">
           <span class="color-faint">·</span>
