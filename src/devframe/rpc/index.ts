@@ -20,6 +20,7 @@ import { hubSetSettings } from './hub-set-settings'
 import { hubSettings } from './hub-settings'
 import { initialPayload } from './initial-payload'
 import { listProjects } from './list-projects'
+import { openFolder } from './open-folder'
 import { openInEditor } from './open-in-editor'
 import { projectActivity } from './project-activity'
 import { queueState } from './queue-state'
@@ -48,6 +49,7 @@ export const rpcFunctions = [
   clearQueue,
   checkRemote,
   openInEditor,
+  openFolder,
   saveUiState,
   getPullPatch,
   getProjectIcon,
