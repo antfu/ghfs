@@ -22,7 +22,7 @@ import {
 } from '../server/queue-writer'
 import { loadUiState, saveUiState } from '../server/ui-state'
 import { syncRepository } from '../sync'
-import { computeProjectActivityBuckets } from '../sync/activity'
+import { computeProjectActivityBuckets, isCreatedToday } from '../sync/activity'
 import { getEffectiveUpdatedAt } from '../sync/effective-updated'
 import { loadRepoSnapshot } from '../sync/repo-snapshot'
 import { loadSyncState } from '../sync/state'
@@ -38,6 +38,9 @@ export interface ProjectSummary {
   itemCount: number
   openIssues: number
   openPulls: number
+  /** Items with `createdAt` in today's UTC day, regardless of state. */
+  newIssuesToday: number
+  newPullsToday: number
   lastSyncedAt?: string
   /** Most recent `item.updatedAt` across the project's tracked items. */
   lastActivityAt?: string
@@ -85,11 +88,19 @@ async function summarizeProject(ctx: ProjectContext): Promise<ProjectSummary> {
   ])
   let openIssues = 0
   let openPulls = 0
+  let newIssuesToday = 0
+  let newPullsToday = 0
   let lastActivityAt: string | undefined
   for (const item of Object.values(syncState.items)) {
     const updatedAt = getEffectiveUpdatedAt(item, ctx.config.bots)
     if (updatedAt && (!lastActivityAt || updatedAt > lastActivityAt))
       lastActivityAt = updatedAt
+    if (isCreatedToday(item.data.item.createdAt)) {
+      if (item.kind === 'issue')
+        newIssuesToday += 1
+      else
+        newPullsToday += 1
+    }
     if (item.state !== 'open')
       continue
     if (item.kind === 'issue')
@@ -107,6 +118,8 @@ async function summarizeProject(ctx: ProjectContext): Promise<ProjectSummary> {
     itemCount: Object.keys(syncState.items).length,
     openIssues,
     openPulls,
+    newIssuesToday,
+    newPullsToday,
     lastSyncedAt: syncState.lastSyncedAt,
     lastActivityAt,
   }
@@ -464,6 +477,24 @@ export function registerProjectRpc(
       const p = requireProject(registry, projectId)
       const state = await loadSyncState(p.storageDirAbsolute)
       return computeProjectActivityBuckets(state, days ?? 90)
+    },
+  }))
+
+  ctx.rpc.register(def({
+    name: 'ghfs:hub-activity',
+    type: 'query',
+    handler: async (days?: number) => {
+      const d = days ?? 90
+      const buckets = Array.from<number>({ length: d }).fill(0)
+      let total = 0
+      for (const p of registry.listProjects()) {
+        const state = await loadSyncState(p.storageDirAbsolute)
+        const r = computeProjectActivityBuckets(state, d)
+        for (let i = 0; i < d; i++)
+          buckets[i] += r.buckets[i]
+        total += r.total
+      }
+      return { buckets, total, days: d }
     },
   }))
 

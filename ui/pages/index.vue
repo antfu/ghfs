@@ -15,21 +15,29 @@ const onboardingOpen = ref(false)
 const onboardingBusy = ref(false)
 let onboardingDismissed = false
 
+const hubActivity = useHubActivity()
+
 const aggregates = computed(() => {
   let issues = 0
   let pulls = 0
+  let newIssuesToday = 0
+  let newPullsToday = 0
   let tokens = 0
   let synced = 0
   for (const p of projects.value) {
     issues += p.openIssues
     pulls += p.openPulls
+    newIssuesToday += p.newIssuesToday ?? 0
+    newPullsToday += p.newPullsToday ?? 0
     if (p.hasToken)
       tokens += 1
     if (p.lastSyncedAt)
       synced += 1
   }
-  return { issues, pulls, tokens, synced }
+  return { issues, pulls, newIssuesToday, newPullsToday, tokens, synced }
 })
+
+const sparklinePoints = computed(() => hubActivity.data.value?.buckets ?? [])
 
 const lastActivitySummary = computed(() => {
   let mostRecent: string | undefined
@@ -152,30 +160,53 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
     <main class="flex-1 overflow-y-auto">
       <div class="max-w-6xl mx-auto px-5 py-6 flex flex-col gap-6">
         <section
-          class="panel-card px-5 py-4 flex flex-wrap items-center gap-x-6 gap-y-2"
+          class="panel-card relative overflow-hidden px-5 py-4 flex flex-wrap items-center gap-x-6 gap-y-2"
           data-testid="hub-summary"
         >
-          <div class="flex flex-col leading-tight">
+          <div
+            class="absolute inset-0 op-25 dark:op-20 pointer-events-none color-active"
+            style="mask-image: linear-gradient(to bottom, transparent 0%, black 55%, black 88%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 55%, black 88%, transparent 100%);"
+            data-testid="hub-summary-chart"
+          >
+            <ActivitySparkline :points="sparklinePoints" />
+          </div>
+          <div class="relative z-1 flex flex-col leading-tight">
             <span class="text-[11px] uppercase tracking-wide color-muted font-medium">Projects</span>
             <span class="text-2xl font-semibold tabular-nums">{{ projects.length }}</span>
           </div>
-          <span class="h-8 border-l border-base mx-1" />
-          <div class="flex flex-col leading-tight">
+          <span class="relative z-1 h-8 border-l border-base mx-1" />
+          <div class="relative z-1 flex flex-col leading-tight">
             <span class="text-[11px] uppercase tracking-wide color-muted font-medium flex items-center gap-1">
               <span class="i-octicon-issue-opened-16" />
               <span>Open issues</span>
             </span>
-            <span class="text-2xl font-semibold tabular-nums">{{ aggregates.issues }}</span>
+            <span class="flex items-baseline gap-1.5">
+              <span class="text-2xl font-semibold tabular-nums">{{ aggregates.issues }}</span>
+              <span
+                v-if="aggregates.newIssuesToday > 0"
+                class="text-xs font-medium tabular-nums color-green-600 dark:color-green-400"
+                :title="`${aggregates.newIssuesToday} opened today`"
+                data-testid="hub-summary-new-issues"
+              >+{{ aggregates.newIssuesToday }}</span>
+            </span>
           </div>
-          <div class="flex flex-col leading-tight">
+          <div class="relative z-1 flex flex-col leading-tight">
             <span class="text-[11px] uppercase tracking-wide color-muted font-medium flex items-center gap-1">
               <span class="i-octicon-git-pull-request-16" />
               <span>Open pull requests</span>
             </span>
-            <span class="text-2xl font-semibold tabular-nums">{{ aggregates.pulls }}</span>
+            <span class="flex items-baseline gap-1.5">
+              <span class="text-2xl font-semibold tabular-nums">{{ aggregates.pulls }}</span>
+              <span
+                v-if="aggregates.newPullsToday > 0"
+                class="text-xs font-medium tabular-nums color-green-600 dark:color-green-400"
+                :title="`${aggregates.newPullsToday} opened today`"
+                data-testid="hub-summary-new-pulls"
+              >+{{ aggregates.newPullsToday }}</span>
+            </span>
           </div>
-          <div class="flex-1" />
-          <div class="flex flex-col leading-tight text-right">
+          <div class="relative z-1 flex-1" />
+          <div class="relative z-1 flex flex-col leading-tight text-right">
             <span class="text-[11px] uppercase tracking-wide color-muted font-medium">Last activity</span>
             <DateBadge :time="lastActivitySummary" mode="day" />
           </div>

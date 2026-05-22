@@ -61,3 +61,13 @@ export function computeProjectActivityBuckets(
 function startOfUtcDay(ms: number): number {
   return Math.floor(ms / MS_PER_DAY) * MS_PER_DAY
 }
+
+/** True when `createdAt` parses to the same UTC day as `now`. */
+export function isCreatedToday(createdAt: string | null | undefined, now = Date.now()): boolean {
+  if (!createdAt)
+    return false
+  const ts = Date.parse(createdAt)
+  if (Number.isNaN(ts))
+    return false
+  return startOfUtcDay(ts) === startOfUtcDay(now)
+}

@@ -18,7 +18,6 @@ const percent = computed(() => {
 })
 
 const sparklinePoints = computed(() => activity.data.value?.buckets ?? [])
-const hasActivity = computed(() => (activity.data.value?.total ?? 0) > 0)
 </script>
 
 <template>
@@ -39,9 +38,8 @@ const hasActivity = computed(() => (activity.data.value?.total ?? 0) > 0)
     </div>
 
     <div
-      v-if="hasActivity"
-      class="absolute inset-x-0 bottom-0 top-1/3 op-25 dark:op-20 pointer-events-none color-active"
-      style="mask-image: linear-gradient(to bottom, transparent 0%, black 60%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 60%);"
+      class="absolute inset-0 op-25 dark:op-20 pointer-events-none color-active"
+      style="mask-image: linear-gradient(to bottom, transparent 0%, black 55%, black 88%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 55%, black 88%, transparent 100%);"
     >
       <ActivitySparkline :points="sparklinePoints" />
     </div>

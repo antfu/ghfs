@@ -67,6 +67,7 @@ interface GhfsServerFunctions extends Record<string, (...args: unknown[]) => unk
   'ghfs:get-pull-patch': (projectId: string, number: number) => Promise<string | null>
   'ghfs:get-project-icon': (projectId: string) => Promise<string | null>
   'ghfs:project-activity': (projectId: string, days?: number) => Promise<ActivityResult>
+  'ghfs:hub-activity': (days?: number) => Promise<ActivityResult>
   'ghfs:hub-info': () => Promise<HubInfo>
   'ghfs:hub-scan': () => Promise<HubScannedProject[]>
   'ghfs:hub-enable': (path: string) => Promise<{ id: string }>
@@ -124,6 +125,7 @@ export interface GhfsRpc {
   getPullPatch: (projectId: string, number: number) => Promise<string | null>
   getProjectIcon: (projectId: string) => Promise<string | null>
   projectActivity: (projectId: string, days?: number) => Promise<ActivityResult>
+  hubActivity: (days?: number) => Promise<ActivityResult>
   hubInfo: () => Promise<HubInfo>
   hubScan: () => Promise<HubScannedProject[]>
   hubEnable: (path: string) => Promise<{ id: string }>
@@ -205,6 +207,7 @@ function createGhfsRpcClient(): GhfsRpc {
     getPullPatch: (projectId, number) => call('ghfs:get-pull-patch', projectId, number) as Promise<string | null>,
     getProjectIcon: projectId => call('ghfs:get-project-icon', projectId) as Promise<string | null>,
     projectActivity: (projectId, days) => call('ghfs:project-activity', projectId, days) as Promise<ActivityResult>,
+    hubActivity: days => call('ghfs:hub-activity', days) as Promise<ActivityResult>,
     hubInfo: () => call('ghfs:hub-info') as Promise<HubInfo>,
     hubScan: () => call('ghfs:hub-scan') as Promise<HubScannedProject[]>,
     hubEnable: path => call('ghfs:hub-enable', path) as Promise<{ id: string }>,
@@ -293,6 +296,7 @@ function createClientHandlers(): GhfsClientFunctions {
     'ghfs:onSyncStateChange': (event) => {
       useAppState(event.projectId).patchSyncState(event.state)
       invalidateProjectActivity(event.projectId)
+      invalidateHubActivity()
     },
     'ghfs:onQueueChange': (event) => {
       useAppState(event.projectId).patchQueue(event.queue)
@@ -346,6 +350,7 @@ function makeNoopRpc(): GhfsRpc {
     getPullPatch: reject as never,
     getProjectIcon: reject as never,
     projectActivity: reject as never,
+    hubActivity: reject as never,
     hubInfo: reject as never,
     hubScan: reject as never,
     hubEnable: reject as never,

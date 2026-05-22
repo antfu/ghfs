@@ -1,6 +1,6 @@
 import type { SyncState } from '../types/sync-state'
 import { describe, expect, it } from 'vitest'
-import { computeProjectActivityBuckets } from './activity'
+import { computeProjectActivityBuckets, isCreatedToday } from './activity'
 
 const NOW = Date.UTC(2026, 4, 21) // 2026-05-21
 const MS_PER_DAY = 24 * 60 * 60 * 1000
@@ -63,6 +63,18 @@ describe('computeProjectActivityBuckets', () => {
     expect(result.buckets[30 - 1 - 5]).toBe(1) // comment
     expect(result.buckets[30 - 1 - 7]).toBe(1) // committerDate
     expect(result.buckets[30 - 1 - 10]).toBe(1) // item.createdAt
+  })
+
+  it('isCreatedToday matches the UTC day of `now`', () => {
+    expect(isCreatedToday(isoDaysAgo(0), NOW)).toBe(true)
+    expect(isCreatedToday(isoDaysAgo(1), NOW)).toBe(false)
+    expect(isCreatedToday(null, NOW)).toBe(false)
+    expect(isCreatedToday(undefined, NOW)).toBe(false)
+    expect(isCreatedToday('not-a-date', NOW)).toBe(false)
+    // 23:59:59 UTC of `now`'s day still counts as today.
+    expect(isCreatedToday(new Date(NOW + MS_PER_DAY - 1).toISOString(), NOW)).toBe(true)
+    // 00:00:00 UTC of the next day no longer counts.
+    expect(isCreatedToday(new Date(NOW + MS_PER_DAY).toISOString(), NOW)).toBe(false)
   })
 
   it('ignores timestamps outside the window', () => {
