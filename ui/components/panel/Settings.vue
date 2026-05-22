@@ -43,7 +43,7 @@ async function addRoot() {
   rootError.value = null
   try {
     const rpc = useRpc()
-    const info = await rpc.hubAddRoot(value)
+    const info = await rpc.$call('ghfs:hub-add-root', value)
     hub.setHubInfo(info)
     rootDraft.value = ''
   }
@@ -70,7 +70,7 @@ async function confirmRemove(path: string) {
   rootError.value = null
   try {
     const rpc = useRpc()
-    const info = await rpc.hubRemoveRoot(path)
+    const info = await rpc.$call('ghfs:hub-remove-root', path)
     hub.setHubInfo(info)
     pendingRemove.value = null
   }

@@ -21,7 +21,7 @@ async function load(projectId: string): Promise<void> {
   let state: IconState
   try {
     const rpc = useRpc()
-    const dataUrl = await rpc.getProjectIcon(projectId)
+    const dataUrl = await rpc.$call('ghfs:get-project-icon', projectId)
     state = { pending: false, dataUrl }
   }
   catch {

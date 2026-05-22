@@ -3,7 +3,7 @@ import type { RepoLabel } from '#ghfs/server-types'
 
 const activeId = useActiveProjectId()
 const state = useAppState()
-const rpc = useProjectRpc(() => activeId.value ?? '__default__')
+const rpc = useRpc()
 const ui = useUiState()
 const isDark = useDark()
 
@@ -75,14 +75,14 @@ async function commitIfChanged() {
   try {
     const setOp = pending.entries.value.find(e => e.op.action === 'set-labels')
     if (setOp) {
-      await rpc.updateQueueOp(setOp.id, {
+      await rpc.$call('ghfs:update-queue-op', activeId.value ?? '__default__', setOp.id, {
         action: 'set-labels',
         number: item.value.number,
         labels,
       })
     }
     else {
-      await rpc.addQueueOp({
+      await rpc.$call('ghfs:add-queue-op', activeId.value ?? '__default__', {
         action: 'set-labels',
         number: item.value.number,
         labels,

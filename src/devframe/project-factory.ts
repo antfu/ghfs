@@ -9,7 +9,7 @@ import { createRemotePoller } from '../server/poller'
 import { buildQueueState } from '../server/queue-builder'
 import { createGhfsWatcher } from '../server/watcher'
 import { loadSyncState } from '../sync/state'
-import { PROJECT_EVENT_NAMES } from './shared-rpc'
+import { PROJECT_EVENT_NAMES } from './rpc/types'
 
 export interface BuildProjectOptions {
   /** Stable id used in RPC calls and SPA URLs. */

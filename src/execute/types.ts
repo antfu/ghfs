@@ -1,3 +1,5 @@
+import type { ReactionTarget } from '../types/provider'
+import type { ReactionContent } from '../utils/reactions'
 import type { ActionName } from './actions'
 
 export interface PendingOpBase {
@@ -50,6 +52,13 @@ export interface PendingSimpleOp extends PendingOpBase {
   action: 'close' | 'reopen' | 'clear-milestone' | 'unlock' | 'mark-ready-for-review' | 'convert-to-draft'
 }
 
+export interface PendingReactionOp extends PendingOpBase {
+  action: 'add-reaction' | 'remove-reaction'
+  reaction: ReactionContent
+  /** Omit to react on the issue/PR body itself. */
+  target?: ReactionTarget
+}
+
 export type PendingOp
   = | PendingSimpleOp
     | PendingTitleOp
@@ -60,6 +69,7 @@ export type PendingOp
     | PendingSetMilestoneOp
     | PendingLockOp
     | PendingReviewersOp
+    | PendingReactionOp
 
 export type PendingFile = PendingOp[]
 
@@ -74,3 +84,4 @@ export const ACTIONS_WITH_BODY: ActionName[] = ['set-body', 'add-comment', 'clos
 export const ACTIONS_WITH_LABELS: ActionName[] = ['add-labels', 'remove-labels', 'set-labels']
 export const ACTIONS_WITH_ASSIGNEES: ActionName[] = ['add-assignees', 'remove-assignees', 'set-assignees']
 export const ACTIONS_WITH_REVIEWERS: ActionName[] = ['request-reviewers', 'remove-reviewers']
+export const ACTIONS_WITH_REACTION: ActionName[] = ['add-reaction', 'remove-reaction']

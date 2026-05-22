@@ -1,5 +1,4 @@
-import type { GhfsCapabilities } from './useRpc'
-import type { ProjectSummary } from '#ghfs/shared-rpc'
+import type { GhfsCapabilities, ProjectSummary } from '#ghfs/rpc-types'
 
 const capabilities = shallowRef<GhfsCapabilities | null>(null)
 const projects = shallowRef<ProjectSummary[]>([])

@@ -1,4 +1,4 @@
-import type { ProjectInitialPayload } from '#ghfs/shared-rpc'
+import type { ProjectInitialPayload } from '#ghfs/rpc-types'
 import type { QueueState, RemoteStatus } from '#ghfs/server-types'
 import type { SyncState } from '#ghfs/sync-state'
 

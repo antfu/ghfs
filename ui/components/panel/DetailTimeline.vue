@@ -2,11 +2,13 @@
 import type { QueueEntry } from '#ghfs/server-types'
 import type {
   ProviderComment,
+  ProviderReactions,
   ProviderTimelineEvent,
   ProviderTimelineEventKind,
 } from '../../../src/types/provider'
 
 interface Props {
+  itemNumber: number
   comments: ProviderComment[]
   timeline?: ProviderTimelineEvent[]
   pendingComments?: QueueEntry[]
@@ -24,9 +26,11 @@ const { currentUser } = useCurrentUser()
 interface StreamComment {
   kind: 'comment'
   id: string
+  commentId: number
   createdAt: string
   author: string | null
   body: string | null
+  reactions?: ProviderReactions
 }
 
 interface StreamEvent {
@@ -47,9 +51,11 @@ const entries = computed<StreamEntry[]>(() => {
     out.push({
       kind: 'comment',
       id: `comment-${comment.id}`,
+      commentId: comment.id,
       createdAt: comment.createdAt,
       author: comment.author,
       body: comment.body,
+      reactions: comment.reactions,
     })
   }
 
@@ -188,6 +194,11 @@ function fallbackLabel(event: ProviderTimelineEvent): string {
             <div class="px-4 py-3">
               <div v-if="entry.body" class="markdown-body text-sm" v-html="renderMarkdown(entry.body)" />
               <p v-else class="text-sm color-muted italic">Empty comment.</p>
+              <PanelDetailReactions
+                :item-number="itemNumber"
+                :target="{ kind: 'comment', commentId: entry.commentId }"
+                :reactions="entry.reactions"
+              />
             </div>
           </div>
         </div>
@@ -211,6 +222,12 @@ function fallbackLabel(event: ProviderTimelineEvent): string {
               </div>
               <div class="px-4 py-3">
                 <div class="markdown-body text-sm" v-html="renderMarkdown(entry.event.review.body)" />
+                <PanelDetailReactions
+                  v-if="entry.event.review.nodeId"
+                  :item-number="itemNumber"
+                  :target="{ kind: 'review', reviewId: entry.event.review.nodeId }"
+                  :reactions="entry.event.review.reactions"
+                />
               </div>
             </div>
           </template>

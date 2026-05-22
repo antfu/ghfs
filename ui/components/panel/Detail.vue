@@ -4,7 +4,7 @@ import type { SyncItemState } from '../../../src/types/sync-state'
 
 const activeId = useActiveProjectId()
 const state = useAppState()
-const rpc = useProjectRpc(() => activeId.value ?? '__default__')
+const rpc = useRpc()
 const ui = useUiState()
 const { currentUser } = useCurrentUser()
 const userOverrideOpen = ref(false)
@@ -127,13 +127,13 @@ async function submitComment() {
       const entry = pending.pendingComments.value.find(e => e.id === editingCommentId.value)
       if (entry) {
         const op = entry.op as { action: string, number: number, body: string }
-        await rpc.updateQueueOp(entry.id, { ...op, body } as typeof op)
+        await rpc.$call('ghfs:update-queue-op', activeId.value ?? '__default__', entry.id, { ...op, body } as typeof op)
       }
       editingCommentId.value = null
       editingDraft.value = ''
     }
     else {
-      await rpc.addQueueOp({
+      await rpc.$call('ghfs:add-queue-op', activeId.value ?? '__default__', {
         action: 'add-comment',
         number: item.value.number,
         body,
@@ -167,7 +167,7 @@ function cancelEditing() {
 async function removePendingComment(entry: QueueEntry) {
   state.setError(null)
   try {
-    await rpc.removeQueueOp(entry.id)
+    await rpc.$call('ghfs:remove-queue-op', activeId.value ?? '__default__', entry.id)
     if (editingCommentId.value === entry.id)
       cancelEditing()
   }
@@ -185,7 +185,7 @@ async function executeThisItem() {
   state.setError(null)
   state.setExecuting(true)
   try {
-    await rpc.executeQueue({ entryIds: ids, continueOnError: true })
+    await rpc.$call('ghfs:execute-queue', activeId.value ?? '__default__', { entryIds: ids, continueOnError: true })
   }
   catch (error) {
     state.setError(`Execute failed: ${(error as Error).message}`)
@@ -197,7 +197,7 @@ async function discardThisItem() {
   state.setError(null)
   for (const entry of pending.entries.value) {
     try {
-      await rpc.removeQueueOp(entry.id)
+      await rpc.$call('ghfs:remove-queue-op', activeId.value ?? '__default__', entry.id)
     }
     catch (error) {
       state.setError((error as Error).message)

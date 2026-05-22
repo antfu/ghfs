@@ -22,7 +22,7 @@ const fatalError = ref<string | null>(null)
 
 onMounted(async () => {
   try {
-    const caps = await rpc.capabilities()
+    const caps = await rpc.$call('ghfs:capabilities')
     hub.setCapabilities(caps)
     ready.value = true
   }

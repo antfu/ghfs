@@ -16,12 +16,14 @@ import type {
   ProviderTimelineEvent,
   ProviderTimelineEventKind,
   ProviderUpdateCounts,
+  ReactionTarget,
   RepositoryProvider,
 } from '../../types/provider'
+import type { ReactionContent } from '../../utils/reactions'
 import { diagnostics } from '../../logger'
 import { randomHexColor } from '../../utils/color'
 import { formatIssueNumber } from '../../utils/format'
-import { normalizeReactions } from '../../utils/reactions'
+import { createEmptyReactions, isReactionContent, normalizeReactions, reactionKeyFromContent } from '../../utils/reactions'
 import { collectPages, iteratePages } from '../helpers'
 import { createGitHubClient } from './client'
 
@@ -85,6 +87,12 @@ export function createGitHubProvider(options: CreateGitHubProviderOptions): Repo
     actionRemoveReviewers: (number, reviewers) => actionRemoveReviewers(octokit, owner, repo, number, reviewers, bumpRequestCount),
     actionMarkReadyForReview: number => actionMarkReadyForReview(octokit, owner, repo, number, bumpRequestCount),
     actionConvertToDraft: number => actionConvertToDraft(octokit, owner, repo, number, bumpRequestCount),
+    actionAddReaction: (number, reaction, target) =>
+      actionAddReaction(octokit, owner, repo, number, reaction, target, bumpRequestCount),
+    actionRemoveReaction: (number, reaction, target) =>
+      actionRemoveReaction(octokit, owner, repo, number, reaction, target, fetchAuthenticatedUserCached, bumpRequestCount),
+    fetchViewerReactions: (number, target) =>
+      fetchViewerReactions(octokit, owner, repo, number, target, fetchAuthenticatedUserCached, bumpRequestCount),
   }
 }
 
@@ -260,7 +268,68 @@ async function fetchTimeline(
     if (mapped)
       out.push(mapped)
   }
+
+  await enrichReviewReactions(octokit, out, bumpRequestCount)
   return out
+}
+
+async function enrichReviewReactions(
+  octokit: Octokit,
+  events: ProviderTimelineEvent[],
+  bumpRequestCount: BumpRequestCount,
+): Promise<void> {
+  const reviewIds = events
+    .filter(e => e.kind === 'reviewed' && e.review?.nodeId)
+    .map(e => e.review!.nodeId!)
+  if (reviewIds.length === 0)
+    return
+
+  const unique = [...new Set(reviewIds)]
+  try {
+    bumpRequestCount()
+    const data = await octokit.graphql<{
+      nodes: Array<{ id: string, reactionGroups?: Array<{ content: string, users: { totalCount: number } }> } | null>
+    }>(
+      `query ReviewReactions($ids: [ID!]!) {
+        nodes(ids: $ids) {
+          ... on PullRequestReview {
+            id
+            reactionGroups { content users(first: 0) { totalCount } }
+          }
+        }
+      }`,
+      { ids: unique },
+    )
+
+    const byId = new Map<string, ProviderReactions>()
+    for (const node of data.nodes ?? []) {
+      if (!node?.id || !node.reactionGroups)
+        continue
+      const reactions = createEmptyReactions()
+      for (const group of node.reactionGroups) {
+        const wireContent = graphqlContentToReaction(group.content)
+        if (!wireContent)
+          continue
+        const count = group.users.totalCount
+        if (count <= 0)
+          continue
+        reactions[reactionKeyFromContent(wireContent)] = count
+        reactions.totalCount += count
+      }
+      byId.set(node.id, reactions)
+    }
+
+    for (const event of events) {
+      if (event.kind !== 'reviewed' || !event.review?.nodeId)
+        continue
+      const reactions = byId.get(event.review.nodeId)
+      if (reactions)
+        event.review.reactions = reactions
+    }
+  }
+  catch {
+    // Silently degrade — reviews without reaction data still render, just without the counts row.
+  }
 }
 
 async function fetchItemSnapshot(
@@ -806,6 +875,7 @@ function mapTimelineEvent(event: GitHubTimelineEvent): ProviderTimelineEvent | n
           state: normalizeReviewState(rawState),
           body: event.body ?? null,
           submittedAt: event.submitted_at ?? createdAt,
+          ...(event.node_id ? { nodeId: event.node_id } : {}),
         },
         body: event.body ?? null,
       }
@@ -876,6 +946,196 @@ function normalizeReviewState(state: string): ProviderReviewState {
   if (lower === 'approved' || lower === 'changes_requested' || lower === 'commented' || lower === 'dismissed' || lower === 'pending')
     return lower
   return 'commented'
+}
+
+const REACTION_TO_GRAPHQL: Record<ReactionContent, string> = {
+  '+1': 'THUMBS_UP',
+  '-1': 'THUMBS_DOWN',
+  'laugh': 'LAUGH',
+  'hooray': 'HOORAY',
+  'confused': 'CONFUSED',
+  'heart': 'HEART',
+  'rocket': 'ROCKET',
+  'eyes': 'EYES',
+}
+
+const GRAPHQL_TO_REACTION = Object.fromEntries(
+  Object.entries(REACTION_TO_GRAPHQL).map(([k, v]) => [v, k]),
+) as Record<string, ReactionContent>
+
+function graphqlContentToReaction(graphqlContent: string): ReactionContent | null {
+  return GRAPHQL_TO_REACTION[graphqlContent] ?? null
+}
+
+async function actionAddReaction(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  number: number,
+  reaction: ReactionContent,
+  target: ReactionTarget,
+  bumpRequestCount: BumpRequestCount,
+): Promise<void> {
+  bumpRequestCount()
+  if (target.kind === 'item') {
+    await octokit.rest.reactions.createForIssue({
+      owner,
+      repo,
+      issue_number: number,
+      content: reaction,
+    })
+    return
+  }
+  if (target.kind === 'comment') {
+    await octokit.rest.reactions.createForIssueComment({
+      owner,
+      repo,
+      comment_id: target.commentId,
+      content: reaction,
+    })
+    return
+  }
+  await octokit.graphql(
+    `mutation AddReviewReaction($subjectId: ID!, $content: ReactionContent!) {
+      addReaction(input: { subjectId: $subjectId, content: $content }) {
+        reaction { id }
+      }
+    }`,
+    { subjectId: target.reviewId, content: REACTION_TO_GRAPHQL[reaction] },
+  )
+}
+
+async function actionRemoveReaction(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  number: number,
+  reaction: ReactionContent,
+  target: ReactionTarget,
+  fetchAuth: () => Promise<ProviderAuthenticatedUser | null>,
+  bumpRequestCount: BumpRequestCount,
+): Promise<void> {
+  if (target.kind === 'review') {
+    bumpRequestCount()
+    await octokit.graphql(
+      `mutation RemoveReviewReaction($subjectId: ID!, $content: ReactionContent!) {
+        removeReaction(input: { subjectId: $subjectId, content: $content }) {
+          reaction { id }
+        }
+      }`,
+      { subjectId: target.reviewId, content: REACTION_TO_GRAPHQL[reaction] },
+    )
+    return
+  }
+
+  const user = await fetchAuth()
+  if (!user)
+    throw diagnostics.GHFS0302()
+
+  if (target.kind === 'item') {
+    bumpRequestCount()
+    const reactions = await octokit.paginate(octokit.rest.reactions.listForIssue, {
+      owner,
+      repo,
+      issue_number: number,
+      content: reaction,
+      per_page: 100,
+    }) as Array<{ id: number, user?: { login: string } | null, content: string }>
+    const mine = reactions.find(r => r.user?.login === user.login && r.content === reaction)
+    if (!mine)
+      return
+    bumpRequestCount()
+    await octokit.rest.reactions.deleteForIssue({ owner, repo, issue_number: number, reaction_id: mine.id })
+    return
+  }
+
+  bumpRequestCount()
+  const commentReactions = await octokit.paginate(octokit.rest.reactions.listForIssueComment, {
+    owner,
+    repo,
+    comment_id: target.commentId,
+    content: reaction,
+    per_page: 100,
+  }) as Array<{ id: number, user?: { login: string } | null, content: string }>
+  const mineComment = commentReactions.find(r => r.user?.login === user.login && r.content === reaction)
+  if (!mineComment)
+    return
+  bumpRequestCount()
+  await octokit.rest.reactions.deleteForIssueComment({
+    owner,
+    repo,
+    comment_id: target.commentId,
+    reaction_id: mineComment.id,
+  })
+}
+
+async function fetchViewerReactions(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  number: number,
+  target: ReactionTarget,
+  fetchAuth: () => Promise<ProviderAuthenticatedUser | null>,
+  bumpRequestCount: BumpRequestCount,
+): Promise<ReactionContent[]> {
+  if (target.kind === 'review') {
+    bumpRequestCount()
+    const data = await octokit.graphql<{
+      node: { reactionGroups?: Array<{ content: string, viewerHasReacted: boolean }> } | null
+    }>(
+      `query ViewerReviewReactions($id: ID!) {
+        node(id: $id) {
+          ... on PullRequestReview {
+            reactionGroups { content viewerHasReacted }
+          }
+        }
+      }`,
+      { id: target.reviewId },
+    )
+    const groups = data.node?.reactionGroups ?? []
+    return groups
+      .filter(g => g.viewerHasReacted)
+      .map(g => graphqlContentToReaction(g.content))
+      .filter((c): c is ReactionContent => c !== null)
+  }
+
+  const user = await fetchAuth()
+  if (!user)
+    return []
+
+  if (target.kind === 'item') {
+    bumpRequestCount()
+    const reactions = await octokit.paginate(octokit.rest.reactions.listForIssue, {
+      owner,
+      repo,
+      issue_number: number,
+      per_page: 100,
+    }) as Array<{ user?: { login: string } | null, content: string }>
+    return collectViewerReactions(reactions, user.login)
+  }
+
+  bumpRequestCount()
+  const commentReactions = await octokit.paginate(octokit.rest.reactions.listForIssueComment, {
+    owner,
+    repo,
+    comment_id: target.commentId,
+    per_page: 100,
+  }) as Array<{ user?: { login: string } | null, content: string }>
+  return collectViewerReactions(commentReactions, user.login)
+}
+
+function collectViewerReactions(
+  reactions: Array<{ user?: { login: string } | null, content: string }>,
+  login: string,
+): ReactionContent[] {
+  const out = new Set<ReactionContent>()
+  for (const r of reactions) {
+    if (r.user?.login !== login)
+      continue
+    if (isReactionContent(r.content))
+      out.add(r.content)
+  }
+  return [...out]
 }
 
 function mapReactions(reactions: GitHubReactions | null | undefined): ProviderReactions {
@@ -972,6 +1232,7 @@ interface GitHubPullCommit {
 
 interface GitHubTimelineEvent {
   id?: number | string
+  node_id?: string
   event?: string
   created_at?: string
   submitted_at?: string

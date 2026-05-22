@@ -48,9 +48,9 @@ export async function syncAllProjects(): Promise<void> {
     return
   ui.setSyncingAll(true)
   try {
-    await Promise.allSettled(targets.map(p => rpc.triggerSync(p.id, {})))
+    await Promise.allSettled(targets.map(p => rpc.$call('ghfs:trigger-sync', p.id, {})))
     try {
-      const fresh = await rpc.listProjects()
+      const fresh = await rpc.$call('ghfs:list-projects')
       hub.setProjects(fresh)
     }
     catch { /* ignore */ }

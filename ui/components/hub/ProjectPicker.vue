@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { HubScannedProject } from '../../composables/useRpc'
+import type { HubScannedProject } from '#ghfs/rpc-types'
 
 const emit = defineEmits<{
   close: []
@@ -24,7 +24,7 @@ async function refresh() {
   loading.value = true
   error.value = null
   try {
-    items.value = await rpc.hubScan()
+    items.value = await rpc.$call('ghfs:hub-scan')
   }
   catch (err) {
     error.value = (err as Error).message
@@ -43,12 +43,12 @@ async function toggle(entry: HubScannedProject) {
     if (!next) {
       const project = hub.projects.value.find(p => p.path === entry.path)
       if (project) {
-        await rpc.hubDisable(project.id)
+        await rpc.$call('ghfs:hub-disable', project.id)
         entry.enabled = false
       }
     }
     else {
-      await rpc.hubEnable(entry.path)
+      await rpc.$call('ghfs:hub-enable', entry.path)
       entry.enabled = true
     }
   }

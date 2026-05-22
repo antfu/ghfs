@@ -18,7 +18,7 @@ function ensureSaver(): () => void {
   const fn = useDebounceFn(() => {
     if (!hydrated || !activeProjectId)
       return
-    rpc.saveUiState(activeProjectId, {
+    rpc.$call('ghfs:save-ui-state', activeProjectId, {
       drafts: { ...uiState.drafts },
       listPaneSize: uiState.listPaneSize,
       lastPrTab: uiState.lastPrTab,

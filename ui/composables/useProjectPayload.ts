@@ -12,7 +12,7 @@ async function load(id: string, options: { force?: boolean } = {}): Promise<void
   error.value = null
   inflightId = id
   try {
-    const payload = await useRpc().initialPayload(id)
+    const payload = await useRpc().$call('ghfs:initial-payload', id)
     if (inflightId !== id)
       return
     bucket.setPayload(payload)

@@ -75,7 +75,7 @@ export default defineNuxtConfig({
       alias: {
         '#ghfs/server-types': resolve(rootDir, '../src/server/types.ts'),
         '#ghfs/action-colors': resolve(rootDir, '../src/execute/actions.ts'),
-        '#ghfs/shared-rpc': resolve(rootDir, '../src/devframe/shared-rpc.ts'),
+        '#ghfs/rpc-types': resolve(rootDir, '../src/devframe/rpc/types.ts'),
         '#ghfs/execute-types': resolve(rootDir, '../src/execute/types.ts'),
         '#ghfs/execution-types': resolve(rootDir, '../src/types/execution.ts'),
         '#ghfs/sync-contracts': resolve(rootDir, '../src/sync/contracts.ts'),
