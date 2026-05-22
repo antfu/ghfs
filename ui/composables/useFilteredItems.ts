@@ -1,5 +1,6 @@
 import type { SyncItemState } from '../../src/types/sync-state'
 import { refThrottled } from '@vueuse/core'
+import { getEffectiveUpdatedAt } from '../../src/sync/effective-updated'
 
 export function useFilteredItems() {
   const state = useAppState()
@@ -8,8 +9,11 @@ export function useFilteredItems() {
     const syncState = state.payload.value?.syncState
     if (!syncState)
       return []
-    return Object.values(syncState.items)
-      .sort((a, b) => b.data.item.updatedAt.localeCompare(a.data.item.updatedAt))
+    const bots: string[] = state.payload.value?.bots ?? []
+    const items = Object.values(syncState.items) as SyncItemState[]
+    return items.sort((a, b) =>
+      getEffectiveUpdatedAt(b, bots).localeCompare(getEffectiveUpdatedAt(a, bots)),
+    )
   })
 
   // Input updates `state.filters.search` instantly (so typing feels live),

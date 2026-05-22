@@ -179,6 +179,7 @@ function createConfig(): GhfsResolvedConfig {
     cwd: '/tmp',
     repo: 'owner/repo',
     directory: '.ghfs',
+    bots: [],
     auth: {
       token: '',
     },

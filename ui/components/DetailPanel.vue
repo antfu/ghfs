@@ -301,7 +301,7 @@ const ringClass = computed(() =>
           size="sm"
           tooltip="Open on GitHub"
         />
-        <Kbd shortcut-id="list.open" />
+        <Kbd command="list.open" />
       </div>
     </header>
 
@@ -316,7 +316,7 @@ const ringClass = computed(() =>
         <span class="i-octicon-tag-16 color-muted" />
         <Label v-for="label in labels" :key="label" :name="label" />
         <span v-if="!labels.length" class="color-faint italic">no labels</span>
-        <Kbd shortcut-id="item.labels" tone="muted" class="ml-auto" />
+        <Kbd command="item.labels" tone="muted" class="ml-auto" />
       </button>
       <div
         v-if="assignees.length || item.milestone"
@@ -382,7 +382,7 @@ const ringClass = computed(() =>
           <span class="i-octicon-comment-discussion-16" />
           Conversation
           <span v-if="comments.length + timeline.length" class="tab-count">{{ comments.length + timeline.length }}</span>
-          <Kbd shortcut-id="pr.tab.conversation" tone="muted" />
+          <Kbd command="pr.tab.conversation" tone="muted" />
         </TabsTrigger>
         <TabsTrigger
           value="commits"
@@ -391,7 +391,7 @@ const ringClass = computed(() =>
           <span class="i-octicon-git-commit-16" />
           Commits
           <span v-if="commits.length" class="tab-count">{{ commits.length }}</span>
-          <Kbd shortcut-id="pr.tab.commits" tone="muted" />
+          <Kbd command="pr.tab.commits" tone="muted" />
         </TabsTrigger>
         <TabsTrigger
           value="changes"
@@ -399,7 +399,7 @@ const ringClass = computed(() =>
         >
           <span class="i-octicon-file-diff-16" />
           Changes
-          <Kbd shortcut-id="pr.tab.changes" tone="muted" />
+          <Kbd command="pr.tab.changes" tone="muted" />
         </TabsTrigger>
       </TabsList>
       <div ref="scrollContainer" data-scroll="detail" class="flex-1 overflow-y-auto">
@@ -469,7 +469,7 @@ const ringClass = computed(() =>
             @keydown.ctrl.enter.prevent.stop="submitComment"
           />
           <Kbd
-            shortcut-id="comment.focus"
+            command="comment.focus"
             tone="muted"
             class="absolute bottom-2 right-2 pointer-events-none peer-focus:op0 transition-opacity"
           />
@@ -495,7 +495,7 @@ const ringClass = computed(() =>
             <span v-if="pending.direction.value === 'reopen'">Cancel reopen</span>
             <span v-else-if="draftHasContent">Close with comment</span>
             <span v-else>Close {{ kindLabel }}</span>
-            <Kbd shortcut-id="item.close" />
+            <Kbd command="item.close" />
           </button>
           <button
             v-else
@@ -505,7 +505,7 @@ const ringClass = computed(() =>
           >
             <span class="i-octicon-issue-opened-16 color-green-500 dark:color-green-400" />
             {{ pending.direction.value === 'close' ? 'Cancel close' : `Reopen ${kindLabel}` }}
-            <Kbd shortcut-id="item.reopen" />
+            <Kbd command="item.reopen" />
           </button>
           <button
             class="btn-primary text-sm"

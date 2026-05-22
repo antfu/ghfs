@@ -27,4 +27,45 @@ test.describe('ui mode smoke', () => {
     await expect(page.locator('[data-testid="item-row"][data-item-number="1"]')).toBeVisible({ timeout: 10_000 })
     expect(errors).toEqual([])
   })
+
+  test('Cmd+K opens the command palette and filters by query', async ({ page }) => {
+    const errors = captureErrors(page)
+    await page.goto(`${BASE}/`)
+    await expect(page.locator('[data-testid="navbar"]')).toBeVisible({ timeout: 10_000 })
+
+    await page.keyboard.press('ControlOrMeta+k')
+    await expect(page.locator('[data-testid="command-palette"]')).toBeVisible()
+    await expect(page.locator('[data-testid="command-palette-input"]')).toBeFocused()
+
+    // Typing narrows the visible rows; "sync" should match action.sync.
+    await page.locator('[data-testid="command-palette-input"]').fill('sync')
+    await expect(page.locator('[data-testid="command-palette-row-action.sync"]')).toBeVisible()
+
+    // Escape closes the palette.
+    await page.keyboard.press('Escape')
+    await expect(page.locator('[data-testid="command-palette"]')).toBeHidden()
+
+    expect(errors).toEqual([])
+  })
+
+  test('Cmd+Shift+P opens the command palette as an alias', async ({ page }) => {
+    const errors = captureErrors(page)
+    await page.goto(`${BASE}/`)
+    await expect(page.locator('[data-testid="navbar"]')).toBeVisible({ timeout: 10_000 })
+
+    await page.keyboard.press('ControlOrMeta+Shift+p')
+    await expect(page.locator('[data-testid="command-palette"]')).toBeVisible()
+    expect(errors).toEqual([])
+  })
+
+  test('? opens the help overlay with grouped categories', async ({ page }) => {
+    const errors = captureErrors(page)
+    await page.goto(`${BASE}/`)
+    await expect(page.locator('[data-testid="navbar"]')).toBeVisible({ timeout: 10_000 })
+
+    await page.keyboard.press('?')
+    await expect(page.locator('[data-testid="help-overlay"]')).toBeVisible()
+    await expect(page.locator('[data-testid="help-overlay"]').getByText('Navigate', { exact: true })).toBeVisible()
+    expect(errors).toEqual([])
+  })
 })

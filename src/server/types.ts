@@ -67,6 +67,8 @@ export interface InitialPayload {
   uiState: UiState
   repositoryLabels: RepoLabel[]
   currentUser: CurrentUser | null
+  /** Extra bot logins from the project's `ghfs.config.ts`. */
+  bots: string[]
 }
 
 export interface SyncTriggerOptions {

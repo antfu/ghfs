@@ -193,6 +193,7 @@ function createContext(
     cwd: storageDirAbsolute,
     repo: 'owner/repo',
     directory: '.ghfs',
+    bots: [],
     auth: {
       token: '',
     },

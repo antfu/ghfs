@@ -23,8 +23,8 @@ const hasToken = computed(() => state.payload.value?.repo.hasToken ?? false)
 const searching = computed(() => state.filters.search.trim().length > 0)
 const queueBadge = computed(() => (props.mode === 'hub' ? hubQueueTotal.value : upCount.value))
 const showHubBack = computed(() => isHubMode.value && props.mode === 'project')
-const onRecentPage = computed(() => route.path === '/hub/recent')
-const onQueuePage = computed(() => route.path === '/hub/queue')
+const onRecentPage = computed(() => route.path === '/recent')
+const onQueuePage = computed(() => route.path === '/queue')
 
 async function triggerSync() {
   if (props.mode === 'hub') {
@@ -78,7 +78,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
         aria-label="Hub home"
         data-testid="navbar-hub-home"
         active
-        @click="router.push('/hub')"
+        @click="router.push('/')"
       />
       <template v-else-if="mode === 'hub'">
         <span class="i-octicon-organization-16 text-lg color-active shrink-0" />
@@ -121,7 +121,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
           <span class="i-octicon-issue-opened-16" />
           <span class="font-mono tabular-nums">{{ counts.issues }}</span>
           <span>Issues</span>
-          <Kbd shortcut-id="tab.issues" />
+          <Kbd command="tab.issues" />
         </button>
         <button
           type="button"
@@ -139,7 +139,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
           <span class="i-octicon-git-pull-request-16" />
           <span class="font-mono tabular-nums">{{ counts.pulls }}</span>
           <span>Pull requests</span>
-          <Kbd shortcut-id="tab.pulls" />
+          <Kbd command="tab.pulls" />
         </button>
       </nav>
 
@@ -150,7 +150,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
         placeholder="Search title, body, author, labels…"
         data-shortcut="search"
         data-testid="navbar-search"
-        shortcut-id="search.focus"
+        command="search.focus"
       />
     </template>
 
@@ -160,9 +160,9 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
         <button
           type="button"
           class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 rounded transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
-          :class="route.path === '/hub' ? 'color-active font-medium bg-active' : 'color-muted hover:color-base'"
+          :class="route.path === '/' ? 'color-active font-medium bg-active' : 'color-muted hover:color-base'"
           data-testid="navbar-hub-home-link"
-          @click="router.push('/hub')"
+          @click="router.push('/')"
         >
           <span class="i-octicon-organization-16" />
           <span>Projects</span>
@@ -172,18 +172,18 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
           class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 rounded transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
           :class="onRecentPage ? 'color-active font-medium bg-active' : 'color-muted hover:color-base'"
           data-testid="navbar-hub-recent-link"
-          @click="router.push('/hub/recent')"
+          @click="router.push('/recent')"
         >
           <span class="i-octicon-history-16" />
           <span>Recent</span>
-          <Kbd shortcut-id="hub.recent" />
+          <Kbd command="hub.recent" />
         </button>
         <button
           type="button"
           class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 rounded transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
           :class="onQueuePage ? 'color-active font-medium bg-active' : 'color-muted hover:color-base'"
           data-testid="navbar-hub-queue-link"
-          @click="router.push('/hub/queue')"
+          @click="router.push('/queue')"
         >
           <span class="i-octicon-list-unordered-16" />
           <span>Queue</span>
@@ -208,7 +208,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
       @click="triggerSync"
     >
       <template #badge>
-        <Kbd shortcut-id="action.sync" class="absolute -bottom-1 -right-1" />
+        <Kbd command="action.sync" class="absolute -bottom-1 -right-1" />
       </template>
     </IconButton>
     <IconButton
@@ -260,7 +260,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
       @click="hubUi.openSettings()"
     >
       <template #badge>
-        <Kbd shortcut-id="settings.open" class="absolute -bottom-1 -right-1" />
+        <Kbd command="settings.open" class="absolute -bottom-1 -right-1" />
       </template>
     </IconButton>
 
@@ -270,7 +270,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
       @click="isDark = !isDark"
     >
       <template #badge>
-        <Kbd shortcut-id="action.theme" class="absolute -bottom-1 -right-1" />
+        <Kbd command="action.theme" class="absolute -bottom-1 -right-1" />
       </template>
     </IconButton>
   </header>

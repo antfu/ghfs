@@ -69,6 +69,7 @@ catalog:
   vitest: ^4.1.7
   vue-data-ui: ^3.19.9
   vue-tsc: ^3.3.1
+  whenexpr: ^0.1.2
   yaml: ^2.9.0
 onlyBuiltDependencies:
   - esbuild

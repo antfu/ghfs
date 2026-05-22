@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { HubRecentItem } from '../../composables/useRpc'
+import type { HubRecentItem } from '../composables/useRpc'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 
 const hub = useHubState()
@@ -35,7 +35,7 @@ const virtualizer = useVirtualizer(computed(() => ({
 })))
 
 function openItem(it: HubRecentItem) {
-  router.push(`/hub/${it.projectId}/${it.number}`)
+  router.push(`/${it.repo}/${it.number}`)
 }
 
 function measureRow(el: Element | { $el?: Element } | null): void {

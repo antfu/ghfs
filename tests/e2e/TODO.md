@@ -23,7 +23,7 @@ file in parentheses):
 - Project cards sort by `lastActivityAt` (most recent first).
 - Hub summary aggregates open issues + open PR counts across projects.
 - Activity sparkline renders behind the card when buckets are non-zero.
-- `[` / `]` step through projects; `b` returns to `/hub`.
+- `[` / `]` step through projects; `b` returns to `/`.
 - Project switcher dropdown navigates between projects.
 - Search inside a project filters to the current project only.
 - `j` focuses the first hub card; `g g` / `G` jump to first / last.
@@ -31,9 +31,9 @@ file in parentheses):
 - Manage projects dialog renders icons + add/enabled pills.
 - Settings dialog (`,`) round-trips hub root + auto-sync interval; invalid
   hub root surfaces an error inline.
-- `/hub/recent` shows items from every project, sorted by `updatedAt`;
-  clicking a row routes to `/hub/{projectId}/{number}` with selection.
-- `/hub/queue` aggregates entries per project; per-project Execute fires
+- `/recent` shows items from every project, sorted by `updatedAt`;
+  clicking a row routes to `/{owner}/{repo}/{number}` with selection.
+- `/queue` aggregates entries per project; per-project Execute fires
   the right RPC; "Execute all" runs sequentially.
 - Hub queue drawer opens from the navbar quick-view button and closes on
   Escape.

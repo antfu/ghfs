@@ -54,6 +54,17 @@ export default defineNuxtConfig({
       logsSDK.vite(),
       logsSDKServer.vite({ logFile: resolve(rootDir, '../.diagnostics.log') }),
     ],
+    optimizeDeps: {
+      include: [
+        'devframe/rpc/client',
+        'devframe/rpc/transports/ws-client',
+        'floating-vue',
+        'logs-sdk',
+        'logs-sdk/reporters/dev',
+        'shiki',
+        'whenexpr',
+      ],
+    },
     resolve: {
       alias: {
         '#ghfs/server-types': resolve(rootDir, '../src/server/types.ts'),
@@ -91,6 +102,19 @@ export default defineNuxtConfig({
   },
 
   pages: true,
+
+  hooks: {
+    'pages:extend'(pages) {
+      pages.push(
+        { name: 'hub-redirect', path: '/hub', redirect: '/' },
+        { name: 'hub-recent-redirect', path: '/hub/recent', redirect: '/recent' },
+        { name: 'hub-queue-redirect', path: '/hub/queue', redirect: '/queue' },
+      )
+      // GitHub URL shapes (/owner/repo/issues/123, /pull/, /pulls/) are
+      // handled by middleware/github-url.global.ts — function-form redirects
+      // get stripped during Nuxt's static build.
+    },
+  },
 
   compatibilityDate: '2025-01-01',
 })
