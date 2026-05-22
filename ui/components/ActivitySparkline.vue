@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { VueUiSparkline } from 'vue-data-ui'
 import 'vue-data-ui/style.css'
 
@@ -13,6 +13,16 @@ const props = withDefaults(
     color: '#0969da',
   },
 )
+
+// Delay first render until after layout settles. Otherwise vue-data-ui's
+// responsive observer measures the container before its parent flex layout
+// has resolved, then snaps to the real width on the next frame — visible as
+// a one-frame flicker on mount.
+const ready = ref(false)
+onMounted(async () => {
+  await nextTick()
+  ready.value = true
+})
 
 const dataset = computed(() =>
   props.points.map((value: number, i: number) => ({
@@ -55,6 +65,6 @@ const config = computed(() => ({
 
 <template>
   <div class="w-full h-full overflow-hidden" data-testid="activity-sparkline">
-    <VueUiSparkline :dataset="dataset" :config="config" />
+    <VueUiSparkline v-if="ready" :dataset="dataset" :config="config" />
   </div>
 </template>
