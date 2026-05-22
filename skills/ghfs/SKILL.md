@@ -86,6 +86,15 @@ Keep root as a YAML array and include `number` + `action` for each entry.
   action: request-reviewers
   reviewers: [octocat]
   ifUnchangedSince: '2026-03-05T04:10:00Z'
+
+- number: 130
+  action: add-reaction
+  reaction: heart
+
+- number: 130
+  action: add-reaction
+  reaction: '+1'
+  target: {kind: comment, commentId: 9876543}
 ```
 
 Map user intent to action fields:
@@ -103,6 +112,7 @@ Map user intent to action fields:
 | Lock/unlock conversation | `lock`, `unlock` | optional `reason` for lock |
 | PR reviewer actions | `request-reviewers`, `remove-reviewers` | `reviewers` (non-empty string array) |
 | PR draft state | `mark-ready-for-review`, `convert-to-draft` | none |
+| Add/remove a reaction | `add-reaction`, `remove-reaction` | `reaction` (one of `+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`); optional `target` (defaults to the issue/PR body) |
 
 Rules:
 - `number` must be a positive integer.

@@ -112,38 +112,6 @@ const draftHasContent = computed(() => {
   return commentDraft.value.trim().length > 0
 })
 
-async function queueClose() {
-  if (!item.value)
-    return
-  state.setError(null)
-  const number = item.value.number
-  const body = ui.getDraft(number).trim()
-  try {
-    if (body) {
-      await rpc.$call('ghfs:add-queue-op', activeId.value ?? '__default__', { action: 'close-with-comment', number, body })
-      ui.clearDraft(number)
-    }
-    else {
-      await rpc.$call('ghfs:add-queue-op', activeId.value ?? '__default__', { action: 'close', number })
-    }
-  }
-  catch (error) {
-    state.setError((error as Error).message)
-  }
-}
-
-async function queueReopen() {
-  if (!item.value)
-    return
-  state.setError(null)
-  try {
-    await rpc.$call('ghfs:add-queue-op', activeId.value ?? '__default__', { action: 'reopen', number: item.value.number })
-  }
-  catch (error) {
-    state.setError((error as Error).message)
-  }
-}
-
 async function submitComment() {
   if (submitting.value)
     return
@@ -287,33 +255,35 @@ async function discardThisItem() {
         </span>
       </div>
       <div class="flex items-center gap-1 shrink-0">
-        <UiIconButton
-          v-if="item.url"
-          as="a"
-          :href="item.url"
-          target="_blank"
-          rel="noreferrer"
-          icon="i-ph-arrow-square-out-duotone"
-          size="sm"
-          tooltip="Open on GitHub"
-        />
-        <UiKbd command="list.open" />
+        <UiWithCommand v-if="item.url" command="list.open">
+          <UiIconButton
+            as="a"
+            :href="item.url"
+            target="_blank"
+            rel="noreferrer"
+            icon="i-ph-arrow-square-out-duotone"
+            size="sm"
+            tooltip="Open on GitHub"
+          />
+        </UiWithCommand>
       </div>
     </header>
 
     <div class="border-b border-base text-xs">
-      <button
-        type="button"
-        class="w-full px-6 py-1.5 flex items-center gap-1.5 flex-wrap text-left hover:bg-active transition outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40"
-        data-testid="detail-labels-row"
-        :title="'Edit labels'"
-        @click="ui.labelEditorOpen.value = true"
-      >
-        <span class="i-octicon-tag-16 color-muted" />
-        <DisplayLabel v-for="label in labels" :key="label" :name="label" />
-        <span v-if="!labels.length" class="color-faint italic">no labels</span>
-        <UiKbd command="item.labels" tone="muted" class="ml-auto" />
-      </button>
+      <UiWithCommand v-slot="{ execute, disabled }" command="item.labels" tone="muted" class="!flex w-full pr-4">
+        <button
+          type="button"
+          class="flex-1 min-w-0 px-6 py-1.5 flex items-center gap-1.5 flex-wrap text-left hover:bg-active transition outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40"
+          data-testid="detail-labels-row"
+          :title="'Edit labels'"
+          :disabled="disabled"
+          @click="execute"
+        >
+          <span class="i-octicon-tag-16 color-muted" />
+          <DisplayLabel v-for="label in labels" :key="label" :name="label" />
+          <span v-if="!labels.length" class="color-faint italic">no labels</span>
+        </button>
+      </UiWithCommand>
       <div
         v-if="assignees.length || item.milestone"
         class="px-6 py-1.5 flex items-center gap-1.5 flex-wrap"
@@ -378,7 +348,7 @@ async function discardThisItem() {
           <span class="i-octicon-comment-discussion-16" />
           Conversation
           <span v-if="comments.length + timeline.length" class="tab-count">{{ comments.length + timeline.length }}</span>
-          <UiKbd command="pr.tab.conversation" tone="muted" />
+          <UiWithCommand command="pr.tab.conversation" tone="muted" />
         </TabsTrigger>
         <TabsTrigger
           value="commits"
@@ -387,7 +357,7 @@ async function discardThisItem() {
           <span class="i-octicon-git-commit-16" />
           Commits
           <span v-if="commits.length" class="tab-count">{{ commits.length }}</span>
-          <UiKbd command="pr.tab.commits" tone="muted" />
+          <UiWithCommand command="pr.tab.commits" tone="muted" />
         </TabsTrigger>
         <TabsTrigger
           value="changes"
@@ -395,7 +365,7 @@ async function discardThisItem() {
         >
           <span class="i-octicon-file-diff-16" />
           Changes
-          <UiKbd command="pr.tab.changes" tone="muted" />
+          <UiWithCommand command="pr.tab.changes" tone="muted" />
         </TabsTrigger>
       </TabsList>
       <div ref="scrollContainer" data-scroll="detail" class="flex-1 overflow-y-auto">
@@ -464,7 +434,7 @@ async function discardThisItem() {
             @keydown.meta.enter.prevent.stop="submitComment"
             @keydown.ctrl.enter.prevent.stop="submitComment"
           />
-          <UiKbd
+          <UiWithCommand
             command="comment.focus"
             tone="muted"
             class="absolute bottom-2 right-2 pointer-events-none peer-focus:op0 transition-opacity"
@@ -481,28 +451,28 @@ async function discardThisItem() {
           >
             Cancel
           </button>
-          <button
-            v-if="effectiveState === 'open'"
-            type="button"
-            class="btn-action text-sm"
-            @click="queueClose"
-          >
-            <span class="i-octicon-x-circle-16 color-red-500 dark:color-red-400" />
-            <span v-if="pending.direction.value === 'reopen'">Cancel reopen</span>
-            <span v-else-if="draftHasContent">Close with comment</span>
-            <span v-else>Close {{ kindLabel }}</span>
-            <UiKbd command="item.close" />
-          </button>
-          <button
-            v-else
-            type="button"
-            class="btn-action text-sm"
-            @click="queueReopen"
-          >
-            <span class="i-octicon-issue-opened-16 color-green-500 dark:color-green-400" />
-            {{ pending.direction.value === 'close' ? 'Cancel close' : `Reopen ${kindLabel}` }}
-            <UiKbd command="item.reopen" />
-          </button>
+          <UiWithCommand v-if="effectiveState === 'open'" v-slot="{ execute }" command="item.close">
+            <button
+              type="button"
+              class="btn-action text-sm"
+              @click="execute"
+            >
+              <span class="i-octicon-x-circle-16 color-red-500 dark:color-red-400" />
+              <span v-if="pending.direction.value === 'reopen'">Cancel reopen</span>
+              <span v-else-if="draftHasContent">Close with comment</span>
+              <span v-else>Close {{ kindLabel }}</span>
+            </button>
+          </UiWithCommand>
+          <UiWithCommand v-else v-slot="{ execute }" command="item.reopen">
+            <button
+              type="button"
+              class="btn-action text-sm"
+              @click="execute"
+            >
+              <span class="i-octicon-issue-opened-16 color-green-500 dark:color-green-400" />
+              {{ pending.direction.value === 'close' ? 'Cancel close' : `Reopen ${kindLabel}` }}
+            </button>
+          </UiWithCommand>
           <button
             class="btn-primary text-sm"
             :disabled="!commentDraft.trim() || submitting"

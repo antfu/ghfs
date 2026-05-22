@@ -56,6 +56,7 @@ export function createAppCommands(): Command[] {
   const ui = useUiState()
   const hub = useHubState()
   const hubUi = useHubUiState()
+  const hubQueue = useHubQueue()
   const router = useRouter()
   const { filteredItems } = useFilteredItems()
   const { upCount } = useQueue()
@@ -155,6 +156,12 @@ export function createAppCommands(): Command[] {
     state.value.askExecute()
   }
   function toggleQueue() {
+    const isHub = hub.capabilities.value?.mode === 'hub'
+    if (isHub) {
+      if (hubUi.queueDrawerOpen.value) hubUi.closeQueueDrawer()
+      else hubUi.openQueueDrawer()
+      return
+    }
     if (state.value.queueOpen.value) state.value.closeQueue()
     else state.value.openQueue()
   }
@@ -506,7 +513,28 @@ export function createAppCommands(): Command[] {
       keybindings: ['Q'],
       when: 'hubMode && route != "/queue"',
       help: 'hubMode',
-      run: () => { router.push('/queue') },
+      run: () => {
+        hubUi.closeQueueDrawer()
+        router.push('/queue')
+      },
+    },
+    {
+      id: 'hub.home',
+      title: 'Hub: Open home',
+      category: 'Hub',
+      icon: 'i-octicon-organization-16',
+      when: 'hubMode && route != "/"',
+      help: 'hubMode',
+      run: () => { router.push('/') },
+    },
+    {
+      id: 'hub.execute-all',
+      title: 'Hub: Execute all queues',
+      category: 'Hub',
+      icon: 'i-ph-play-duotone',
+      when: 'hubMode',
+      help: 'hubMode',
+      run: () => { hubQueue.executeAll() },
     },
     {
       id: 'hub.prev-project',
@@ -551,10 +579,13 @@ export function createAppCommands(): Command[] {
       title: 'Hub: Manage projects',
       category: 'Hub',
       icon: 'i-ph-folder-duotone',
-      keybindings: ['m'],
-      when: 'hubHome && !hubPickerOpen',
+      keybindings: [{ key: 'm', when: 'hubHome' }],
+      when: 'hubMode && !hubPickerOpen',
       help: 'hubMode',
-      run: () => hubUi.openPicker(),
+      run: () => {
+        hubUi.closeSettings()
+        hubUi.openPicker()
+      },
     },
     {
       id: 'hub.focus-first',

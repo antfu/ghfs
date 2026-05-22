@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'pathe'
 import { EXECUTE_MD_FILE_NAME, EXECUTE_SCHEMA_RELATIVE_PATH } from '../constants'
 import { pathExists } from '../utils/fs'
+import { REACTION_CONTENTS } from '../utils/reactions'
 import { ACTION_INPUTS } from './actions'
 
 export const executeSchema = {
@@ -39,6 +40,38 @@ export const executeSchema = {
       reason: {
         type: 'string',
         enum: ['resolved', 'off-topic', 'too heated', 'too-heated', 'spam'],
+      },
+      reaction: {
+        type: 'string',
+        enum: [...REACTION_CONTENTS],
+      },
+      target: {
+        oneOf: [
+          {
+            type: 'object',
+            required: ['kind'],
+            properties: { kind: { const: 'item' } },
+            additionalProperties: false,
+          },
+          {
+            type: 'object',
+            required: ['kind', 'commentId'],
+            properties: {
+              kind: { const: 'comment' },
+              commentId: { type: 'number' },
+            },
+            additionalProperties: false,
+          },
+          {
+            type: 'object',
+            required: ['kind', 'reviewId'],
+            properties: {
+              kind: { const: 'review' },
+              reviewId: { type: 'string' },
+            },
+            additionalProperties: false,
+          },
+        ],
       },
     },
   },

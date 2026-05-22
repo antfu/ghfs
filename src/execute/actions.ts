@@ -19,6 +19,8 @@ export const ACTIONS_SUPPORTED = [
   'remove-reviewers',
   'mark-ready-for-review',
   'convert-to-draft',
+  'add-reaction',
+  'remove-reaction',
 ] as const
 
 export type ActionName = typeof ACTIONS_SUPPORTED[number]
@@ -68,6 +70,8 @@ export const ACTIONS_COLOR_HEX: Record<ActionName, string> = {
   'remove-reviewers': '#e879f9',
   'mark-ready-for-review': '#34d399',
   'convert-to-draft': '#f472b6',
+  'add-reaction': '#fbbf24',
+  'remove-reaction': '#fb923c',
 }
 
 export type ActionAlias = keyof typeof ACTIONS_ALIAS_MAP

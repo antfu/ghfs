@@ -42,12 +42,18 @@ const hasAnyActivity = computed(() =>
         <div class="px-4 py-4">
           <div v-if="item.body" class="markdown-body text-sm" v-html="renderedBody" />
           <p v-else class="text-sm color-muted italic">No description provided.</p>
+          <PanelDetailReactions
+            :item-number="item.number"
+            :target="{ kind: 'item' }"
+            :reactions="item.reactions"
+          />
         </div>
       </div>
     </section>
 
     <section v-if="hasAnyActivity" class="px-6 pb-6">
       <PanelDetailTimeline
+        :item-number="item.number"
         :comments="comments"
         :timeline="timeline"
         :pending-comments="pendingComments"

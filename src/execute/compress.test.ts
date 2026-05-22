@@ -164,4 +164,38 @@ describe('compressOps', () => {
       { action: 'close', number: 1 },
     ])
   })
+
+  it('passes through a single reaction op', () => {
+    const ops: PendingOp[] = [
+      { action: 'add-reaction', number: 9, reaction: 'heart' },
+    ]
+    expect(compressOps(ops)).toEqual(ops)
+  })
+
+  it('dedupes duplicate add-reaction for the same target', () => {
+    const ops: PendingOp[] = [
+      { action: 'add-reaction', number: 9, reaction: 'heart' },
+      { action: 'add-reaction', number: 9, reaction: 'heart' },
+    ]
+    expect(compressOps(ops)).toEqual([
+      { action: 'add-reaction', number: 9, reaction: 'heart' },
+    ])
+  })
+
+  it('cancels add + remove on the same reaction and target', () => {
+    const ops: PendingOp[] = [
+      { action: 'add-reaction', number: 9, reaction: 'heart' },
+      { action: 'remove-reaction', number: 9, reaction: 'heart' },
+    ]
+    expect(compressOps(ops)).toEqual([])
+  })
+
+  it('keeps reactions on different targets independent', () => {
+    const ops: PendingOp[] = [
+      { action: 'add-reaction', number: 9, reaction: 'heart' },
+      { action: 'add-reaction', number: 9, reaction: 'heart', target: { kind: 'comment', commentId: 1 } },
+      { action: 'add-reaction', number: 9, reaction: 'heart', target: { kind: 'comment', commentId: 2 } },
+    ]
+    expect(compressOps(ops)).toEqual(ops)
+  })
 })
