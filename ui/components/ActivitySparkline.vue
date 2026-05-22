@@ -6,7 +6,7 @@ import 'vue-data-ui/style.css'
 const props = withDefaults(
   defineProps<{
     points: number[]
-    /** Hex color for the line + area fill. */
+    /** Hex color for the line. */
     color?: string
   }>(),
   {
@@ -34,8 +34,7 @@ const dataset = computed(() =>
 // Pin the y-axis to a minimum range so quiet projects don't visually
 // scream: when the peak is small (or zero), low activity still maps to
 // the bottom of the chart instead of filling the whole container.
-// Extend the scale slightly below zero so the line floats above the
-// edge while the area fill still reaches the panel bottom.
+// Extend the scale slightly below zero so the line floats above the edge.
 const MIN_SCALE = 10
 const scaleMax = computed(() => Math.max(MIN_SCALE, ...props.points))
 const scaleMin = computed(() => -scaleMax.value * 0.05)
@@ -61,10 +60,7 @@ const config = computed(() => ({
       smooth: true,
     },
     area: {
-      show: true,
-      useGradient: true,
-      opacity: 40,
-      color: props.color,
+      show: false,
     },
     plot: { show: false, radius: 0, stroke: 'transparent', strokeWidth: 0 },
     zeroLine: { color: 'transparent', strokeWidth: 0 },
