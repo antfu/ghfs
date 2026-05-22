@@ -9,6 +9,7 @@ import { resolveRepo } from '../../config/repo'
 import { ghfsDevframe } from '../../devframe/define'
 import { ensureExecuteArtifacts } from '../../execute/schema'
 import { registerPortlessRoute, slugifyRepoName } from '../../server/portless'
+import { ensureGitignoreEntry } from '../../utils/gitignore'
 import { withErrorHandling } from '../errors'
 import { createCliPrinter } from '../printer'
 import { promptForToken, promptRepoChoice } from '../prompts'
@@ -39,6 +40,7 @@ export function registerUiCommand(cli: CAC): void {
         cwd: options.cwd ? resolve(options.cwd) : undefined,
       })
       await ensureExecuteArtifacts(resolve(config.cwd, getExecuteFile(config)))
+      await ensureGitignoreEntry(config).catch(() => {})
 
       const repo = await resolveRepo({
         cwd: config.cwd,

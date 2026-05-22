@@ -6,6 +6,7 @@ import { getExecuteFile, resolveConfig } from '../../config/load'
 import { resolveRepo } from '../../config/repo'
 import { ensureExecuteArtifacts } from '../../execute/schema'
 import { syncRepository } from '../../sync'
+import { ensureGitignoreEntry } from '../../utils/gitignore'
 import { withErrorHandling } from '../errors'
 import { createCliPrinter } from '../printer'
 import { promptForToken, promptRepoChoice } from '../prompts'
@@ -32,6 +33,7 @@ function setupSyncCommand(command: ReturnType<CAC['command']>): void {
 
       const config = await resolveConfig()
       await ensureExecuteArtifacts(resolve(config.cwd, getExecuteFile(config)))
+      await ensureGitignoreEntry(config).catch(() => {})
 
       const repo = await resolveRepo({
         cwd: config.cwd,

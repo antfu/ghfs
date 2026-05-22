@@ -13,6 +13,7 @@ import { resolveRepo } from '../../config/repo'
 import { executePendingChanges, isExecuteCancelledError } from '../../execute'
 import { appendExecutionResult, syncRepository } from '../../sync'
 import { countNoun, formatDuration } from '../../utils/format'
+import { ensureGitignoreEntry } from '../../utils/gitignore'
 import { describeCliOperation } from '../action-color'
 import { withErrorHandling } from '../errors'
 import { createCliPrinter } from '../printer'
@@ -78,6 +79,7 @@ export async function runExecuteCommand(
 
   const config = await dependencies.resolveConfig()
   const storageDirAbsolute = getStorageDirAbsolute(config)
+  await ensureGitignoreEntry(config).catch(() => {})
   const interactive = dependencies.isTTY() && !options.nonInteractive
 
   const runMutations = Boolean(options.run)
