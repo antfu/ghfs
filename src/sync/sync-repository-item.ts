@@ -3,7 +3,7 @@ import type { ItemSyncStats, PatchPlan, PreparedIssueCandidate, SyncContext } fr
 import { readdir } from 'node:fs/promises'
 import { basename, join } from 'pathe'
 import { CLOSED_DIR_NAME, ISSUE_DIR_NAME, PULL_DIR_NAME } from '../constants'
-import { CodedError, log } from '../logger'
+import { diagnostics } from '../logger'
 import { formatIssueNumber } from '../utils/format'
 import { movePath, pathExists, removePatchIfExists, removePath, writeFileEnsured } from '../utils/fs'
 import { normalizeReactions } from '../utils/reactions'
@@ -121,9 +121,9 @@ export async function materializePreparedIssue(context: SyncContext, candidate: 
 
   const tracked = context.syncState.items[String(number)]
   if (!tracked) {
-    throw new CodedError(log.GHFS0401({
+    throw diagnostics.GHFS0401({
       issue: formatIssueNumber(number, { repo: context.repoSlug, kind }),
-    }))
+    })
   }
 
   const markdown = buildTrackedMarkdown(context, tracked)

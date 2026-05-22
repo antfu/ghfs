@@ -1,6 +1,6 @@
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
-import { logsSDK, logsSDKServer } from 'logs-sdk/unplugin'
+import { nostics, nosticsServer } from 'nostics/unplugin'
 import { dirname, resolve } from 'pathe'
 
 const rootDir = dirname(fileURLToPath(import.meta.url))
@@ -16,8 +16,9 @@ export default defineNuxtConfig({
   css: [
     '@unocss/reset/tailwind.css',
     'floating-vue/dist/style.css',
-    '~/assets/floating-vue.css',
+    '~/assets/global.css',
     '~/assets/markdown.css',
+    '~/assets/splitpanes.css',
   ],
 
   ssr: false,
@@ -31,7 +32,7 @@ export default defineNuxtConfig({
   },
 
   app: {
-    baseURL: isDev ? '/' : './',
+    baseURL: '/',
     head: {
       title: 'ghfs',
       link: [
@@ -50,13 +51,29 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [
-      logsSDK.vite(),
-      logsSDKServer.vite({ logFile: resolve(rootDir, '../.diagnostics.log') }),
+      nostics.vite(),
+      nosticsServer.vite({ logFile: resolve(rootDir, '../.diagnostics.log') }),
     ],
+    optimizeDeps: {
+      include: [
+        'devframe/rpc/client',
+        'devframe/rpc/transports/ws-client',
+        'floating-vue',
+        'nostics',
+        'nostics/reporters/dev',
+        'shiki',
+        'whenexpr',
+      ],
+    },
     resolve: {
       alias: {
         '#ghfs/server-types': resolve(rootDir, '../src/server/types.ts'),
         '#ghfs/action-colors': resolve(rootDir, '../src/execute/actions.ts'),
+        '#ghfs/shared-rpc': resolve(rootDir, '../src/devframe/shared-rpc.ts'),
+        '#ghfs/execute-types': resolve(rootDir, '../src/execute/types.ts'),
+        '#ghfs/execution-types': resolve(rootDir, '../src/types/execution.ts'),
+        '#ghfs/sync-contracts': resolve(rootDir, '../src/sync/contracts.ts'),
+        '#ghfs/sync-state': resolve(rootDir, '../src/types/sync-state.ts'),
       },
     },
     server: {
@@ -82,6 +99,21 @@ export default defineNuxtConfig({
 
   imports: {
     dirs: ['composables'],
+  },
+
+  pages: true,
+
+  hooks: {
+    'pages:extend'(pages) {
+      pages.push(
+        { name: 'hub-redirect', path: '/hub', redirect: '/' },
+        { name: 'hub-recent-redirect', path: '/hub/recent', redirect: '/recent' },
+        { name: 'hub-queue-redirect', path: '/hub/queue', redirect: '/queue' },
+      )
+      // GitHub URL shapes (/owner/repo/issues/123, /pull/, /pulls/) are
+      // handled by middleware/github-url.global.ts — function-form redirects
+      // get stripped during Nuxt's static build.
+    },
   },
 
   compatibilityDate: '2025-01-01',

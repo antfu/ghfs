@@ -1,6 +1,6 @@
 import type { UiState, UserOverride } from '#ghfs/server-types'
 import { useDebounceFn } from '@vueuse/core'
-import { log } from '../utils/logger'
+import { diagnostics } from '../utils/logger'
 
 type PrTabId = 'conversation' | 'commits' | 'changes'
 
@@ -9,21 +9,23 @@ const helpOpen = ref(false)
 const labelEditorOpen = ref(false)
 let hydrated = false
 let saveFn: (() => void) | null = null
+let activeProjectId: string | null = null
 
 function ensureSaver(): () => void {
   if (saveFn)
     return saveFn
   const rpc = useRpc()
   const fn = useDebounceFn(() => {
-    if (!hydrated)
+    if (!hydrated || !activeProjectId)
       return
-    rpc.saveUiState({
+    rpc.saveUiState(activeProjectId, {
       drafts: { ...uiState.drafts },
       listPaneSize: uiState.listPaneSize,
       lastPrTab: uiState.lastPrTab,
       userOverride: uiState.userOverride ? { ...uiState.userOverride } : undefined,
+      autoSyncIntervalMs: uiState.autoSyncIntervalMs,
     }).catch((error) => {
-      log.GHFS0900({ detail: String((error as Error)?.message ?? error) }, { cause: error }).error()
+      diagnostics.GHFS0900({ detail: String((error as Error)?.message ?? error), cause: error })
     })
   }, 700)
   saveFn = fn
@@ -50,7 +52,8 @@ function normalizeUserOverride(value: UserOverride | undefined): UserOverride | 
 }
 
 export function useUiState() {
-  function hydrate(next: UiState | null | undefined) {
+  function hydrate(projectId: string, next: UiState | null | undefined) {
+    activeProjectId = projectId
     const drafts = next && typeof next === 'object' && next.drafts && typeof next.drafts === 'object'
       ? { ...next.drafts }
       : {}
@@ -58,6 +61,7 @@ export function useUiState() {
     uiState.listPaneSize = typeof next?.listPaneSize === 'number' ? next.listPaneSize : undefined
     uiState.lastPrTab = normalizePrTab(next?.lastPrTab)
     uiState.userOverride = normalizeUserOverride(next?.userOverride)
+    uiState.autoSyncIntervalMs = typeof next?.autoSyncIntervalMs === 'number' ? next.autoSyncIntervalMs : undefined
     hydrated = true
   }
 
@@ -108,6 +112,16 @@ export function useUiState() {
     ensureSaver()()
   }
 
+  function setAutoSyncIntervalMs(value: number | undefined): void {
+    const normalized = typeof value === 'number' && value >= 60_000 && value <= 3_600_000
+      ? Math.round(value)
+      : undefined
+    if (uiState.autoSyncIntervalMs === normalized)
+      return
+    uiState.autoSyncIntervalMs = normalized
+    ensureSaver()()
+  }
+
   return {
     uiState,
     helpOpen,
@@ -119,5 +133,6 @@ export function useUiState() {
     setListPaneSize,
     setLastPrTab,
     setUserOverride,
+    setAutoSyncIntervalMs,
   }
 }

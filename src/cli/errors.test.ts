@@ -1,6 +1,7 @@
 import process from 'node:process'
+import { Diagnostic } from 'nostics'
 import { describe, expect, it, vi } from 'vitest'
-import { CodedError, log } from '../logger'
+import { diagnostics } from '../logger'
 import { withErrorHandling } from './errors'
 
 async function flush(): Promise<void> {
@@ -9,12 +10,12 @@ async function flush(): Promise<void> {
 }
 
 describe('withErrorHandling', () => {
-  it('renders a CodedError with fix and docs link', async () => {
+  it('renders a Diagnostic with fix and docs link', async () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never)
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const handler = withErrorHandling(async () => {
-      throw new CodedError(log.GHFS0001())
+      throw diagnostics.GHFS0001()
     })
     handler()
     await flush()
@@ -35,11 +36,9 @@ describe('withErrorHandling', () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const handler = withErrorHandling(async () => {
-      throw new CodedError({
-        code: 'TEST_E0001',
-        level: 'error',
-        message: 'bare diagnostic',
-      })
+      const d = new Diagnostic({ why: 'bare diagnostic' })
+      d.name = 'TEST_E0001'
+      throw d
     })
     handler()
     await flush()
@@ -54,7 +53,7 @@ describe('withErrorHandling', () => {
     exitSpy.mockRestore()
   })
 
-  it('prints raw errors unchanged when not a CodedError', async () => {
+  it('prints raw errors unchanged when not a Diagnostic', async () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never)
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 

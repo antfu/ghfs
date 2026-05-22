@@ -3,7 +3,7 @@ import { execFile } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import process from 'node:process'
 import { promisify } from 'node:util'
-import { CodedError, log } from '../logger'
+import { diagnostics } from '../logger'
 import { pathExists } from '../utils/fs'
 
 const execFileAsync = promisify(execFile)
@@ -20,7 +20,7 @@ export async function resolveRepo(options: ResolveRepoOptions): Promise<RepoReso
   if (options.cliRepo) {
     const repo = normalizeRepo(options.cliRepo)
     if (!repo)
-      throw new CodedError(log.GHFS0010({ value: options.cliRepo }))
+      throw diagnostics.GHFS0010({ value: options.cliRepo })
     return {
       repo,
       source: 'cli',
@@ -31,7 +31,7 @@ export async function resolveRepo(options: ResolveRepoOptions): Promise<RepoReso
   if (options.configRepo) {
     const repo = normalizeRepo(options.configRepo)
     if (!repo)
-      throw new CodedError(log.GHFS0011({ value: options.configRepo }))
+      throw diagnostics.GHFS0011({ value: options.configRepo })
     return {
       repo,
       source: 'config',
@@ -52,11 +52,11 @@ export async function resolveRepo(options: ResolveRepoOptions): Promise<RepoReso
     if (options.interactive && process.stdin.isTTY && options.selectRepoChoice) {
       const repo = await options.selectRepoChoice(gitCandidate, pkgCandidate)
       if (!repo)
-        throw new CodedError(log.GHFS0012())
+        throw diagnostics.GHFS0012()
 
       const normalizedRepo = normalizeRepo(repo)
       if (!normalizedRepo || (normalizedRepo !== gitCandidate.repo && normalizedRepo !== pkgCandidate.repo))
-        throw new CodedError(log.GHFS0013({ value: repo }))
+        throw diagnostics.GHFS0013({ value: repo })
 
       return {
         repo: normalizedRepo,
@@ -64,7 +64,7 @@ export async function resolveRepo(options: ResolveRepoOptions): Promise<RepoReso
         candidates,
       }
     }
-    throw new CodedError(log.GHFS0014({ gitRepo: gitCandidate.repo, pkgRepo: pkgCandidate.repo }))
+    throw diagnostics.GHFS0014({ gitRepo: gitCandidate.repo, pkgRepo: pkgCandidate.repo })
   }
 
   if (gitCandidate) {
@@ -83,7 +83,7 @@ export async function resolveRepo(options: ResolveRepoOptions): Promise<RepoReso
     }
   }
 
-  throw new CodedError(log.GHFS0015())
+  throw diagnostics.GHFS0015()
 }
 
 export function normalizeRepo(input: string): string | undefined {

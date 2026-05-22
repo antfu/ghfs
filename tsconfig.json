@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
@@ -15,6 +15,7 @@
   "exclude": [
     "playgrounds/**",
     "ui/**",
-    "dist/**"
+    "dist/**",
+    "tests/e2e/**"
   ]
 }

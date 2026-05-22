@@ -32,11 +32,11 @@ const hasAnyActivity = computed(() =>
   <div class="flex flex-col">
     <section class="px-6 py-5">
       <div class="rounded-lg border border-base bg-base overflow-hidden">
-        <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-subtle">
-          <Avatar :login="item.author" :size="20" />
-          <span class="text-sm">
-            <span class="font-medium">@{{ item.author || 'ghost' }}</span>
-            <span class="color-muted"> opened this {{ item.kind === 'pull' ? 'pull request' : 'issue' }} {{ formatRelative(item.createdAt) }}</span>
+        <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-#8881 dark:bg-#fff1">
+          <AuthorEntry :author="item.author || 'ghost'" :size="20" />
+          <span class="text-sm color-muted flex items-center gap-1.5">
+            <span>opened this {{ item.kind === 'pull' ? 'pull request' : 'issue' }}</span>
+            <DateBadge :time="item.createdAt" mode="day" colorize="text" />
           </span>
         </div>
         <div class="px-4 py-4">

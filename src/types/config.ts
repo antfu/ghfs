@@ -22,6 +22,15 @@ export interface GhfsUserConfig {
      */
     token?: string
   }
+  /**
+   * Additional bot logins to ignore when computing the "last updated"
+   * sort order for issues and pull requests. Logins ending with `[bot]`
+   * (e.g. `dependabot[bot]`) are always detected automatically; use this
+   * list for non-suffix bots like `coderabbitai`. Case-insensitive.
+   *
+   * @default []
+   */
+  bots?: string[]
   sync?: {
     /**
      * Whether to sync issues.

@@ -6,6 +6,7 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       'playgrounds/**',
+      'tests/e2e/**',
     ],
   },
 })

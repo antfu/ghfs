@@ -2,8 +2,9 @@
 import type { QueueEntry } from '#ghfs/server-types'
 import type { SyncItemState } from '../../src/types/sync-state'
 
+const activeId = useActiveProjectId()
 const state = useAppState()
-const rpc = useRpc()
+const rpc = useProjectRpc(() => activeId.value ?? '__default__')
 const ui = useUiState()
 const { currentUser } = useCurrentUser()
 const userOverrideOpen = ref(false)
@@ -244,10 +245,18 @@ const ringClass = computed(() =>
 </script>
 
 <template>
-  <div v-if="!item" class="h-full flex flex-col items-center justify-center color-muted transition" :class="ringClass">
-    <span class="i-octicon-inbox-16 text-5xl mb-4 op-fade" />
-    <p class="text-sm">Select an item on the left to view it here.</p>
-    <p class="text-xs mt-2 color-faint">Use <span class="kbd">j</span> <span class="kbd">k</span> or <span class="kbd">↑</span> <span class="kbd">↓</span> to navigate.</p>
+  <div v-if="!item" class="h-full flex flex-col items-center justify-center transition" :class="ringClass">
+    <EmptyState
+      icon="i-octicon-inbox-16"
+      title="Select an item on the left to view it here"
+      size="lg"
+    >
+      <template #hint>
+        <p class="text-xs color-faint">
+          Use <span class="kbd">j</span> <span class="kbd">k</span> or <span class="kbd">↑</span> <span class="kbd">↓</span> to navigate.
+        </p>
+      </template>
+    </EmptyState>
   </div>
 
   <article v-else class="h-full flex flex-col min-h-0 bg-base transition" :class="ringClass">
@@ -257,67 +266,81 @@ const ringClass = computed(() =>
         <h2
           class="font-medium text-lg leading-tight"
           :class="{ italic: titleIsPending }"
+          data-testid="detail-title"
           v-html="titleHtml"
         />
         <span class="font-mono text-sm color-muted tabular-nums">#{{ item.number }}</span>
-        <span class="badge-color-neutral uppercase tracking-wide text-[10px]">{{ stateLabel }}</span>
-        <span v-if="pending.direction.value" class="badge-color-yellow uppercase tracking-wide text-[10px] flex items-center gap-1">
-          <span class="i-octicon-hourglass-16 text-[10px]" /> pending
-        </span>
-        <span v-if="item.author" class="flex items-center gap-1 text-xs color-muted">
-          <Avatar :login="item.author" :size="14" />
-          <span class="font-mono">@{{ item.author }}</span>
-        </span>
-        <span class="text-xs color-muted">
-          <span class="color-faint">·</span> {{ formatRelative(item.createdAt) }}
+        <StatePill :state="(stateLabel as any)" :kind="item.kind" />
+        <Badge
+          v-if="pending.direction.value"
+          color="yellow"
+          icon="i-octicon-hourglass-16"
+          size="xs"
+          class="uppercase tracking-wide"
+        >
+          pending
+        </Badge>
+        <AuthorEntry
+          v-if="item.author"
+          :author="item.author"
+          :size="14"
+        />
+        <span class="text-xs color-muted flex items-center gap-1">
+          <span class="color-faint">·</span>
+          <DateBadge :time="item.createdAt" mode="day" />
         </span>
       </div>
       <div class="flex items-center gap-1 shrink-0">
-        <TooltipButton v-if="item.url" tooltip="Open on GitHub">
-          <a
-            :href="item.url"
-            target="_blank"
-            rel="noreferrer"
-            class="btn-icon !w-7 !h-7"
-            aria-label="Open on GitHub"
-          >
-            <span class="i-octicon-link-external-16" />
-          </a>
-        </TooltipButton>
-        <Kbd shortcut-id="list.open" />
+        <IconButton
+          v-if="item.url"
+          as="a"
+          :href="item.url"
+          target="_blank"
+          rel="noreferrer"
+          icon="i-ph-arrow-square-out-duotone"
+          size="sm"
+          tooltip="Open on GitHub"
+        />
+        <Kbd command="list.open" />
       </div>
     </header>
 
-    <div class="px-6 py-1.5 border-b border-base flex items-center gap-1.5 flex-wrap text-xs">
-      <span class="i-octicon-tag-16 color-muted" />
-      <Label v-for="label in labels" :key="label" :name="label" />
-      <TooltipButton tooltip="Edit labels">
-        <button
-          type="button"
-          class="btn-icon !w-5 !h-5"
-          aria-label="Edit labels"
-          @click="ui.labelEditorOpen.value = true"
-        >
-          <span class="i-octicon-pencil-16 text-xs" />
-        </button>
-      </TooltipButton>
-      <Kbd shortcut-id="item.labels" tone="muted" />
-      <template v-if="assignees.length">
-        <span class="i-octicon-person-16 color-muted ml-2" />
-        <span v-for="a in assignees" :key="a" class="flex items-center gap-1">
-          <Avatar :login="a" :size="14" />
-          <span class="font-mono">@{{ a }}</span>
-        </span>
-      </template>
-      <template v-if="item.milestone">
-        <span class="i-octicon-milestone-16 color-muted ml-2" />
-        <span class="font-mono italic">{{ item.milestone }}</span>
-      </template>
+    <div class="border-b border-base text-xs">
+      <button
+        type="button"
+        class="w-full px-6 py-1.5 flex items-center gap-1.5 flex-wrap text-left hover:bg-active transition outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40"
+        data-testid="detail-labels-row"
+        :title="'Edit labels'"
+        @click="ui.labelEditorOpen.value = true"
+      >
+        <span class="i-octicon-tag-16 color-muted" />
+        <Label v-for="label in labels" :key="label" :name="label" />
+        <span v-if="!labels.length" class="color-faint italic">no labels</span>
+        <Kbd command="item.labels" tone="muted" class="ml-auto" />
+      </button>
+      <div
+        v-if="assignees.length || item.milestone"
+        class="px-6 py-1.5 flex items-center gap-1.5 flex-wrap"
+      >
+        <template v-if="assignees.length">
+          <span class="i-octicon-person-16 color-muted" />
+          <AuthorEntry
+            v-for="a in assignees"
+            :key="a"
+            :author="a"
+            :size="14"
+          />
+        </template>
+        <template v-if="item.milestone">
+          <span class="i-octicon-milestone-16 color-muted ml-2" />
+          <span class="font-mono italic">{{ item.milestone }}</span>
+        </template>
+      </div>
     </div>
 
     <div
       v-if="pending.hasPending.value"
-      class="px-6 py-2 border-b border-yellow-500/30 bg-yellow-500/10 flex items-center gap-3 text-sm"
+      class="px-6 py-2 border-b border-yellow-500/30 bg-yellow-500/8 flex items-center gap-3 text-sm"
     >
       <span class="i-octicon-hourglass-16 color-yellow-600 dark:color-yellow-400 shrink-0" />
       <div class="flex-1 min-w-0">
@@ -328,20 +351,20 @@ const ringClass = computed(() =>
       </div>
       <button
         type="button"
-        class="btn-action text-sm"
+        class="btn-action-sm"
         :disabled="state.executing.value || !hasToken"
         :title="hasToken ? 'Execute the pending changes for this item only' : 'No GitHub token available'"
         @click="executeThisItem"
       >
-        <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-octicon-play-16'" />
+        <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-ph-play-duotone'" />
         Execute
       </button>
       <button
         type="button"
-        class="btn-action text-sm"
+        class="btn-action-sm"
         @click="discardThisItem"
       >
-        <span class="i-octicon-trash-16" />
+        <span class="i-ph-trash-duotone" />
         Discard
       </button>
     </div>
@@ -359,7 +382,7 @@ const ringClass = computed(() =>
           <span class="i-octicon-comment-discussion-16" />
           Conversation
           <span v-if="comments.length + timeline.length" class="tab-count">{{ comments.length + timeline.length }}</span>
-          <Kbd shortcut-id="pr.tab.conversation" tone="muted" />
+          <Kbd command="pr.tab.conversation" tone="muted" />
         </TabsTrigger>
         <TabsTrigger
           value="commits"
@@ -368,7 +391,7 @@ const ringClass = computed(() =>
           <span class="i-octicon-git-commit-16" />
           Commits
           <span v-if="commits.length" class="tab-count">{{ commits.length }}</span>
-          <Kbd shortcut-id="pr.tab.commits" tone="muted" />
+          <Kbd command="pr.tab.commits" tone="muted" />
         </TabsTrigger>
         <TabsTrigger
           value="changes"
@@ -376,7 +399,7 @@ const ringClass = computed(() =>
         >
           <span class="i-octicon-file-diff-16" />
           Changes
-          <Kbd shortcut-id="pr.tab.changes" tone="muted" />
+          <Kbd command="pr.tab.changes" tone="muted" />
         </TabsTrigger>
       </TabsList>
       <div ref="scrollContainer" data-scroll="detail" class="flex-1 overflow-y-auto">
@@ -412,27 +435,22 @@ const ringClass = computed(() =>
 
     <footer class="border-t border-base px-6 py-3 bg-base flex flex-col gap-2">
       <div class="flex items-center gap-2 text-xs color-muted">
-        <Avatar
-          :login="currentUser?.login ?? null"
-          :src="currentUser?.avatarUrl"
+        <AuthorEntry
+          v-if="currentUser?.login"
+          :author="{ login: currentUser.login, avatarUrl: currentUser.avatarUrl, name: currentUser.name }"
           :size="18"
+          :link="false"
         />
-        <span class="font-mono">
-          <template v-if="currentUser?.login">@{{ currentUser.login }}</template>
-          <template v-else>(no user)</template>
-        </span>
+        <span v-else class="font-mono">(no user)</span>
         <span v-if="currentUser?.name" class="color-faint">· {{ currentUser.name }}</span>
         <div class="flex-1" />
-        <TooltipButton tooltip="Override user">
-          <button
-            type="button"
-            class="btn-icon !w-6 !h-6"
-            aria-label="Override user identity"
-            @click="userOverrideOpen = true"
-          >
-            <span class="i-octicon-pencil-16 text-xs" />
-          </button>
-        </TooltipButton>
+        <IconButton
+          icon="i-ph-user-switch-duotone"
+          size="sm"
+          tooltip="Override user"
+          aria-label="Override user identity"
+          @click="userOverrideOpen = true"
+        />
       </div>
       <div
         class="border border-base rounded-lg bg-base transition"
@@ -451,7 +469,7 @@ const ringClass = computed(() =>
             @keydown.ctrl.enter.prevent.stop="submitComment"
           />
           <Kbd
-            shortcut-id="comment.focus"
+            command="comment.focus"
             tone="muted"
             class="absolute bottom-2 right-2 pointer-events-none peer-focus:op0 transition-opacity"
           />
@@ -477,7 +495,7 @@ const ringClass = computed(() =>
             <span v-if="pending.direction.value === 'reopen'">Cancel reopen</span>
             <span v-else-if="draftHasContent">Close with comment</span>
             <span v-else>Close {{ kindLabel }}</span>
-            <Kbd shortcut-id="item.close" />
+            <Kbd command="item.close" />
           </button>
           <button
             v-else
@@ -487,7 +505,7 @@ const ringClass = computed(() =>
           >
             <span class="i-octicon-issue-opened-16 color-green-500 dark:color-green-400" />
             {{ pending.direction.value === 'close' ? 'Cancel close' : `Reopen ${kindLabel}` }}
-            <Kbd shortcut-id="item.reopen" />
+            <Kbd command="item.reopen" />
           </button>
           <button
             class="btn-primary text-sm"

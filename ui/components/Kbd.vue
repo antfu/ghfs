@@ -1,10 +1,11 @@
 <script setup lang="ts">
 interface Props {
-  shortcutId?: string
-  /** Display tokens. Accepts an array like `['g', 'g']` or a string like `j`, `Esc`. */
+  /** Look up the first keybinding bound to this command id. */
+  command?: string
+  /** Display tokens directly (`['g', 'g']` or `'j'`). Ignored when `command` set. */
   keys?: string | string[]
   active?: boolean
-  /** Extra classes to layer on the root span. */
+  /** Extra tone class on the wrapper. */
   tone?: 'default' | 'muted'
 }
 
@@ -16,9 +17,9 @@ const props = withDefaults(defineProps<Props>(), {
 const inputFocused = useInputFocus()
 
 const binding = computed(() => {
-  if (!props.shortcutId)
+  if (!props.command)
     return null
-  return useShortcut(props.shortcutId)
+  return useCommand(props.command)
 })
 
 const displayKeys = computed<string[]>(() => {

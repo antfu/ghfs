@@ -9,8 +9,9 @@ interface Group {
   entries: QueueEntry[]
 }
 
+const activeId = useActiveProjectId()
 const state = useAppState()
-const rpc = useRpc()
+const rpc = useProjectRpc(() => activeId.value ?? '__default__')
 const { entries } = useQueue()
 
 const warnings = computed<string[]>(() => state.payload.value?.queue.warnings ?? [])
@@ -116,53 +117,57 @@ async function confirmExecute() {
 
 <template>
   <Transition
-    enter-active-class="transition duration-200"
+    enter-active-class="transition duration-300 ease-[cubic-bezier(0.22,0.61,0.36,1)]"
     enter-from-class="op0 translate-x-4"
     enter-to-class="op100 translate-x-0"
-    leave-active-class="transition duration-150"
+    leave-active-class="transition duration-200 ease-[cubic-bezier(0.22,0.61,0.36,1)]"
     leave-from-class="op100 translate-x-0"
     leave-to-class="op0 translate-x-4"
   >
     <aside
       v-if="state.queueOpen.value"
-      class="fixed top-18 right-4 bottom-4 w-[30rem] max-w-[calc(100vw-2rem)] bg-glass rounded-lg shadow-xl z-40 flex flex-col overflow-hidden"
+      class="fixed top-18 right-4 bottom-4 w-[30rem] max-w-[calc(100vw-2rem)] panel-card shadow-xl z-drawer-content flex flex-col overflow-hidden"
+      data-testid="queue-panel"
     >
       <header class="flex items-center gap-2 px-4 py-3 border-b border-base">
         <span class="i-octicon-list-unordered-16 color-active" />
         <h2 class="font-medium">Queue</h2>
         <span class="color-muted text-sm font-mono tabular-nums">{{ entries.length }}</span>
         <div class="flex-1" />
-        <TooltipButton tooltip="Clear execute.yml">
-          <button class="btn-action text-xs" :disabled="entries.length === 0" @click="clearDialogOpen = true">
-            <span class="i-octicon-trash-16" />
-            <span>Clear</span>
-          </button>
-        </TooltipButton>
-        <TooltipButton tooltip="Close panel">
-          <button class="btn-icon" aria-label="Close panel" @click="state.closeQueue()">
-            <span class="i-octicon-x-16" />
-          </button>
-        </TooltipButton>
+        <button
+          class="btn-action-sm"
+          :disabled="entries.length === 0"
+          @click="clearDialogOpen = true"
+        >
+          <span class="i-ph-trash-duotone" />
+          <span>Clear</span>
+        </button>
+        <IconButton
+          icon="i-ph-x"
+          tooltip="Close panel"
+          @click="state.closeQueue()"
+        />
       </header>
 
       <div v-if="warnings.length" class="px-4 py-2 bg-yellow-500/10 border-b border-base text-xs color-muted">
         <div v-for="(w, i) in warnings" :key="i" class="flex items-start gap-2 py-0.5">
-          <span class="i-octicon-alert-16 mt-0.5 flex-none color-yellow-600" />
+          <span class="i-ph-warning-duotone mt-0.5 flex-none color-yellow-600" />
           <span>{{ w }}</span>
         </div>
       </div>
 
       <div class="flex-1 overflow-y-auto">
-        <div v-if="entries.length === 0" class="px-6 py-16 color-muted text-sm text-center">
-          <span class="i-octicon-inbox-16 text-3xl block mb-3 op-fade mx-auto" />
-          No operations queued.<br>
-          <span class="text-xs color-faint">Open an item and use the footer actions to queue close/reopen/comment.</span>
-        </div>
-        <div v-else class="divide-y divide-neutral-200 dark:divide-neutral-800">
+        <EmptyState
+          v-if="entries.length === 0"
+          icon="i-octicon-inbox-16"
+          title="No operations queued"
+          message="Open an item and use the footer actions to queue close/reopen/comment."
+        />
+        <div v-else class="divide-y divide-#8882">
           <section v-for="group in groups" :key="group.number" class="flex flex-col">
             <button
               type="button"
-              class="flex items-start gap-2 px-4 py-2 bg-secondary/60 hover:bg-active transition text-left"
+              class="flex items-start gap-2 px-4 py-2 bg-#8881 hover:bg-#8882 transition text-left"
               @click="selectItem(group.number)"
             >
               <ItemStateIcon
@@ -194,6 +199,8 @@ async function confirmExecute() {
                 v-for="entry in group.entries"
                 :key="entry.id"
                 class="group flex items-start gap-2 px-4 py-1.5 pl-8 hover:bg-active transition"
+                data-testid="queue-entry"
+                :data-entry-id="entry.id"
               >
                 <span
                   class="badge font-mono text-xs flex-none"
@@ -201,18 +208,20 @@ async function confirmExecute() {
                 >{{ entry.op.action }}</span>
                 <span v-if="summarize(entry)" class="text-xs color-muted truncate flex-1">{{ summarize(entry) }}</span>
                 <span v-else class="flex-1" />
-                <TooltipButton tooltip="Remove from queue">
-                  <button class="btn-icon !w-6 !h-6 hover-fade" @click="remove(entry)">
-                    <span class="i-octicon-trash-16 text-xs" />
-                  </button>
-                </TooltipButton>
+                <IconButton
+                  icon="i-ph-trash-duotone"
+                  size="sm"
+                  tooltip="Remove from queue"
+                  class="hover-fade"
+                  @click="remove(entry)"
+                />
               </li>
             </ul>
           </section>
         </div>
       </div>
 
-      <footer class="border-t border-base px-4 py-3 bg-base/50 flex items-center gap-2">
+      <footer class="border-t border-base px-4 py-3 bg-#8881 flex items-center gap-2">
         <div class="text-xs color-muted flex-1">
           Runs every op against GitHub.
         </div>
@@ -222,58 +231,49 @@ async function confirmExecute() {
           :title="!hasToken ? 'No GitHub token available' : undefined"
           @click="askExecute"
         >
-          <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-octicon-play-16'" />
+          <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-ph-play-duotone'" />
           <span>Execute {{ entries.length }} op{{ entries.length === 1 ? '' : 's' }}</span>
-          <Kbd shortcut-id="action.execute" />
+          <Kbd command="action.execute" />
         </button>
       </footer>
     </aside>
   </Transition>
 
-  <DialogRoot v-model:open="clearDialogOpen">
-    <DialogPortal>
-      <DialogOverlay class="fixed inset-0 bg-black/40 backdrop-blur-sm z-60" />
-      <DialogContent
-        class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-base border border-base rounded-lg shadow-xl p-6 w-[min(90vw,24rem)] z-60"
-      >
-        <DialogTitle class="font-medium text-base mb-2">Clear execute.yml?</DialogTitle>
-        <DialogDescription class="text-sm color-muted mb-4">
-          This removes all operations in <span class="font-mono">.ghfs/execute.yml</span>.
-          <span class="font-mono">execute.md</span> and per-item edits are not affected.
-        </DialogDescription>
-        <div class="flex justify-end gap-2">
-          <DialogClose as-child>
-            <button class="btn-action">Cancel</button>
-          </DialogClose>
-          <button class="btn-primary" @click="confirmClear">Clear</button>
-        </div>
-      </DialogContent>
-    </DialogPortal>
-  </DialogRoot>
+  <Modal
+    v-model:open="clearDialogOpen"
+    title="Clear execute.yml?"
+    icon="i-ph-trash-duotone"
+    width="w-[min(90vw,26rem)]"
+  >
+    <div class="px-5 py-4">
+      <p class="text-sm color-muted">
+        This removes all operations in <span class="font-mono">.ghfs/execute.yml</span>.
+        <span class="font-mono">execute.md</span> and per-item edits are not affected.
+      </p>
+    </div>
+    <template #footer>
+      <button class="btn-action-sm" @click="clearDialogOpen = false">Cancel</button>
+      <button class="btn-primary text-sm" @click="confirmClear">Clear</button>
+    </template>
+  </Modal>
 
-  <DialogRoot v-model:open="executeConfirmOpen">
-    <DialogPortal>
-      <DialogOverlay class="fixed inset-0 bg-black/40 backdrop-blur-sm z-60" />
-      <DialogContent
-        class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-base border border-base rounded-lg shadow-xl p-6 w-[min(92vw,28rem)] z-60"
-      >
-        <DialogTitle class="font-medium text-base mb-2 flex items-center gap-2">
-          <span class="i-octicon-play-16 color-primary-500" />
-          Execute {{ entries.length }} operation{{ entries.length === 1 ? '' : 's' }}?
-        </DialogTitle>
-        <DialogDescription class="text-sm color-muted mb-4">
-          These changes will be applied to GitHub immediately. This cannot be undone from here — you'll need to revert on GitHub if needed.
-        </DialogDescription>
-        <div class="flex justify-end gap-2">
-          <DialogClose as-child>
-            <button class="btn-action">Cancel</button>
-          </DialogClose>
-          <button class="btn-primary" :disabled="state.executing.value" @click="confirmExecute">
-            <span class="i-octicon-play-16" />
-            Execute
-          </button>
-        </div>
-      </DialogContent>
-    </DialogPortal>
-  </DialogRoot>
+  <Modal
+    v-model:open="executeConfirmOpen"
+    icon="i-ph-play-duotone"
+    width="w-[min(92vw,30rem)]"
+    :title="`Execute ${entries.length} operation${entries.length === 1 ? '' : 's'}?`"
+  >
+    <div class="px-5 py-4">
+      <p class="text-sm color-muted">
+        These changes will be applied to GitHub immediately. This cannot be undone from here — you'll need to revert on GitHub if needed.
+      </p>
+    </div>
+    <template #footer>
+      <button class="btn-action-sm" @click="executeConfirmOpen = false">Cancel</button>
+      <button class="btn-primary text-sm" :disabled="state.executing.value" @click="confirmExecute">
+        <span class="i-ph-play-duotone" />
+        Execute
+      </button>
+    </template>
+  </Modal>
 </template>

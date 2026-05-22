@@ -453,6 +453,7 @@ function createConfig(cwd: string, sync: Partial<GhfsResolvedConfig['sync']> = {
     cwd,
     repo: 'owner/repo',
     directory: '.ghfs',
+    bots: [],
     auth: {
       token: '',
     },

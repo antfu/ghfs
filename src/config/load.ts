@@ -59,6 +59,7 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
   const directory = merged.directory ?? DEFAULT_STORAGE_DIR
   const configuredToken = merged.auth?.token?.trim() || ''
   const repo = merged.repo?.trim() || ''
+  const bots = merged.bots ?? []
   const issuesEnabled = merged.sync?.issues ?? true
   const pullsEnabled = merged.sync?.pulls ?? true
   const closedMode = merged.sync?.closed ?? false
@@ -68,6 +69,7 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
     cwd,
     repo,
     directory,
+    bots,
     auth: {
       token: configuredToken,
     },
@@ -101,6 +103,7 @@ function mergeUserConfig(base: GhfsUserConfig, overrides: Partial<GhfsUserConfig
   return {
     ...base,
     ...overrides,
+    bots: overrides.bots ?? base.bots,
     auth: {
       ...base.auth,
       ...overrides.auth,

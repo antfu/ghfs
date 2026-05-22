@@ -338,6 +338,7 @@ function createSyncContext(storageDirAbsolute: string, syncOverrides: Partial<Sy
       cwd: process.cwd(),
       repo: 'owner/repo',
       directory: '.ghfs',
+      bots: [],
       auth: {
         token: '',
       },

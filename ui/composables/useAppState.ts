@@ -1,5 +1,6 @@
-import type { InitialPayload, QueueState, RemoteStatus } from '#ghfs/server-types'
-import type { SyncState } from '../../src/types/sync-state'
+import type { ProjectInitialPayload } from '#ghfs/shared-rpc'
+import type { QueueState, RemoteStatus } from '#ghfs/server-types'
+import type { SyncState } from '#ghfs/sync-state'
 
 export interface ProgressState {
   kind: 'sync' | 'execute'
@@ -15,69 +16,113 @@ export interface FilterState {
   search: string
 }
 
-const payload = shallowRef<InitialPayload | null>(null)
-const syncing = ref(false)
-const executing = ref(false)
-const progress = shallowRef<ProgressState | null>(null)
-const queueOpen = ref(false)
-const executeConfirmOpen = ref(false)
-const selectedNumber = ref<number | null>(null)
-const lastError = ref<string | null>(null)
-const filters = reactive<FilterState>({
-  kind: 'issue',
-  search: '',
-})
+export interface ProjectAppState {
+  payload: Ref<ProjectInitialPayload | null>
+  syncing: Ref<boolean>
+  executing: Ref<boolean>
+  progress: Ref<ProgressState | null>
+  queueOpen: Ref<boolean>
+  executeConfirmOpen: Ref<boolean>
+  selectedNumber: Ref<number | null>
+  lastError: Ref<string | null>
+  filters: FilterState
+}
 
-export function useAppState() {
+interface AppStateBucket extends ProjectAppState {}
+
+const buckets = new Map<string, AppStateBucket>()
+
+// Active project id used by composables when no explicit id is passed.
+// Components in routes set this from the route param.
+const _activeProjectId = ref<string | null>(null)
+
+export function useActiveProjectId(): Ref<string | null> {
+  return _activeProjectId
+}
+
+export function setActiveProjectId(id: string | null): void {
+  _activeProjectId.value = id
+}
+
+function makeBucket(): AppStateBucket {
   return {
-    payload,
-    syncing,
-    executing,
-    progress,
-    queueOpen,
-    executeConfirmOpen,
-    selectedNumber,
-    lastError,
-    filters,
-    setPayload(next: InitialPayload) {
-      payload.value = next
+    payload: shallowRef<ProjectInitialPayload | null>(null),
+    syncing: ref(false),
+    executing: ref(false),
+    progress: shallowRef<ProgressState | null>(null),
+    queueOpen: ref(false),
+    executeConfirmOpen: ref(false),
+    selectedNumber: ref<number | null>(null),
+    lastError: ref<string | null>(null),
+    filters: reactive<FilterState>({ kind: 'issue', search: '' }),
+  }
+}
+
+function bucketFor(projectId: string): AppStateBucket {
+  let bucket = buckets.get(projectId)
+  if (!bucket) {
+    bucket = makeBucket()
+    buckets.set(projectId, bucket)
+  }
+  return bucket
+}
+
+export function useAppState(projectId?: string | null) {
+  const id = projectId ?? _activeProjectId.value ?? '__default__'
+  const bucket = bucketFor(id)
+  return {
+    payload: bucket.payload,
+    syncing: bucket.syncing,
+    executing: bucket.executing,
+    progress: bucket.progress,
+    queueOpen: bucket.queueOpen,
+    executeConfirmOpen: bucket.executeConfirmOpen,
+    selectedNumber: bucket.selectedNumber,
+    lastError: bucket.lastError,
+    filters: bucket.filters,
+    setPayload(next: ProjectInitialPayload) {
+      bucket.payload.value = next
     },
     patchSyncState(next: SyncState) {
-      if (payload.value)
-        payload.value = { ...payload.value, syncState: next }
+      if (bucket.payload.value)
+        bucket.payload.value = { ...bucket.payload.value, syncState: next }
     },
     patchQueue(next: QueueState) {
-      if (payload.value)
-        payload.value = { ...payload.value, queue: next }
+      if (bucket.payload.value)
+        bucket.payload.value = { ...bucket.payload.value, queue: next }
     },
     patchRemote(next: RemoteStatus) {
-      if (payload.value)
-        payload.value = { ...payload.value, remote: next }
+      if (bucket.payload.value)
+        bucket.payload.value = { ...bucket.payload.value, remote: next }
     },
     setSyncing(value: boolean) {
-      syncing.value = value
+      bucket.syncing.value = value
     },
     setExecuting(value: boolean) {
-      executing.value = value
+      bucket.executing.value = value
     },
     setProgress(next: ProgressState | null) {
-      progress.value = next
+      bucket.progress.value = next
     },
     setError(next: string | null) {
-      lastError.value = next
+      bucket.lastError.value = next
     },
     selectItem(number: number | null) {
-      selectedNumber.value = number
+      bucket.selectedNumber.value = number
     },
     openQueue() {
-      queueOpen.value = true
+      bucket.queueOpen.value = true
     },
     closeQueue() {
-      queueOpen.value = false
+      bucket.queueOpen.value = false
     },
     askExecute() {
-      queueOpen.value = true
-      executeConfirmOpen.value = true
+      bucket.queueOpen.value = true
+      bucket.executeConfirmOpen.value = true
     },
   }
+}
+
+export function clearAppState(projectId: string): void {
+  buckets.delete(projectId)
 }

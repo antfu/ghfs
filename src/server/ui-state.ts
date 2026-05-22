@@ -20,6 +20,8 @@ export interface UiState {
   lastPrTab?: PrTabId
   /** Override for the authenticated user info shown in the UI. */
   userOverride?: UserOverride
+  /** When set, the server triggers `sync` on this interval. Honoured in ui mode. */
+  autoSyncIntervalMs?: number
 }
 
 export function createEmptyUiState(): UiState {
@@ -62,6 +64,7 @@ export async function loadUiState(storageDirAbsolute: string): Promise<UiState> 
       listPaneSize: typeof parsed.listPaneSize === 'number' ? parsed.listPaneSize : undefined,
       lastPrTab: normalizePrTab(parsed.lastPrTab),
       userOverride: normalizeUserOverride(parsed.userOverride),
+      autoSyncIntervalMs: normalizeAutoSyncInterval(parsed.autoSyncIntervalMs),
     }
   }
   catch {
@@ -69,15 +72,25 @@ export async function loadUiState(storageDirAbsolute: string): Promise<UiState> 
   }
 }
 
+function normalizeAutoSyncInterval(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value))
+    return undefined
+  if (value < 60_000 || value > 3_600_000)
+    return undefined
+  return Math.round(value)
+}
+
 export async function saveUiState(storageDirAbsolute: string, state: UiState): Promise<void> {
   await mkdir(storageDirAbsolute, { recursive: true })
   const tab = normalizePrTab(state.lastPrTab)
   const override = normalizeUserOverride(state.userOverride)
+  const interval = normalizeAutoSyncInterval(state.autoSyncIntervalMs)
   const clean: UiState = {
     drafts: { ...state.drafts },
     ...(state.listPaneSize != null ? { listPaneSize: state.listPaneSize } : {}),
     ...(tab ? { lastPrTab: tab } : {}),
     ...(override ? { userOverride: override } : {}),
+    ...(interval != null ? { autoSyncIntervalMs: interval } : {}),
   }
   await writeFile(
     join(storageDirAbsolute, UI_STATE_FILE),

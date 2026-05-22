@@ -2,13 +2,14 @@ import { execFile } from 'node:child_process'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { Diagnostic } from 'nostics'
 import { dirname, resolve } from 'pathe'
-import { CodedError, log } from '../logger'
+import { diagnostics } from '../logger'
 
 const execFileAsync = promisify(execFile)
 
-export function isPortlessUnavailableError(error: unknown): error is CodedError {
-  return error instanceof CodedError && error.diagnostic.code === 'GHFS0206'
+export function isPortlessUnavailableError(error: unknown): error is Diagnostic {
+  return error instanceof Diagnostic && error.name === 'GHFS0206'
 }
 
 export interface RegisterPortlessRouteOptions {
@@ -47,7 +48,7 @@ function resolvePortlessCliPath(): string | undefined {
 async function runPortless(args: string[]): Promise<string> {
   const cliPath = resolvePortlessCliPath()
   if (!cliPath)
-    throw new CodedError(log.GHFS0206({ detail: 'portless package is not installed' }))
+    throw diagnostics.GHFS0206({ detail: 'portless package is not installed' })
 
   try {
     const { stdout } = await execFileAsync(process.execPath, [cliPath, ...args], {
@@ -58,12 +59,10 @@ async function runPortless(args: string[]): Promise<string> {
   catch (error) {
     const err = error as NodeJS.ErrnoException & { stderr?: string, stdout?: string }
     const detail = (err.stderr || err.stdout || err.message || '').toString().trim()
-    throw new CodedError(
-      log.GHFS0206(
-        { detail: detail ? `portless failed: ${detail}` : 'portless failed' },
-        { cause: error },
-      ),
-    )
+    throw diagnostics.GHFS0206({
+      detail: detail ? `portless failed: ${detail}` : 'portless failed',
+      cause: error,
+    })
   }
 }
 

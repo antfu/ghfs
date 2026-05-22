@@ -1,12 +1,14 @@
 import type { CAC } from 'cac'
+import type { GhfsDevframeFlags } from '../../devframe/define'
 import process from 'node:process'
+import { createDevServer, resolveDevServerPort } from 'devframe/adapters/dev'
 import { resolve } from 'pathe'
 import { resolveAuthToken } from '../../config/auth'
 import { getExecuteFile, resolveConfig } from '../../config/load'
 import { resolveRepo } from '../../config/repo'
+import { ghfsDevframe } from '../../devframe/define'
 import { ensureExecuteArtifacts } from '../../execute/schema'
-import { createUiServer } from '../../server'
-import { slugifyRepoName } from '../../server/portless'
+import { registerPortlessRoute, slugifyRepoName } from '../../server/portless'
 import { withErrorHandling } from '../errors'
 import { createCliPrinter } from '../printer'
 import { promptForToken, promptRepoChoice } from '../prompts'
@@ -54,46 +56,71 @@ export function registerUiCommand(cli: CAC): void {
         promptForToken,
       }).catch(() => '')
 
-      const port = typeof options.port === 'number' ? options.port : Number(options.port ?? 7710)
+      const preferredPort = typeof options.port === 'number' ? options.port : Number(options.port ?? 7710)
       const host = options.host ?? '127.0.0.1'
       const portlessEnabled = options.portless !== false
       const subdomain = options.subdomain?.trim() || slugifyRepoName(repo.repo)
 
-      const server = await createUiServer({
-        config,
-        repo: repo.repo,
-        initialToken,
-        port,
-        host,
-        devMode: process.env.GHFS_UI_DEV === '1',
-        portless: portlessEnabled ? { enabled: true, subdomain } : undefined,
-        logger: {
-          info: message => printer.info(message),
-          warn: message => printer.warn(message),
+      const port = await resolveDevServerPort(ghfsDevframe, { host, defaultPort: preferredPort })
+
+      const flags: GhfsDevframeFlags = {
+        mode: 'ui',
+        cwd: config.cwd,
+        uiOptions: {
+          config,
+          repo: repo.repo,
+          initialToken,
+          onRequestToken: async () => resolveAuthToken({
+            token: config.auth.token,
+            interactive: Boolean(process.stdin.isTTY),
+            promptForToken,
+          }),
         },
-        onRequestToken: async () => resolveAuthToken({
-          token: config.auth.token,
-          interactive: Boolean(process.stdin.isTTY),
-          promptForToken,
-        }),
+      }
+
+      const server = await createDevServer(ghfsDevframe, {
+        host,
+        port,
+        flags,
+        openBrowser: false,
       })
 
-      if (server.portlessUrl) {
-        printer.info(`ghfs UI running at ${server.portlessUrl}`)
-        printer.info(`  direct: ${server.directUrl}`)
+      const urlHost = host === '0.0.0.0' ? 'localhost' : host
+      const directUrl = `http://${urlHost}:${port}`
+
+      let portlessUrl: string | undefined
+      let portlessUnregister: (() => Promise<void>) | undefined
+      if (portlessEnabled) {
+        try {
+          const route = await registerPortlessRoute({ subdomain, port })
+          portlessUrl = route.url
+          portlessUnregister = route.unregister
+        }
+        catch (error) {
+          const message = (error as Error).message || String(error)
+          printer.info(`portless unavailable (${message}); falling back to ${directUrl}`)
+        }
+      }
+
+      const openUrl = portlessUrl ?? directUrl
+      if (portlessUrl) {
+        printer.info(`ghfs UI running at ${portlessUrl}`)
+        printer.info(`  direct: ${directUrl}`)
       }
       else {
-        printer.info(`ghfs UI running at ${server.directUrl}`)
+        printer.info(`ghfs UI running at ${directUrl}`)
       }
       if (!initialToken)
         printer.info('No GitHub token yet; sync/execute will prompt or fail until one is available.')
 
       if (options.open !== false) {
         const { default: open } = await import('open')
-        await open(server.url)
+        await open(openUrl)
       }
 
       const shutdown = async () => {
+        if (portlessUnregister)
+          await portlessUnregister().catch(() => {})
         await server.close().catch(() => {})
         process.exit(0)
       }

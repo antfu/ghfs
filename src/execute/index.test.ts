@@ -630,6 +630,7 @@ function createConfig(): GhfsResolvedConfig {
     cwd: process.cwd(),
     repo: 'owner/repo',
     directory: '.ghfs',
+    bots: [],
     auth: {
       token: '',
     },

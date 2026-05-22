@@ -9,7 +9,8 @@ interface PatchEntry {
 const cache = reactive<Map<number, PatchEntry>>(new Map())
 
 export function usePullPatch(numberRef: Ref<number | null> | ComputedRef<number | null>) {
-  const rpc = useRpc()
+  const activeId = useActiveProjectId()
+  const rpc = useProjectRpc(() => activeId.value ?? '__default__')
 
   const entry = computed<PatchEntry>(() => {
     const num = numberRef.value

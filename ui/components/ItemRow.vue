@@ -34,24 +34,17 @@ const bodySnippetHtml = computed(() => {
 function selectItem() {
   state.selectItem(item.value.number)
 }
-
-const rowRef = ref<HTMLElement | null>(null)
-watch(
-  () => props.selected,
-  (selected) => {
-    if (selected)
-      rowRef.value?.scrollIntoView({ block: 'nearest' })
-  },
-  { immediate: true, flush: 'post' },
-)
 </script>
 
 <template>
   <button
-    ref="rowRef"
     type="button"
-    class="group w-full text-left flex items-start gap-2.5 px-3 py-2 text-sm border-b border-base transition"
-    :class="props.selected ? 'bg-selected' : 'hover:bg-subtle'"
+    class="group w-full text-left flex items-start gap-2.5 px-3 py-2 text-sm border-b border-base transition-colors relative outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40"
+    :class="props.selected
+      ? 'bg-primary-500/8 dark:bg-primary-400/8 border-l-2 border-l-primary-500 dark:border-l-primary-400 pl-[10px]'
+      : 'hover:bg-active'"
+    data-testid="item-row"
+    :data-item-number="item.number"
     @click="selectItem"
   >
     <ItemStateIcon :item="item" :pull="pull" :pending="pending.direction.value" class="mt-0.5 shrink-0" />
@@ -68,18 +61,20 @@ watch(
           target="_blank"
           rel="noreferrer"
           tabindex="-1"
-          class="font-mono text-xs color-muted hover:color-active tabular-nums"
+          class="font-mono text-xs color-muted hover:color-active hover:underline tabular-nums"
           :aria-label="`Open #${item.number} on GitHub`"
           @click.stop
         >#{{ item.number }}</a>
-        <span
+        <Badge
           v-if="pending.hasPending.value"
-          class="badge-color-yellow text-[10px] uppercase tracking-wide"
+          color="yellow"
+          icon="i-octicon-hourglass-16"
+          size="xs"
           :title="`${pending.entries.value.length} pending change(s)`"
+          class="uppercase tracking-wide"
         >
-          <span class="i-octicon-hourglass-16 text-[10px] mr-0.5" />
           pending
-        </span>
+        </Badge>
       </div>
 
       <div v-if="labels.length" class="flex items-center gap-1 flex-wrap mt-0.5">
@@ -90,12 +85,14 @@ watch(
       <div v-if="bodySnippetHtml" class="text-xs color-muted mt-1 leading-relaxed" v-html="bodySnippetHtml" />
 
       <div class="flex items-center gap-2 flex-wrap text-xs color-muted mt-1">
-        <template v-if="item.author">
-          <Avatar :login="item.author" :size="14" />
-          <span class="font-mono">@{{ item.author }}</span>
-        </template>
+        <AuthorEntry
+          v-if="item.author"
+          :author="item.author"
+          :size="14"
+          :link="false"
+        />
         <span class="color-faint">·</span>
-        <span>{{ formatRelative(item.updatedAt) }}</span>
+        <DateBadge :time="item.updatedAt" mode="day" />
         <template v-if="assignees.length">
           <span class="color-faint">·</span>
           <span class="flex items-center gap-1">
