@@ -10,7 +10,9 @@ import { isAbsolute, join, resolve } from 'pathe'
 import { executePendingChanges } from '../../execute'
 import { diagnostics } from '../../logger'
 import { GHFS_VERSION } from '../../meta'
+import { forceSyncStorage } from '../../server/force-sync'
 import { buildQueueState } from '../../server/queue-builder'
+import { clearQueue } from '../../server/queue-writer'
 import { loadUiState } from '../../server/ui-state'
 import { syncRepository } from '../../sync'
 import { isCreatedToday } from '../../sync/activity'
@@ -183,42 +185,65 @@ export async function openInEditor(ctx: ProjectContext, filePath: string): Promi
   })
 }
 
+async function runSyncWithReporter(ctx: ProjectContext, options: SyncTriggerOptions): Promise<SyncSummary> {
+  const token = await ctx.getToken()
+  return syncRepository({
+    config: ctx.config,
+    repo: ctx.repo,
+    token,
+    full: options.full,
+    since: options.since,
+    numbers: options.numbers,
+    reporter: {
+      onStageStart(event) {
+        ctx.broadcast.onSyncStageStart({ stage: event.stage, message: event.message })
+      },
+      onStageUpdate(event) {
+        ctx.broadcast.onSyncProgress({
+          stage: event.stage,
+          message: event.message,
+          snapshot: event.snapshot,
+        })
+      },
+      onStageEnd(event) {
+        ctx.broadcast.onSyncStageEnd({ stage: event.stage, durationMs: event.durationMs })
+      },
+      onComplete(event) {
+        ctx.broadcast.onSyncComplete(event.summary)
+      },
+      onError(event) {
+        const message = event.error instanceof Error ? event.error.message : String(event.error)
+        ctx.broadcast.onSyncError(message)
+      },
+    },
+  })
+}
+
 export async function triggerSync(ctx: ProjectContext, options: SyncTriggerOptions): Promise<SyncSummary> {
   if (syncRunning.has(ctx.id))
     throw diagnostics.GHFS0200()
   syncRunning.add(ctx.id)
   try {
-    const token = await ctx.getToken()
-    return await syncRepository({
-      config: ctx.config,
-      repo: ctx.repo,
-      token,
-      full: options.full,
-      since: options.since,
-      numbers: options.numbers,
-      reporter: {
-        onStageStart(event) {
-          ctx.broadcast.onSyncStageStart({ stage: event.stage, message: event.message })
-        },
-        onStageUpdate(event) {
-          ctx.broadcast.onSyncProgress({
-            stage: event.stage,
-            message: event.message,
-            snapshot: event.snapshot,
-          })
-        },
-        onStageEnd(event) {
-          ctx.broadcast.onSyncStageEnd({ stage: event.stage, durationMs: event.durationMs })
-        },
-        onComplete(event) {
-          ctx.broadcast.onSyncComplete(event.summary)
-        },
-        onError(event) {
-          const message = event.error instanceof Error ? event.error.message : String(event.error)
-          ctx.broadcast.onSyncError(message)
-        },
-      },
+    return await runSyncWithReporter(ctx, options)
+  }
+  finally {
+    syncRunning.delete(ctx.id)
+  }
+}
+
+export async function forceSync(ctx: ProjectContext): Promise<SyncSummary> {
+  if (syncRunning.has(ctx.id))
+    throw diagnostics.GHFS0200()
+  if (executeRunning.has(ctx.id))
+    throw diagnostics.GHFS0201()
+  syncRunning.add(ctx.id)
+  try {
+    await clearQueue({
+      storageDirAbsolute: ctx.storageDirAbsolute,
+      executeFilePath: ctx.executeFilePath,
     })
+    await forceSyncStorage(ctx.storageDirAbsolute)
+    return await runSyncWithReporter(ctx, { full: true })
   }
   finally {
     syncRunning.delete(ctx.id)

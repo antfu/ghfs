@@ -103,6 +103,7 @@ export interface GhfsServerFunctions {
   'ghfs:queue-state': (projectId: string) => Promise<QueueState>
   'ghfs:repo-meta': (projectId: string) => Promise<RepoMeta>
   'ghfs:trigger-sync': (projectId: string, options: SyncTriggerOptions) => Promise<SyncSummary>
+  'ghfs:force-sync': (projectId: string) => Promise<SyncSummary>
   'ghfs:execute-queue': (projectId: string, options: ExecuteTriggerOptions) => Promise<ExecutionResult>
   'ghfs:add-queue-op': (projectId: string, op: PendingOp) => Promise<QueueState>
   'ghfs:update-queue-op': (projectId: string, id: string, op: PendingOp) => Promise<QueueState>

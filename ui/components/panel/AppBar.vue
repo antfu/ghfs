@@ -27,6 +27,8 @@ const showHubBack = computed(() => isHubMode.value && props.mode === 'project')
 const onRecentPage = computed(() => route.path === '/recent')
 const onQueuePage = computed(() => route.path === '/queue')
 
+const forceSyncDialogOpen = ref(false)
+
 async function triggerSync() {
   if (props.mode === 'hub') {
     await syncAllProjects()
@@ -41,6 +43,14 @@ async function triggerSync() {
     state.setError(`Sync failed: ${(error as Error).message}`)
     state.setSyncing(false)
   }
+}
+
+function onSyncClick(event: MouseEvent) {
+  if (props.mode === 'project' && event.shiftKey) {
+    forceSyncDialogOpen.value = true
+    return
+  }
+  triggerSync()
 }
 
 function toggleQueue() {
@@ -60,7 +70,9 @@ function toggleQueue() {
 const syncTooltip = computed(() => {
   if (props.mode === 'hub')
     return hubUi.syncingAll.value ? 'Syncing all projects…' : 'Sync all projects'
-  return hasToken.value ? 'Sync from GitHub' : 'No GitHub token available'
+  if (!hasToken.value)
+    return 'No GitHub token available'
+  return 'Sync from GitHub (⇧ for force sync)'
 })
 
 const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : state.syncing.value))
@@ -217,7 +229,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
       :tooltip="syncTooltip"
       :disabled="syncing || !hasToken"
       :spinning="syncing"
-      @click="triggerSync"
+      @click="onSyncClick"
     >
       <template #badge>
         <UiKbd command="action.sync" class="absolute -bottom-1 -right-1" />
@@ -285,5 +297,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
         <UiKbd command="action.theme" class="absolute -bottom-1 -right-1" />
       </template>
     </UiIconButton>
+
+    <PanelForceSyncDialog v-if="mode === 'project'" v-model:open="forceSyncDialogOpen" />
   </header>
 </template>

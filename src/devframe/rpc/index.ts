@@ -4,6 +4,7 @@ import { capabilities } from './capabilities'
 import { checkRemote } from './check-remote'
 import { clearQueue } from './clear-queue'
 import { executeQueue } from './execute-queue'
+import { forceSync } from './force-sync'
 import { getProjectIcon } from './get-project-icon'
 import { getPullPatch } from './get-pull-patch'
 import { getViewerReactions } from './get-viewer-reactions'
@@ -42,6 +43,7 @@ export const rpcFunctions = [
   queueState,
   repoMeta,
   triggerSync,
+  forceSync,
   executeQueue,
   addQueueOp,
   updateQueueOp,
