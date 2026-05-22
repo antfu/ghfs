@@ -38,7 +38,7 @@ const dataset = computed(() =>
 // edge while the area fill still reaches the panel bottom.
 const MIN_SCALE = 10
 const scaleMax = computed(() => Math.max(MIN_SCALE, ...props.points))
-const scaleMin = computed(() => -scaleMax.value * 0.15)
+const scaleMin = computed(() => -scaleMax.value * 0.05)
 
 // vue-data-ui sparkline expects `area`, `plot`, etc. at the top level of
 // `style` — NOT nested under `line`. Color must be a real hex value because

@@ -39,7 +39,7 @@ const sparklinePoints = computed(() => activity.data.value?.buckets ?? [])
 
     <div
       class="absolute inset-0 op-25 dark:op-20 pointer-events-none color-active"
-      style="mask-image: linear-gradient(to bottom, transparent 0%, black 60%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 60%);"
+      style="mask-image: linear-gradient(to bottom, transparent 0%, black 55%, black 88%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 55%, black 88%, transparent 100%);"
     >
       <ActivitySparkline :points="sparklinePoints" />
     </div>
