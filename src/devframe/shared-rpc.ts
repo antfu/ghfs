@@ -23,6 +23,7 @@ import {
 import { loadUiState, saveUiState } from '../server/ui-state'
 import { syncRepository } from '../sync'
 import { computeProjectActivityBuckets } from '../sync/activity'
+import { getEffectiveUpdatedAt } from '../sync/effective-updated'
 import { loadRepoSnapshot } from '../sync/repo-snapshot'
 import { loadSyncState } from '../sync/state'
 import { findProjectIcon } from '../utils/project-icon'
@@ -86,7 +87,7 @@ async function summarizeProject(ctx: ProjectContext): Promise<ProjectSummary> {
   let openPulls = 0
   let lastActivityAt: string | undefined
   for (const item of Object.values(syncState.items)) {
-    const updatedAt = item.data.item.updatedAt
+    const updatedAt = getEffectiveUpdatedAt(item, ctx.config.bots)
     if (updatedAt && (!lastActivityAt || updatedAt > lastActivityAt))
       lastActivityAt = updatedAt
     if (item.state !== 'open')
@@ -162,6 +163,7 @@ async function buildInitialPayload(ctx: ProjectContext): Promise<ProjectInitialP
     uiState,
     repositoryLabels,
     currentUser,
+    bots: ctx.config.bots,
   }
 }
 
@@ -529,7 +531,7 @@ export function registerProjectRpc(
             number: item.number,
             title: item.data.item.title,
             state: item.state,
-            updatedAt: item.data.item.updatedAt,
+            updatedAt: getEffectiveUpdatedAt(item, p.config.bots),
             author: item.data.item.author,
             labels: item.data.item.labels ?? [],
           })
