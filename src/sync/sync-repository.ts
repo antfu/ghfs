@@ -2,7 +2,7 @@ import type { SyncOptions, SyncProgressSnapshot, SyncStage, SyncSummary } from '
 import type { IssueCandidates, PreparedIssueCandidate, SyncContext, SyncCounters } from './sync-repository-types'
 import { randomBytes } from 'node:crypto'
 import { resolve } from 'pathe'
-import { CodedError, log } from '../logger'
+import { diagnostics } from '../logger'
 import { GHFS_VERSION } from '../meta'
 import { createRepositoryProvider } from '../providers/factory'
 import { formatIssueNumber } from '../utils/format'
@@ -285,7 +285,7 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
 
 function assertContext(context: SyncContext | undefined): asserts context is SyncContext {
   if (!context)
-    throw new CodedError(log.GHFS0400())
+    throw diagnostics.GHFS0400()
 }
 
 function createSyncRunId(): string {

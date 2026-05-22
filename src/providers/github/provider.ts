@@ -18,7 +18,7 @@ import type {
   ProviderUpdateCounts,
   RepositoryProvider,
 } from '../../types/provider'
-import { CodedError, log } from '../../logger'
+import { diagnostics } from '../../logger'
 import { randomHexColor } from '../../utils/color'
 import { formatIssueNumber } from '../../utils/format'
 import { normalizeReactions } from '../../utils/reactions'
@@ -216,9 +216,9 @@ async function fetchPullPatch(
   if (typeof result.data === 'string')
     return result.data
 
-  throw new CodedError(log.GHFS0300({
+  throw diagnostics.GHFS0300({
     issue: formatIssueNumber(number, { repo: `${owner}/${repo}`, kind: 'pull' }),
-  }))
+  })
 }
 
 async function fetchPullCommits(
@@ -659,7 +659,7 @@ async function resolveMilestone(
 
   const matched = milestones.find(item => item.title === value)
   if (!matched)
-    throw new CodedError(log.GHFS0301({ value }))
+    throw diagnostics.GHFS0301({ value })
 
   return matched.number
 }

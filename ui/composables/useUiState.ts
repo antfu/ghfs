@@ -1,6 +1,6 @@
 import type { UiState, UserOverride } from '#ghfs/server-types'
 import { useDebounceFn } from '@vueuse/core'
-import { log } from '../utils/logger'
+import { diagnostics } from '../utils/logger'
 
 type PrTabId = 'conversation' | 'commits' | 'changes'
 
@@ -25,7 +25,7 @@ function ensureSaver(): () => void {
       userOverride: uiState.userOverride ? { ...uiState.userOverride } : undefined,
       autoSyncIntervalMs: uiState.autoSyncIntervalMs,
     }).catch((error) => {
-      log.GHFS0900({ detail: String((error as Error)?.message ?? error) }, { cause: error }).error()
+      diagnostics.GHFS0900({ detail: String((error as Error)?.message ?? error), cause: error })
     })
   }, 700)
   saveFn = fn

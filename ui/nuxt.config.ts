@@ -1,6 +1,6 @@
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
-import { logsSDK, logsSDKServer } from 'logs-sdk/unplugin'
+import { nostics, nosticsServer } from 'nostics/unplugin'
 import { dirname, resolve } from 'pathe'
 
 const rootDir = dirname(fileURLToPath(import.meta.url))
@@ -51,16 +51,16 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [
-      logsSDK.vite(),
-      logsSDKServer.vite({ logFile: resolve(rootDir, '../.diagnostics.log') }),
+      nostics.vite(),
+      nosticsServer.vite({ logFile: resolve(rootDir, '../.diagnostics.log') }),
     ],
     optimizeDeps: {
       include: [
         'devframe/rpc/client',
         'devframe/rpc/transports/ws-client',
         'floating-vue',
-        'logs-sdk',
-        'logs-sdk/reporters/dev',
+        'nostics',
+        'nostics/reporters/dev',
         'shiki',
         'whenexpr',
       ],

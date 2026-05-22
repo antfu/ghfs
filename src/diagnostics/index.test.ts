@@ -20,26 +20,16 @@ const sampleParams: Record<string, unknown> = {
 
 describe('diagnostics registry', () => {
   it('every registered code produces a well-formed Diagnostic', () => {
-    const codes = diagnostics.codes()
+    const codes = Object.keys(diagnostics)
     expect(codes.length).toBeGreaterThan(20)
 
-    const factory = diagnostics as unknown as Record<string, (params?: unknown, overrides?: unknown) => { code: string, message: string, docs?: string, level: string }>
+    const factory = diagnostics as unknown as Record<string, (params?: unknown) => { name: string, message: string, docs?: string }>
     for (const code of codes) {
       const d = factory[code](sampleParams)
-      expect(d.code).toBe(code)
+      expect(d.name).toBe(code)
       expect(typeof d.message).toBe('string')
       expect(d.message.length).toBeGreaterThan(0)
       expect(d.docs).toBe(`https://github.com/antfu/ghfs/blob/main/docs/errors/${code.toLowerCase()}.md`)
-      expect(['error', 'warn', 'suggestion', 'deprecation']).toContain(d.level)
-    }
-  })
-
-  it('uses warn level for codes in the 0150–0169 band and error level elsewhere', () => {
-    const factory = diagnostics as unknown as Record<string, (params?: unknown) => { level: string }>
-    for (const code of diagnostics.codes()) {
-      const n = Number(code.slice('GHFS'.length))
-      const expected = n >= 150 && n <= 169 ? 'warn' : 'error'
-      expect(factory[code](sampleParams).level).toBe(expected)
     }
   })
 })

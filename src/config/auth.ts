@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import process from 'node:process'
 import { promisify } from 'node:util'
-import { CodedError, log } from '../logger'
+import { diagnostics } from '../logger'
 
 const execFileAsync = promisify(execFile)
 
@@ -25,16 +25,16 @@ export async function resolveAuthToken(options: ResolveTokenOptions): Promise<st
     return envToken
 
   if (!options.interactive || !process.stdin.isTTY)
-    throw new CodedError(log.GHFS0001())
+    throw diagnostics.GHFS0001()
 
   if (!options.promptForToken)
-    throw new CodedError(log.GHFS0001())
+    throw diagnostics.GHFS0001()
 
   const promptedToken = await options.promptForToken()
   if (promptedToken?.trim())
     return promptedToken.trim()
 
-  throw new CodedError(log.GHFS0002())
+  throw diagnostics.GHFS0002()
 }
 
 async function readTokenFromGhCli(): Promise<string | undefined> {

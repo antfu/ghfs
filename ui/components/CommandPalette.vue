@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Command } from '../composables/useCommands'
-import { log } from '../utils/logger'
+import { diagnostics } from '../utils/logger'
 
 const palette = useCommandPalette()
 const ctx = useWhenContext()
@@ -132,10 +132,11 @@ async function runSelected() {
     await entry.command.run()
   }
   catch (err) {
-    log.GHFS0901(
-      { shortcut: entry.command.id, detail: String((err as Error)?.message ?? err) },
-      { cause: err },
-    ).error()
+    diagnostics.GHFS0901({
+      shortcut: entry.command.id,
+      detail: String((err as Error)?.message ?? err),
+      cause: err,
+    })
   }
 }
 

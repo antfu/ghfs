@@ -9,6 +9,7 @@ minimumReleaseAgeExclude:
   - vitest@4.1.7
   - '@tanstack/virtual-core@3.15.0'
   - '@tanstack/vue-virtual@3.13.25'
+  - devframe@0.4.1
 shellEmulator: true
 
 trustPolicy: no-downgrade
@@ -39,15 +40,15 @@ catalog:
   bumpp: ^11.1.0
   cac: ^7.0.0
   colorjs.io: ^0.6.1
-  devframe: ^0.3.0
+  devframe: ^0.4.1
   dotenv: ^17.4.2
   eslint: ^10.4.0
   floating-vue: ^5.2.2
   jiti: ^2.7.0
   lint-staged: ^17.0.5
   listhen: ^1.10.0
-  logs-sdk: ^0.0.6
   marked: ^18.0.4
+  nostics: ^0.2.0
   nuxt: ^4.4.6
   octokit: ^5.0.5
   ohash: ^2.0.11

@@ -11,7 +11,7 @@ import process from 'node:process'
 import { defineRpcFunction } from 'devframe'
 import { isAbsolute, join, resolve } from 'pathe'
 import { executePendingChanges } from '../execute'
-import { CodedError, log } from '../logger'
+import { diagnostics } from '../logger'
 import { GHFS_VERSION } from '../meta'
 import { buildQueueState } from '../server/queue-builder'
 import {
@@ -47,7 +47,7 @@ export interface ProjectInitialPayload extends InitialPayload {
 }
 
 function notFound(projectId: string): never {
-  throw new CodedError(log.GHFS0206({ detail: `Project not found: ${projectId}` }))
+  throw diagnostics.GHFS0206({ detail: `Project not found: ${projectId}` })
 }
 
 function requireProject(registry: ProjectRegistry, projectId: string): ProjectContext {
@@ -199,7 +199,7 @@ const executeRunning = new Set<string>()
 
 async function triggerSync(ctx: ProjectContext, options: SyncTriggerOptions): Promise<SyncSummary> {
   if (syncRunning.has(ctx.id))
-    throw new CodedError(log.GHFS0200())
+    throw diagnostics.GHFS0200()
   syncRunning.add(ctx.id)
   try {
     const token = await ctx.getToken()
@@ -241,7 +241,7 @@ async function triggerSync(ctx: ProjectContext, options: SyncTriggerOptions): Pr
 
 async function executeQueue(ctx: ProjectContext, options: ExecuteTriggerOptions): Promise<ExecutionResult> {
   if (executeRunning.has(ctx.id))
-    throw new CodedError(log.GHFS0201())
+    throw diagnostics.GHFS0201()
   executeRunning.add(ctx.id)
   try {
     const token = await ctx.getToken()

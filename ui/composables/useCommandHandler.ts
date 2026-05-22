@@ -1,4 +1,4 @@
-import { log } from '../utils/logger'
+import { diagnostics } from '../utils/logger'
 
 interface MatchableBinding {
   command: { id: string, run: () => void | Promise<void> }
@@ -113,10 +113,10 @@ function invoke(cmd: { id: string, run: () => void | Promise<void> }): void {
     const result = cmd.run()
     if (result && typeof result === 'object' && 'catch' in result)
       void (result as Promise<unknown>).catch((err: unknown) => {
-        log.GHFS0901({ shortcut: cmd.id, detail: String((err as Error)?.message ?? err) }, { cause: err }).error()
+        diagnostics.GHFS0901({ shortcut: cmd.id, detail: String((err as Error)?.message ?? err), cause: err })
       })
   }
   catch (err) {
-    log.GHFS0901({ shortcut: cmd.id, detail: String((err as Error)?.message ?? err) }, { cause: err }).error()
+    diagnostics.GHFS0901({ shortcut: cmd.id, detail: String((err as Error)?.message ?? err), cause: err })
   }
 }

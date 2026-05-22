@@ -16,7 +16,7 @@ import {
   setHubAutoSyncInterval,
 } from '../hub/config'
 import { scanGitRepos } from '../hub/scanner'
-import { CodedError, log } from '../logger'
+import { diagnostics } from '../logger'
 import { slugifyRepoName } from '../server/portless'
 import { findProjectIcon } from '../utils/project-icon'
 import { buildProjectContext, closeProjectContext } from './project-factory'
@@ -275,7 +275,7 @@ export async function setupHubMode(
       return withLock(async () => {
         const target = resolveHubRoot(rawPath)
         if (!roots.has(target))
-          throw new CodedError(log.GHFS0206({ detail: `Hub root not registered: ${target}` }))
+          throw diagnostics.GHFS0206({ detail: `Hub root not registered: ${target}` })
         // Close + drop projects whose paths fall under the removed root.
         const toRemove: ProjectContext[] = []
         for (const ctx of projects.values()) {
@@ -330,7 +330,7 @@ export async function setupHubMode(
 function resolveHubRoot(raw: string): string {
   const trimmed = raw.trim()
   if (!trimmed)
-    throw new CodedError(log.GHFS0206({ detail: 'Hub root cannot be empty.' }))
+    throw diagnostics.GHFS0206({ detail: 'Hub root cannot be empty.' })
   if (trimmed === '~')
     return homedir()
   if (trimmed.startsWith('~/'))
@@ -344,10 +344,10 @@ async function assertDirectory(path: string): Promise<void> {
     stats = await stat(path)
   }
   catch {
-    throw new CodedError(log.GHFS0206({ detail: `Hub root does not exist: ${path}` }))
+    throw diagnostics.GHFS0206({ detail: `Hub root does not exist: ${path}` })
   }
   if (!stats.isDirectory())
-    throw new CodedError(log.GHFS0206({ detail: `Hub root is not a directory: ${path}` }))
+    throw diagnostics.GHFS0206({ detail: `Hub root is not a directory: ${path}` })
 }
 
 function isUnder(child: string, parent: string): boolean {

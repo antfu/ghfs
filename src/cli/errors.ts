@@ -1,17 +1,16 @@
 import process from 'node:process'
 import c from 'ansis'
-import { CodedError } from '../logger'
+import { Diagnostic } from 'nostics'
 
 export function withErrorHandling<TArgs extends unknown[]>(fn: (...args: TArgs) => Promise<void>): (...args: TArgs) => void {
   return (...args: TArgs) => {
     fn(...args).catch((error) => {
-      if (error instanceof CodedError) {
-        const d = error.diagnostic
-        console.error(c.red(`[${d.code}] ${d.message}`))
-        if (d.fix)
-          console.error(c.dim(`  fix: ${d.fix}`))
-        if (d.docs)
-          console.error(c.dim(`  see: ${d.docs}`))
+      if (error instanceof Diagnostic) {
+        console.error(c.red(`[${error.name}] ${error.message}`))
+        if (error.fix)
+          console.error(c.dim(`  fix: ${error.fix}`))
+        if (error.docs)
+          console.error(c.dim(`  see: ${error.docs}`))
       }
       else {
         console.error(error)

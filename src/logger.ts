@@ -1,14 +1,8 @@
-import type { Diagnostic } from 'logs-sdk'
-import { CodedError, consoleReporter, createLogger } from 'logs-sdk'
+import type { Diagnostic } from 'nostics'
 import { diagnostics } from './diagnostics'
 
-export const log = createLogger({
-  diagnostics: [diagnostics],
-  reporters: [consoleReporter],
-})
-
-export { CodedError, diagnostics }
+export { diagnostics }
 
 export function formatInline(d: Diagnostic): string {
-  return `[${d.code}] ${d.message}`
+  return `[${d.name}] ${d.message}`
 }
