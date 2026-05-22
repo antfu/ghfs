@@ -1,6 +1,6 @@
 /**
  * Two-way sync between `state.selectedNumber` and the route's `number`
- * segment. Used by `ProjectView` so the URL reflects (and restores) the
+ * segment. Used by `PanelProject` so the URL reflects (and restores) the
  * currently-open issue/PR without history pollution.
  *
  * - In hub mode, the URL shape is `/{owner}/{repo}` <-> `/{owner}/{repo}/{number}`.

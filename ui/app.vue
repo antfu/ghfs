@@ -42,9 +42,9 @@ onMounted(async () => {
       <p class="text-sm">Connecting…</p>
     </div>
     <NuxtPage v-else />
-    <SettingsDialog v-model:open="settingsOpen" />
+    <PanelSettings v-model:open="settingsOpen" />
     <HubQueueDrawer />
-    <CommandPalette />
-    <HelpOverlay />
+    <PanelCommandPalette />
+    <PanelHelp />
   </div>
 </template>

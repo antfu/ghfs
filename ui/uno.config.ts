@@ -53,12 +53,12 @@ export default defineConfig({
       'panel-card': 'border border-base rounded-xl bg-base',
       'panel-floating': 'bg-base border border-base shadow-sm',
 
-      // <DurationBadge> base chip — rectangular, subtle background, no border.
-      // Visually distinct from <Label> (rounded-full pill with border).
+      // <DisplayDurationBadge> base chip — rectangular, subtle background, no border.
+      // Visually distinct from <DisplayLabel> (rounded-full pill with border).
       'date-chip': 'inline-flex items-baseline gap-0.5 px-1.5 py-0.25 rounded-sm text-xs font-mono tabular-nums leading-tight',
 
-      // <DurationBadge> color scales. Each picks a text-color + matching
-      // background tint. Used by <DateBadge>.
+      // <DisplayDurationBadge> color scales. Each picks a text-color + matching
+      // background tint. Used by <DisplayDateBadge>.
       //
       // `freshness` (e.g. "last updated"): newer is better, bright green fading to gray.
       // Renders pure gray once the age crosses ~3 months.
@@ -123,7 +123,7 @@ export default defineConfig({
     },
   },
   safelist: [
-    // Dynamic badge colors (constructed at runtime via QueuePanel actionColor + Label colors)
+    // Dynamic badge colors (constructed at runtime via PanelQueue actionColor + DisplayLabel colors)
     'badge-color-green',
     'badge-color-purple',
     'badge-color-orange',
@@ -133,7 +133,7 @@ export default defineConfig({
     'badge-color-pink',
     'badge-color-neutral',
     'badge-color-gray',
-    // Dynamic octicons constructed at runtime (TimelineStream eventIcon map, QueuePanel)
+    // Dynamic octicons constructed at runtime (PanelDetailTimeline eventIcon map, PanelQueue)
     'i-octicon-issue-opened-16',
     'i-octicon-issue-closed-16',
     'i-octicon-issue-reopened-16',
