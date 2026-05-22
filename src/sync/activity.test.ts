@@ -46,7 +46,7 @@ describe('computeProjectActivityBuckets', () => {
             milestone: null,
           },
           comments: [{ id: 1, body: 'hi', createdAt: isoDaysAgo(5), updatedAt: isoDaysAgo(5), author: 'a' }],
-          timeline: [{ id: 't1', kind: 'labeled', createdAt: isoDaysAgo(3), actor: 'b' }],
+          timeline: [{ id: 't1', kind: 'reopened', createdAt: isoDaysAgo(3), actor: 'b' }],
           commits: [{ sha: 'x', message: 'm', authorLogin: 'a', authorName: 'A', authorDate: isoDaysAgo(8), committerLogin: 'a', committerDate: isoDaysAgo(7) }],
           pull: { isDraft: false, merged: true, mergedAt: isoDaysAgo(2), baseRef: 'main', headRef: 'feat', requestedReviewers: [] },
         },

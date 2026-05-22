@@ -81,8 +81,8 @@ describe('getEffectiveUpdatedAt', () => {
         { id: 1, body: 'a', createdAt: '2026-03-01T00:00:00Z', updatedAt: '2026-03-01T00:00:00Z', author: 'antfu' },
       ],
       timeline: [
-        { id: 't1', kind: 'labeled', createdAt: '2026-04-15T00:00:00Z', actor: 'octocat' },
-        { id: 't2', kind: 'labeled', createdAt: '2026-05-10T00:00:00Z', actor: 'github-actions[bot]' },
+        { id: 't1', kind: 'reopened', createdAt: '2026-04-15T00:00:00Z', actor: 'octocat' },
+        { id: 't2', kind: 'reopened', createdAt: '2026-05-10T00:00:00Z', actor: 'github-actions[bot]' },
       ],
       commits: [
         { sha: 'a', message: 'm', authorLogin: 'antfu', authorName: 'A', authorDate: '2026-04-20T00:00:00Z', committerLogin: 'antfu', committerDate: '2026-04-20T00:00:00Z' },
