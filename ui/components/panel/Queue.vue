@@ -52,7 +52,7 @@ function actionColor(action: string): string {
 }
 
 function summarize(entry: QueueEntry): string {
-  return summarizeQueueOp(entry.op as Record<string, unknown>)
+  return summarizeQueueOp(entry.op as unknown as Record<string, unknown>)
 }
 
 function selectItem(number: number) {

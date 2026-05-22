@@ -68,6 +68,7 @@ Every diagnostic `ghfs` emits has a stable code and a `see:` link that points to
 | --- | --- | --- |
 | [GHFS0300](./ghfs0300.md) | error | Unexpected patch response for pull request |
 | [GHFS0301](./ghfs0301.md) | error | Milestone not found |
+| [GHFS0302](./ghfs0302.md) | error | Cannot remove a reaction without an authenticated user |
 
 ## Sync (0400–0449)
 

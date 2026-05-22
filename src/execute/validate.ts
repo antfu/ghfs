@@ -1,12 +1,20 @@
+import type { ReactionTarget } from '../types/provider'
 import type { PendingFile, PendingOp } from './types'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'pathe'
 import * as v from 'valibot'
 import { parse, stringify } from 'yaml'
 import { diagnostics } from '../logger'
+import { isReactionContent, REACTION_CONTENTS } from '../utils/reactions'
 import { resolveActionName } from './actions'
 
 const LOCK_REASONS = ['resolved', 'off-topic', 'too heated', 'too-heated', 'spam'] as const
+
+const reactionTargetSchema = v.union([
+  v.object({ kind: v.literal('item') }),
+  v.object({ kind: v.literal('comment'), commentId: v.number() }),
+  v.object({ kind: v.literal('review'), reviewId: v.string() }),
+])
 
 const executeOpSchema = v.looseObject({
   number: v.number(),
@@ -19,6 +27,8 @@ const executeOpSchema = v.looseObject({
   milestone: v.optional(v.union([v.string(), v.number()])),
   reviewers: v.optional(v.array(v.string())),
   reason: v.optional(v.picklist(LOCK_REASONS)),
+  reaction: v.optional(v.picklist(REACTION_CONTENTS)),
+  target: v.optional(reactionTargetSchema),
 })
 
 const executeFileSchema = v.array(executeOpSchema)
@@ -131,6 +141,21 @@ function validateOperationRules(key: string, op: PendingOp): string[] {
       if (!isStringArray(op.reviewers))
         errors.push(`${key}: ${op.action} requires reviewers[]`)
       break
+
+    case 'add-reaction':
+    case 'remove-reaction': {
+      const reaction = (op as { reaction?: unknown }).reaction
+      if (!isReactionContent(reaction))
+        errors.push(`${key}: ${op.action} requires reaction (one of ${REACTION_CONTENTS.join(', ')})`)
+      const target = (op as { target?: unknown }).target as ReactionTarget | undefined
+      if (target !== undefined) {
+        if (target.kind === 'comment' && (!Number.isInteger(target.commentId) || target.commentId <= 0))
+          errors.push(`${key}: ${op.action} target.commentId must be a positive integer`)
+        if (target.kind === 'review' && (typeof target.reviewId !== 'string' || target.reviewId.length === 0))
+          errors.push(`${key}: ${op.action} target.reviewId must be a non-empty string`)
+      }
+      break
+    }
 
     default:
       break

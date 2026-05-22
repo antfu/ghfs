@@ -337,6 +337,14 @@ async function applyOperation(provider: RepositoryProvider, op: PendingOp): Prom
       await provider.actionConvertToDraft(op.number)
       break
 
+    case 'add-reaction':
+      await provider.actionAddReaction(op.number, op.reaction, op.target ?? { kind: 'item' })
+      break
+
+    case 'remove-reaction':
+      await provider.actionRemoveReaction(op.number, op.reaction, op.target ?? { kind: 'item' })
+      break
+
     default:
       throw diagnostics.GHFS0103({ action: String((op as { action: string }).action) })
   }

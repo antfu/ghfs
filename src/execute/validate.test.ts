@@ -62,6 +62,47 @@ describe('validateExecuteRules', () => {
 
     expect(validateExecuteRules(execute)).toContain('[0]: number must be a positive integer')
   })
+
+  it('accepts a valid add-reaction op on an item', () => {
+    const execute: PendingFile = [
+      { number: 5, action: 'add-reaction', reaction: 'heart' },
+    ]
+    expect(validateExecuteRules(execute)).toEqual([])
+  })
+
+  it('accepts add-reaction with a comment target', () => {
+    const execute: PendingFile = [
+      { number: 5, action: 'add-reaction', reaction: '+1', target: { kind: 'comment', commentId: 123 } },
+    ]
+    expect(validateExecuteRules(execute)).toEqual([])
+  })
+
+  it('accepts remove-reaction with a review target', () => {
+    const execute: PendingFile = [
+      { number: 5, action: 'remove-reaction', reaction: 'rocket', target: { kind: 'review', reviewId: 'PRR_abc' } },
+    ]
+    expect(validateExecuteRules(execute)).toEqual([])
+  })
+
+  it('fails when add-reaction is missing reaction', () => {
+    const execute = [{ number: 5, action: 'add-reaction' }] as unknown as PendingFile
+    const errors = validateExecuteRules(execute)
+    expect(errors.some(e => e.includes('add-reaction requires reaction'))).toBe(true)
+  })
+
+  it('fails for invalid comment target on add-reaction', () => {
+    const execute = [
+      { number: 5, action: 'add-reaction', reaction: 'heart', target: { kind: 'comment', commentId: -1 } },
+    ] as unknown as PendingFile
+    expect(validateExecuteRules(execute)).toContain('[0]: add-reaction target.commentId must be a positive integer')
+  })
+
+  it('fails for empty reviewId on review target', () => {
+    const execute = [
+      { number: 5, action: 'add-reaction', reaction: 'heart', target: { kind: 'review', reviewId: '' } },
+    ] as unknown as PendingFile
+    expect(validateExecuteRules(execute)).toContain('[0]: add-reaction target.reviewId must be a non-empty string')
+  })
 })
 
 describe('readAndValidateExecuteFile', () => {

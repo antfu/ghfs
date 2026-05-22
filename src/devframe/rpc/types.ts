@@ -3,7 +3,9 @@ import type { ExecuteTriggerOptions, InitialPayload, QueueState, RemoteStatus, R
 import type { ActivityResult } from '../../sync/activity'
 import type { SyncProgressSnapshot, SyncStage, SyncSummary } from '../../sync/contracts'
 import type { ExecutionResult } from '../../types/execution'
+import type { ReactionTarget } from '../../types/provider'
 import type { SyncState } from '../../types/sync-state'
+import type { ReactionContent } from '../../utils/reactions'
 
 export type { ActivityResult }
 
@@ -110,6 +112,7 @@ export interface GhfsServerFunctions {
   'ghfs:open-in-editor': (projectId: string, filePath: string) => Promise<void>
   'ghfs:save-ui-state': (projectId: string, state: UiState) => Promise<void>
   'ghfs:get-pull-patch': (projectId: string, number: number) => Promise<string | null>
+  'ghfs:get-viewer-reactions': (projectId: string, number: number, target: ReactionTarget) => Promise<ReactionContent[]>
   'ghfs:get-project-icon': (projectId: string) => Promise<string | null>
   'ghfs:project-activity': (projectId: string, days?: number) => Promise<ActivityResult>
   'ghfs:hub-activity': (days?: number) => Promise<ActivityResult>
