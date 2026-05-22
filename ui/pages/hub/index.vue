@@ -36,7 +36,6 @@ const aggregates = computed(() => {
 })
 
 const sparklinePoints = computed(() => hubActivity.data.value?.buckets ?? [])
-const hasActivity = computed(() => (hubActivity.data.value?.total ?? 0) > 0)
 
 const lastActivitySummary = computed(() => {
   let mostRecent: string | undefined
@@ -159,7 +158,6 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
           data-testid="hub-summary"
         >
           <div
-            v-if="hasActivity"
             class="absolute inset-x-0 bottom-0 top-1/3 op-25 dark:op-20 pointer-events-none color-active"
             style="mask-image: linear-gradient(to bottom, transparent 0%, black 60%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 60%);"
             data-testid="hub-summary-chart"
