@@ -14,7 +14,7 @@ import { forceSyncStorage } from '../../server/force-sync'
 import { buildQueueState } from '../../server/queue-builder'
 import { clearQueue } from '../../server/queue-writer'
 import { loadUiState } from '../../server/ui-state'
-import { syncRepository } from '../../sync'
+import { appendExecutionResult, syncRepository } from '../../sync'
 import { isCreatedToday } from '../../sync/activity'
 import { getEffectiveUpdatedAt } from '../../sync/effective-updated'
 import { loadRepoSnapshot } from '../../sync/repo-snapshot'
@@ -290,6 +290,22 @@ export async function executeQueue(ctx: ProjectContext, options: ExecuteTriggerO
         },
       },
     })
+
+    try {
+      await appendExecutionResult(ctx.storageDirAbsolute, result)
+      const affectedNumbers = [...new Set(
+        result.details
+          .filter(detail => detail.status === 'applied')
+          .map(detail => detail.number),
+      )]
+      if (affectedNumbers.length > 0)
+        await runSyncWithReporter(ctx, { numbers: affectedNumbers })
+    }
+    catch (syncError) {
+      const message = syncError instanceof Error ? syncError.message : String(syncError)
+      ctx.broadcast.onSyncError(message)
+    }
+
     return result
   }
   finally {
