@@ -13,7 +13,7 @@ export interface KeybindingDef {
 export interface Command {
   /** Stable namespaced id (e.g. `'item.close'`, `'palette.open'`). */
   id: string
-  /** Palette label, also reused in `<HelpOverlay>`. */
+  /** Palette label, also reused in `<PanelHelp>`. */
   title: string
   /** Group label for palette/help (`'Navigate'`, `'Item'`, ...). */
   category: string
@@ -26,7 +26,7 @@ export interface Command {
   /** Inline keybindings. String shorthand expands to `{ key }`. */
   keybindings?: Array<string | KeybindingDef>
   /**
-   * Whether to surface in `<HelpOverlay>`:
+   * Whether to surface in `<PanelHelp>`:
    * - `true` (default) — always show
    * - `false` — never show (palette-internal commands)
    * - `string` — whenexpr; show only when it evaluates true
@@ -169,7 +169,7 @@ export interface CommandBinding {
 }
 
 /**
- * Reactive binding for inline `<Kbd>` rendering. Returns the first
+ * Reactive binding for inline `<UiKbd>` rendering. Returns the first
  * keybinding's label and whether the command is currently enabled.
  */
 export function useCommand(id: string): CommandBinding {

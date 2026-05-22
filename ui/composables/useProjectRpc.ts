@@ -11,8 +11,8 @@ function toId(resolver: ProjectIdResolver): string {
 
 /**
  * Project-scoped RPC wrapper. Components that operate on a single
- * project (Navbar, DetailPanel, QueuePanel, LabelEditor, etc.) call
- * this and get a familiar method-bag without having to thread
+ * project (PanelAppBar, PanelDetail, PanelQueue, PanelDetailLabelEditor, etc.)
+ * call this and get a familiar method-bag without having to thread
  * `projectId` through every call site.
  */
 export function useProjectRpc(projectId: ProjectIdResolver) {

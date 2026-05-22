@@ -36,6 +36,6 @@ function backHome() {
       <p class="text-sm mb-3">Project not found.</p>
       <button class="btn-primary text-xs" @click="backHome">Back to hub</button>
     </div>
-    <SingleProjectPage v-else :project-id="projectId" :initial-number="numberParam" />
+    <PanelSingleProject v-else :project-id="projectId" :initial-number="numberParam" />
   </div>
 </template>

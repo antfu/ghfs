@@ -4,7 +4,7 @@ const hubQueue = useHubQueue()
 
 <template>
   <div class="h-full flex flex-col" data-testid="hub-queue-page">
-    <AppNavbar mode="hub" />
+    <PanelAppBar mode="hub" />
     <main class="flex-1 overflow-y-auto">
       <div class="max-w-5xl mx-auto px-5 py-6 flex flex-col gap-5">
         <header class="flex items-center gap-3">
@@ -31,7 +31,7 @@ const hubQueue = useHubQueue()
           </button>
         </header>
 
-        <HubQueueGroupedList />
+        <HubQueueList />
       </div>
     </main>
   </div>
