@@ -11,7 +11,7 @@ interface Group {
 
 const activeId = useActiveProjectId()
 const state = useAppState()
-const rpc = useProjectRpc(() => activeId.value ?? '__default__')
+const rpc = useRpc()
 const { entries } = useQueue()
 
 const warnings = computed<string[]>(() => state.payload.value?.queue.warnings ?? [])
@@ -74,7 +74,7 @@ function selectItem(number: number) {
 async function remove(entry: QueueEntry) {
   state.setError(null)
   try {
-    await rpc.removeQueueOp(entry.id)
+    await rpc.$call('ghfs:remove-queue-op', activeId.value ?? '__default__', entry.id)
   }
   catch (error) {
     state.setError(`${(error as Error).message}`)
@@ -85,7 +85,7 @@ async function confirmClear() {
   clearDialogOpen.value = false
   state.setError(null)
   try {
-    await rpc.clearQueue()
+    await rpc.$call('ghfs:clear-queue', activeId.value ?? '__default__')
   }
   catch (error) {
     state.setError(`${(error as Error).message}`)
@@ -106,7 +106,7 @@ async function confirmExecute() {
   state.setError(null)
   state.setExecuting(true)
   try {
-    await rpc.executeQueue({ entryIds: ids, continueOnError: true })
+    await rpc.$call('ghfs:execute-queue', activeId.value ?? '__default__', { entryIds: ids, continueOnError: true })
   }
   catch (error) {
     state.setError(`Execute failed: ${(error as Error).message}`)

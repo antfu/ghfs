@@ -1,6 +1,6 @@
 import type { IssueKind, IssueState } from '../../src/types/issue'
 import type { SyncItemState } from '../../src/types/sync-state'
-import type { HubRecentItem } from '../composables/useRpc'
+import type { HubRecentItem } from '#ghfs/rpc-types'
 
 export interface ListItem {
   key: string

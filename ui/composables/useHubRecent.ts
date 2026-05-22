@@ -1,4 +1,4 @@
-import type { HubRecentItem } from './useRpc'
+import type { HubRecentItem } from '#ghfs/rpc-types'
 
 const items = ref<HubRecentItem[]>([])
 const loading = ref(false)
@@ -16,7 +16,7 @@ export function useHubRecent() {
     loading.value = true
     error.value = null
     try {
-      const fresh = await useRpc().hubRecentItems(limit)
+      const fresh = await useRpc().$call('ghfs:hub-recent-items', limit)
       items.value = fresh ?? []
     }
     catch (err) {

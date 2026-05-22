@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ProjectSummary } from '#ghfs/shared-rpc'
+import type { ProjectSummary } from '#ghfs/rpc-types'
 
 const props = withDefaults(defineProps<{
   project: Pick<ProjectSummary, 'id' | 'repo'>

@@ -7,7 +7,7 @@ const props = withDefaults(defineProps<{
 
 const activeId = useActiveProjectId()
 const state = useAppState()
-const rpc = useProjectRpc(() => activeId.value ?? '__default__')
+const rpc = useRpc()
 const isDark = useDark()
 const hub = useHubState()
 const hubUi = useHubUiState()
@@ -35,7 +35,7 @@ async function triggerSync() {
   state.setError(null)
   state.setSyncing(true)
   try {
-    await rpc.triggerSync({})
+    await rpc.$call('ghfs:trigger-sync', activeId.value ?? '__default__', {})
   }
   catch (error) {
     state.setError(`Sync failed: ${(error as Error).message}`)

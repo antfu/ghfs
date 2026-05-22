@@ -1,4 +1,4 @@
-import type { HubSettings } from './useRpc'
+import type { HubSettings } from '#ghfs/rpc-types'
 
 const settings = ref<HubSettings | null>(null)
 const hydrated = ref(false)
@@ -7,7 +7,7 @@ const hydrated = ref(false)
 export function useHubSettings() {
   async function load() {
     try {
-      const fetched = await useRpc().hubSettings()
+      const fetched = await useRpc().$call('ghfs:hub-settings')
       settings.value = fetched
       hydrated.value = true
     }
@@ -19,7 +19,7 @@ export function useHubSettings() {
 
   async function setAutoSyncIntervalMs(value: number | undefined) {
     const patch: Partial<HubSettings> & { autoSyncIntervalMs?: number } = { autoSyncIntervalMs: value }
-    const next = await useRpc().hubSetSettings(patch)
+    const next = await useRpc().$call('ghfs:hub-set-settings', patch)
     settings.value = next
   }
 

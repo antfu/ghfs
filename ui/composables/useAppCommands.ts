@@ -51,7 +51,7 @@ export function createAppCommands(): Command[] {
   // Resolve state lazily so commands always operate on the *currently*
   // active project's bucket, not the one captured at install time.
   const state = computed(() => useAppState(activeId.value ?? undefined))
-  const rpc = useProjectRpc(() => activeId.value ?? '__default__')
+  const rpc = useRpc()
   const isDark = useDark()
   const ui = useUiState()
   const hub = useHubState()
@@ -142,7 +142,7 @@ export function createAppCommands(): Command[] {
     state.value.setSyncing(true)
     state.value.setError(null)
     try {
-      await rpc.triggerSync({})
+      await rpc.$call('ghfs:trigger-sync', activeId.value ?? '__default__', {})
     }
     catch (error) {
       state.value.setError(`Sync failed: ${(error as Error).message}`)
@@ -164,11 +164,11 @@ export function createAppCommands(): Command[] {
     const body = ui.getDraft(num).trim()
     try {
       if (body) {
-        await rpc.addQueueOp({ action: 'close-with-comment', number: num, body })
+        await rpc.$call('ghfs:add-queue-op', activeId.value ?? '__default__', { action: 'close-with-comment', number: num, body })
         ui.clearDraft(num)
       }
       else {
-        await rpc.addQueueOp({ action: 'close', number: num })
+        await rpc.$call('ghfs:add-queue-op', activeId.value ?? '__default__', { action: 'close', number: num })
       }
     }
     catch (error) { state.value.setError((error as Error).message) }
@@ -176,7 +176,7 @@ export function createAppCommands(): Command[] {
   async function queueReopen() {
     const num = activeItem.value?.number
     if (num == null) return
-    try { await rpc.addQueueOp({ action: 'reopen', number: num }) }
+    try { await rpc.$call('ghfs:add-queue-op', activeId.value ?? '__default__', { action: 'reopen', number: num }) }
     catch (error) { state.value.setError((error as Error).message) }
   }
 

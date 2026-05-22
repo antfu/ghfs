@@ -1,4 +1,4 @@
-import type { HubQueueGroup } from './useRpc'
+import type { HubQueueGroup } from '#ghfs/rpc-types'
 
 const groups = ref<HubQueueGroup[]>([])
 const loaded = ref(false)
@@ -18,7 +18,7 @@ export function useHubQueue() {
 
   async function load() {
     try {
-      const fresh = await useRpc().hubQueue()
+      const fresh = await useRpc().$call('ghfs:hub-queue')
       groups.value = fresh
       loaded.value = true
     }
@@ -30,7 +30,7 @@ export function useHubQueue() {
   async function executeProject(projectId: string) {
     executing.value = projectId
     try {
-      await useRpc().hubExecuteQueue({ projectId })
+      await useRpc().$call('ghfs:hub-execute-queue', { projectId })
     }
     finally {
       executing.value = null
@@ -41,7 +41,7 @@ export function useHubQueue() {
   async function executeAll() {
     executing.value = 'all'
     try {
-      await useRpc().hubExecuteQueue({})
+      await useRpc().$call('ghfs:hub-execute-queue', {})
     }
     finally {
       executing.value = null

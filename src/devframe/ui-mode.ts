@@ -5,7 +5,7 @@ import { createAutoSyncTimer } from '../hub/auto-sync'
 import { slugifyRepoName } from '../server/portless'
 import { loadUiState } from '../server/ui-state'
 import { buildProjectContext, closeProjectContext } from './project-factory'
-import { registerProjectRpc } from './shared-rpc'
+import { registerGhfsRpc, setProjectRegistry, setUiStateSavedCallback } from './rpc'
 
 export interface UiModeFlags {
   cwd: string
@@ -54,11 +54,11 @@ export async function setupUiMode(
     initialIntervalMs: uiState.autoSyncIntervalMs,
   })
 
-  registerProjectRpc(devframeCtx, registry, {
-    onUiStateSaved: (next) => {
-      autoSync.setInterval(next.autoSyncIntervalMs)
-    },
+  setProjectRegistry(devframeCtx, registry)
+  setUiStateSavedCallback(devframeCtx, (next) => {
+    autoSync.setInterval(next.autoSyncIntervalMs)
   })
+  registerGhfsRpc(devframeCtx)
 
   return {
     registry,

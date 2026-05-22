@@ -10,7 +10,7 @@ const cache = reactive<Map<number, PatchEntry>>(new Map())
 
 export function usePullPatch(numberRef: Ref<number | null> | ComputedRef<number | null>) {
   const activeId = useActiveProjectId()
-  const rpc = useProjectRpc(() => activeId.value ?? '__default__')
+  const rpc = useRpc()
 
   const entry = computed<PatchEntry>(() => {
     const num = numberRef.value
@@ -28,7 +28,7 @@ export function usePullPatch(numberRef: Ref<number | null> | ComputedRef<number 
       return
     cache.set(num, { state: 'loading' })
     try {
-      const text = await rpc.getPullPatch(num)
+      const text = await rpc.$call('ghfs:get-pull-patch', activeId.value ?? '__default__', num)
       if (text == null)
         cache.set(num, { state: 'missing' })
       else

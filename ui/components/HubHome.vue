@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ProjectSummary } from '#ghfs/shared-rpc'
+import type { ProjectSummary } from '#ghfs/rpc-types'
 
 const rpc = useRpc()
 const hub = useHubState()
@@ -51,14 +51,14 @@ const lastActivitySummary = computed(() => {
 
 onMounted(async () => {
   try {
-    const info = await rpc.hubInfo()
+    const info = await rpc.$call('ghfs:hub-info')
     hub.setHubInfo(info)
     if (!info.launchCwdInRoots && !onboardingDismissed)
       onboardingOpen.value = true
   }
   catch { /* fall back to title */ }
   try {
-    const fresh = await rpc.listProjects()
+    const fresh = await rpc.$call('ghfs:list-projects')
     hub.setProjects(fresh)
   }
   catch { /* keep capabilities-provided list */ }
@@ -70,7 +70,7 @@ async function acceptOnboarding() {
     return
   onboardingBusy.value = true
   try {
-    const info = await rpc.hubAddRoot(path)
+    const info = await rpc.$call('ghfs:hub-add-root', path)
     hub.setHubInfo(info)
     onboardingDismissed = true
     onboardingOpen.value = false

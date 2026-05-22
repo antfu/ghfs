@@ -1,4 +1,4 @@
-import type { ActivityResult } from './useRpc'
+import type { ActivityResult } from '#ghfs/rpc-types'
 
 const cache = new Map<string, Ref<ActivityResult | null>>()
 const loading = new Set<string>()
@@ -25,7 +25,7 @@ export function useProjectActivity(projectId: MaybeRefOrGetter<string | null | u
       return
     loading.add(key)
     try {
-      const result = await useRpc().projectActivity(key, days)
+      const result = await useRpc().$call('ghfs:project-activity', key, days)
       bucketRef(key).value = result
     }
     catch {

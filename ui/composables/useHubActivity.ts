@@ -1,4 +1,4 @@
-import type { ActivityResult } from './useRpc'
+import type { ActivityResult } from '#ghfs/rpc-types'
 
 const cache = ref<ActivityResult | null>(null)
 let loading = false
@@ -9,7 +9,7 @@ export function useHubActivity(days = 90) {
       return
     loading = true
     try {
-      cache.value = await useRpc().hubActivity(days)
+      cache.value = await useRpc().$call('ghfs:hub-activity', days)
     }
     catch {
       // Leave previous value if any — the summary keeps rendering with stale data.
