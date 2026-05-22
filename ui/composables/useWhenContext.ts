@@ -22,6 +22,8 @@ export interface WhenContext extends Record<string, unknown> {
   hubPickerOpen: boolean
   hubSettingsOpen: boolean
   hubQueueDrawerOpen: boolean
+  hubExecuteAllConfirmOpen: boolean
+  hubQueueTotal: number
   hubProjectsCount: number
   hasActiveProjectId: boolean
   anyOverlayOpen: boolean
@@ -37,6 +39,7 @@ export function useWhenContext(): ComputedRef<WhenContext> {
   const { filteredItems } = useFilteredItems()
   const { filteredItems: recentFiltered } = useRecentFiltered()
   const { upCount } = useQueue()
+  const { totalCount: hubQueueTotal } = useHubQueue()
   const inputFocused = useInputFocus()
   const palette = useCommandPalette()
 
@@ -53,6 +56,7 @@ export function useWhenContext(): ComputedRef<WhenContext> {
     const hubPickerOpen = hubUi.pickerOpen.value
     const hubSettingsOpen = hubUi.settingsOpen.value
     const hubQueueDrawerOpen = hubUi.queueDrawerOpen.value
+    const hubExecuteAllConfirmOpen = hubUi.executeAllConfirmOpen.value
     const onRecent = route.path === '/recent'
     return {
       route: route.path,
@@ -78,11 +82,14 @@ export function useWhenContext(): ComputedRef<WhenContext> {
       hubPickerOpen,
       hubSettingsOpen,
       hubQueueDrawerOpen,
+      hubExecuteAllConfirmOpen,
+      hubQueueTotal: hubQueueTotal.value,
       hubProjectsCount: hub.projects.value.length,
       hasActiveProjectId: Boolean(activeId.value),
       anyOverlayOpen: helpOpen || labelEditorOpen || queueOpen
         || executeConfirmOpen || hubPickerOpen
-        || hubSettingsOpen || hubQueueDrawerOpen,
+        || hubSettingsOpen || hubQueueDrawerOpen
+        || hubExecuteAllConfirmOpen,
     }
   })
 }

@@ -1,6 +1,7 @@
 const pickerOpen = ref(false)
 const settingsOpen = ref(false)
 const queueDrawerOpen = ref(false)
+const executeAllConfirmOpen = ref(false)
 const syncingAll = ref(false)
 
 export function useHubUiState() {
@@ -8,6 +9,7 @@ export function useHubUiState() {
     pickerOpen,
     settingsOpen,
     queueDrawerOpen,
+    executeAllConfirmOpen,
     syncingAll,
     openPicker() {
       pickerOpen.value = true
@@ -26,6 +28,12 @@ export function useHubUiState() {
     },
     closeQueueDrawer() {
       queueDrawerOpen.value = false
+    },
+    openExecuteAllConfirm() {
+      executeAllConfirmOpen.value = true
+    },
+    closeExecuteAllConfirm() {
+      executeAllConfirmOpen.value = false
     },
     setSyncingAll(value: boolean) {
       syncingAll.value = value

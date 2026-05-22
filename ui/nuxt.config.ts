@@ -114,7 +114,6 @@ export default defineNuxtConfig({
       pages.push(
         { name: 'hub-redirect', path: '/hub', redirect: '/' },
         { name: 'hub-recent-redirect', path: '/hub/recent', redirect: '/recent' },
-        { name: 'hub-queue-redirect', path: '/hub/queue', redirect: '/queue' },
       )
       // GitHub URL shapes (/owner/repo/issues/123, /pull/, /pulls/) are
       // handled by middleware/github-url.global.ts — function-form redirects
