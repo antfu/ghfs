@@ -30,7 +30,7 @@ export const PILE_KIND_CHOICES: ReadonlyArray<{ value: PileKindFilter, label: st
 
 export const DEFAULT_PILE_OPTIONS: PileOptions = {
   size: 10,
-  pick: 'random',
+  pick: 'recent',
   kind: 'all',
   excludeBots: true,
   excludeSelfInteracted: true,
