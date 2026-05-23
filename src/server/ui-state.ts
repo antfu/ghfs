@@ -26,6 +26,13 @@ export interface UiState {
   todos?: number[]
   /** Issue/PR numbers hidden from list views via cards mode "mark as ignore". */
   ignored?: number[]
+  /**
+   * Map of `${projectId}#${number}` → hash recorded when the user last saw
+   * the card. Used by the "Exclude seen cards" pile filter so an item only
+   * comes back into the pile once it changes upstream (new comment, body
+   * edit, timeline event).
+   */
+  seenHistory?: Record<string, string>
 }
 
 export function createEmptyUiState(): UiState {
@@ -51,6 +58,17 @@ function normalizePrTab(value: unknown): PrTabId | undefined {
   if (value === 'conversation' || value === 'commits' || value === 'changes')
     return value
   return undefined
+}
+
+function normalizeSeenHistory(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== 'object')
+    return undefined
+  const out: Record<string, string> = {}
+  for (const [key, hash] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof key === 'string' && key.length > 0 && typeof hash === 'string' && hash.length > 0)
+      out[key] = hash
+  }
+  return Object.keys(out).length > 0 ? out : undefined
 }
 
 function normalizeUserOverride(value: unknown): UserOverride | undefined {
@@ -86,6 +104,7 @@ export async function loadUiState(storageDirAbsolute: string): Promise<UiState> 
       autoSyncIntervalMs: normalizeAutoSyncInterval(parsed.autoSyncIntervalMs),
       todos: normalizeNumberArray(parsed.todos),
       ignored: normalizeNumberArray(parsed.ignored),
+      seenHistory: normalizeSeenHistory(parsed.seenHistory),
     }
   }
   catch {
@@ -108,6 +127,7 @@ export async function saveUiState(storageDirAbsolute: string, state: UiState): P
   const interval = normalizeAutoSyncInterval(state.autoSyncIntervalMs)
   const todos = normalizeNumberArray(state.todos)
   const ignored = normalizeNumberArray(state.ignored)
+  const seenHistory = normalizeSeenHistory(state.seenHistory)
   const clean: UiState = {
     drafts: { ...state.drafts },
     ...(state.listPaneSize != null ? { listPaneSize: state.listPaneSize } : {}),
@@ -116,6 +136,7 @@ export async function saveUiState(storageDirAbsolute: string, state: UiState): P
     ...(interval != null ? { autoSyncIntervalMs: interval } : {}),
     ...(todos ? { todos } : {}),
     ...(ignored ? { ignored } : {}),
+    ...(seenHistory ? { seenHistory } : {}),
   }
   await writeFile(
     join(storageDirAbsolute, UI_STATE_FILE),

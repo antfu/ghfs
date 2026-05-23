@@ -34,6 +34,7 @@ export const DEFAULT_PILE_OPTIONS: PileOptions = {
   kind: 'all',
   excludeBots: true,
   excludeSelfInteracted: true,
+  excludeSeen: true,
 }
 
 const TRANSITION_MS = 360
@@ -196,10 +197,25 @@ function activityCount(it: ListItem): number {
   return (raw.data.comments?.length ?? 0) + (raw.data.timeline?.length ?? 0)
 }
 
+/**
+ * Stable fingerprint of an item's current state, used by "Exclude seen
+ * cards". Changes whenever the body is edited (updatedAt) or a new
+ * comment / timeline event lands. Falls back to the bare updatedAt when
+ * the full sync state isn't available (hub-recent items).
+ */
+export function computeItemHash(it: ListItem): string {
+  const raw = it.raw
+  const updatedAt = raw?.data.item.updatedAt ?? it.updatedAt ?? ''
+  const comments = raw?.data.comments?.length ?? 0
+  const timeline = raw?.data.timeline?.length ?? 0
+  return `${updatedAt}|${comments}|${timeline}`
+}
+
 export function filterCandidates(
   items: ListItem[],
   opts: PileOptions,
   currentUserLogin: string | null,
+  seenLookup?: (key: string) => string | undefined,
 ): ListItem[] {
   let usable = items.filter(it => it.state === 'open')
   if (opts.kind === 'issue')
@@ -210,6 +226,8 @@ export function filterCandidates(
     usable = usable.filter(it => !isBotAuthor(it))
   if (opts.excludeSelfInteracted && currentUserLogin)
     usable = usable.filter(it => !isLatestInteractionByUser(it, currentUserLogin))
+  if (opts.excludeSeen && seenLookup)
+    usable = usable.filter(it => seenLookup(itemKey(it)) !== computeItemHash(it))
   return usable
 }
 
@@ -286,13 +304,34 @@ function currentCardSync(): CardRef | null {
   return pile.value[index.value] ?? null
 }
 
+/**
+ * Mirror of `computeItemHash` for a `CardRef` — looks up the live sync
+ * state for the card's project (cards always pre-load via `ensureLoaded`,
+ * see `Face.vue`). Returns null when the project's payload isn't loaded
+ * yet so we don't store a partial hash that would later mark the card
+ * "changed" when the real sync data lands.
+ */
+function cardHash(card: CardRef): string | null {
+  const entry = useAppState(card.projectId).payload.value?.syncState.items[String(card.number)]
+  if (!entry)
+    return null
+  const updatedAt = entry.data.item.updatedAt ?? ''
+  const comments = entry.data.comments?.length ?? 0
+  const timeline = entry.data.timeline?.length ?? 0
+  return `${updatedAt}|${comments}|${timeline}`
+}
+
 async function performAdvance(): Promise<void> {
   if (advancing.value)
     return
   advancing.value = true
   const card = currentCardSync()
-  if (card)
+  if (card) {
     processedKeys.value.add(itemKey(card))
+    const hash = cardHash(card)
+    if (hash)
+      useUiState().markSeen(itemKey(card), hash)
+  }
   index.value += 1
   scheduleSave()
   await new Promise(resolve => setTimeout(resolve, TRANSITION_MS))
@@ -410,7 +449,7 @@ export function useCardsMode() {
     opts: PileOptions,
     currentUserLogin: string | null,
   ): Promise<void> {
-    const candidates = filterCandidates(items, opts, currentUserLogin)
+    const candidates = filterCandidates(items, opts, currentUserLogin, ui.getSeenHash)
     const next = pickFromCandidates(candidates, opts, new Set())
     if (next.length === 0)
       return
@@ -444,7 +483,7 @@ export function useCardsMode() {
 
   /** Re-pick from the original source items, excluding cards already touched. */
   function anotherPile(items: ListItem[], currentUserLogin: string | null): void {
-    const candidates = filterCandidates(items, options.value, currentUserLogin)
+    const candidates = filterCandidates(items, options.value, currentUserLogin, ui.getSeenHash)
     const fresh = pickFromCandidates(candidates, options.value, processedKeys.value)
     if (fresh.length === 0)
       return
@@ -456,7 +495,7 @@ export function useCardsMode() {
 
   /** Re-generate using the same options but a fresh source snapshot. */
   function restartPile(items: ListItem[], currentUserLogin: string | null): void {
-    const candidates = filterCandidates(items, options.value, currentUserLogin)
+    const candidates = filterCandidates(items, options.value, currentUserLogin, ui.getSeenHash)
     const fresh = pickFromCandidates(candidates, options.value, new Set())
     if (fresh.length === 0)
       return

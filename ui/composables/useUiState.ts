@@ -26,6 +26,7 @@ function ensureSaver(): () => void {
       autoSyncIntervalMs: uiState.autoSyncIntervalMs,
       todos: uiState.todos ? [...uiState.todos] : undefined,
       ignored: uiState.ignored ? [...uiState.ignored] : undefined,
+      seenHistory: uiState.seenHistory ? { ...uiState.seenHistory } : undefined,
     }).catch((error) => {
       diagnostics.GHFS0900({ detail: String((error as Error)?.message ?? error), cause: error })
     })
@@ -66,6 +67,9 @@ export function useUiState() {
     uiState.autoSyncIntervalMs = typeof next?.autoSyncIntervalMs === 'number' ? next.autoSyncIntervalMs : undefined
     uiState.todos = Array.isArray(next?.todos) ? [...next.todos] : undefined
     uiState.ignored = Array.isArray(next?.ignored) ? [...next.ignored] : undefined
+    uiState.seenHistory = next?.seenHistory && typeof next.seenHistory === 'object'
+      ? { ...next.seenHistory }
+      : undefined
     hydrated = true
   }
 
@@ -184,6 +188,20 @@ export function useUiState() {
     ensureSaver()()
   }
 
+  function getSeenHash(key: string): string | undefined {
+    return uiState.seenHistory?.[key]
+  }
+
+  function markSeen(key: string, hash: string): void {
+    if (!key || !hash)
+      return
+    const current = uiState.seenHistory ?? {}
+    if (current[key] === hash)
+      return
+    uiState.seenHistory = { ...current, [key]: hash }
+    ensureSaver()()
+  }
+
   return {
     uiState,
     helpOpen,
@@ -204,5 +222,7 @@ export function useUiState() {
     isIgnored,
     addIgnored,
     removeIgnored,
+    getSeenHash,
+    markSeen,
   }
 }

@@ -8,6 +8,7 @@ import {
 } from '../../composables/useCardsMode'
 
 const cards = useCardsMode()
+const ui = useUiState()
 const { currentUser } = useCurrentUser()
 
 const open = computed({
@@ -37,7 +38,7 @@ const source = computed(() => cards.pendingSource.value)
 const userLogin = computed(() => currentUser.value?.login ?? null)
 
 const candidates = computed(() =>
-  filterCandidates(sourceItems.value, localOptions.value, userLogin.value),
+  filterCandidates(sourceItems.value, localOptions.value, userLogin.value, ui.getSeenHash),
 )
 const candidateCount = computed(() => candidates.value.length)
 const willPick = computed(() => Math.min(localOptions.value.size, candidateCount.value))
@@ -165,6 +166,18 @@ function onCancel() {
           <span>
             Hide items waiting for someone else to reply
             <span v-if="userLogin" class="color-muted">(I'm <span class="font-mono">@{{ userLogin }}</span>)</span>
+          </span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            v-model="localOptions.excludeSeen"
+            type="checkbox"
+            class="accent-primary-500"
+            data-testid="cards-start-exclude-seen"
+          >
+          <span>
+            Exclude seen cards
+            <span class="color-muted">(re-appear once they change)</span>
           </span>
         </label>
       </div>

@@ -115,6 +115,12 @@ export interface PileOptions {
   kind: PileKindFilter
   excludeBots: boolean
   excludeSelfInteracted: boolean
+  /**
+   * Skip items the user has already triaged in a previous pile, until they
+   * change upstream (new comment, body edit, timeline event). The "seen"
+   * fingerprint is stored under `ui.json#seenHistory`.
+   */
+  excludeSeen: boolean
 }
 
 export interface QueuedCardOp {
