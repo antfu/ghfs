@@ -71,11 +71,11 @@ const bodySnippetHtml = computed(() => {
   >
     <div
       v-if="showRepoName"
-      class="flex items-center gap-1.5 min-w-0"
+      class="flex items-center gap-1.5 min-w-0 pl7"
     >
       <DisplayProjectIcon
         :project="{ id: item.projectId, repo: item.repo }"
-        :size="16"
+        :size="14"
         class="shrink-0"
       />
       <span class="font-mono text-xs color-muted truncate" :title="item.repo">
@@ -98,18 +98,7 @@ const bodySnippetHtml = computed(() => {
             :class="{ 'italic': pending.pendingTitle.value }"
             v-html="titleHtml"
           />
-          <a
-            v-if="item.url"
-            :href="item.url"
-            target="_blank"
-            rel="noreferrer"
-            tabindex="-1"
-            class="font-mono text-xs color-muted hover:color-active hover:underline tabular-nums"
-            :aria-label="`Open #${item.number} on GitHub`"
-            @click.stop
-          >#{{ item.number }}</a>
           <span
-            v-else
             class="font-mono text-xs color-muted tabular-nums"
           >#{{ item.number }}</span>
           <UiBadge
