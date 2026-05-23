@@ -1,10 +1,22 @@
 <script setup lang="ts">
-import type { ProviderItem, ProviderPullMetadata } from '../../../src/types/provider'
+import type { IssueKind, IssueState } from '../../../src/types/issue'
+import type { IssueStateReason } from '../../../src/types/provider'
 import type { PendingDirection } from '../../composables/usePendingOps'
 
+interface IconItemInfo {
+  kind: IssueKind
+  state: IssueState
+  stateReason?: IssueStateReason | null
+}
+
+interface IconPullInfo {
+  isDraft?: boolean
+  merged?: boolean
+}
+
 interface Props {
-  item: ProviderItem
-  pull?: ProviderPullMetadata
+  item: IconItemInfo
+  pull?: IconPullInfo
   /** Pending close/reopen overlays the rendered state. */
   pending?: PendingDirection
   size?: 'sm' | 'md' | 'lg'

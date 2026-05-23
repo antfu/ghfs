@@ -17,6 +17,19 @@ const emit = defineEmits<{
 const rawItem = computed(() => props.item.raw?.data.item)
 const rawPull = computed(() => props.item.raw?.data.pull)
 
+const iconItem = computed(() => rawItem.value ?? {
+  kind: props.item.kind,
+  state: props.item.state ?? 'open',
+  stateReason: props.item.stateReason ?? null,
+})
+const iconPull = computed(() => {
+  if (rawPull.value)
+    return rawPull.value
+  if (props.item.kind !== 'pull')
+    return undefined
+  return { isDraft: props.item.pullIsDraft, merged: props.item.pullMerged }
+})
+
 const labels = computed(() => props.item.labels ?? [])
 const assignees = computed(() => props.item.assignees ?? [])
 
@@ -72,17 +85,10 @@ const bodySnippetHtml = computed(() => {
 
     <div class="flex items-start gap-2.5">
       <DisplayItemStateIcon
-        v-if="rawItem"
-        :item="rawItem"
-        :pull="rawPull"
+        :item="iconItem"
+        :pull="iconPull"
         :pending="pending.direction.value"
         class="mt-0.5 shrink-0"
-      />
-      <span
-        v-else
-        :class="item.kind === 'pull' ? 'i-octicon-git-pull-request-16' : 'i-octicon-issue-opened-16'"
-        class="mt-0.5 shrink-0"
-        :title="item.kind"
       />
 
       <div class="flex-1 min-w-0">

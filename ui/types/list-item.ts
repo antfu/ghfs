@@ -1,4 +1,5 @@
 import type { IssueKind, IssueState } from '../../src/types/issue'
+import type { IssueStateReason } from '../../src/types/provider'
 import type { SyncItemState } from '../../src/types/sync-state'
 import type { HubRecentItem } from '#ghfs/rpc-types'
 
@@ -14,6 +15,9 @@ export interface ListItem {
   updatedAt?: string | null
   labels?: string[]
   state?: IssueState
+  stateReason?: IssueStateReason | null
+  pullIsDraft?: boolean
+  pullMerged?: boolean
   body?: string
   assignees?: string[]
   reactionsTotal?: number
@@ -61,5 +65,8 @@ export function fromHubRecent(item: HubRecentItem, repoLookup?: (id: string) => 
     updatedAt: item.updatedAt,
     labels: item.labels,
     state: item.state,
+    stateReason: item.stateReason,
+    pullIsDraft: item.pullIsDraft,
+    pullMerged: item.pullMerged,
   }
 }
