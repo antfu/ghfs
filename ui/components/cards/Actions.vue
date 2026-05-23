@@ -61,6 +61,12 @@ onBeforeUnmount(() => {
 
 /** How far inward from the edge the hover zone reaches. */
 const EDGE_DEPTH = 260
+/**
+ * A square in each corner where the cursor is too ambiguous to pick a zone —
+ * top-vs-left, top-vs-right, etc. Inside this box we deactivate everything so
+ * the user has to commit to one direction before the bloom + tilt fire.
+ */
+const CORNER_DEAD = 160
 
 /** Which zone the cursor is currently inside (binary, not a magnitude). */
 const activeZone = ref<Zone | null>(null)
@@ -80,6 +86,15 @@ function onMove(e: MouseEvent) {
     return
   const x = e.clientX - rect.left
   const y = e.clientY - rect.top
+  // Dead corner: if both the nearest horizontal *and* vertical edge are this
+  // close, the user could be heading toward either zone — don't pick one for
+  // them.
+  const distV = Math.min(y, h - y)
+  const distH = Math.min(x, w - x)
+  if (distV < CORNER_DEAD && distH < CORNER_DEAD) {
+    activeZone.value = null
+    return
+  }
   // Nearest edge wins, but only if we're actually within the zone depth and
   // the corresponding command is currently active.
   const dists: Array<{ zone: Zone, dist: number }> = [
