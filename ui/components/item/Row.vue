@@ -36,11 +36,16 @@ const iconPull = computed(() => {
 const labels = computed(() => props.item.labels ?? [])
 const assignees = computed(() => props.item.assignees ?? [])
 
-const isSeenUnchanged = computed(() => {
+/**
+ * True when the item has activity the user hasn't yet caught up on — either
+ * they've never opened it, or something has changed since `lastSeenAt`.
+ * Drives the unread dot in the top-right and the bold title weight.
+ */
+const hasUnseenActivity = computed(() => {
   const seen = seenHistory.getSeenEntry(`${props.item.projectId}#${props.item.number}`)
   if (!seen)
-    return false
-  return isUnchangedSince(props.item, seen)
+    return true
+  return !isUnchangedSince(props.item, seen)
 })
 
 // Pending ops are per-active-project (via useAppState). They only make sense
@@ -72,13 +77,10 @@ const bodySnippetHtml = computed(() => {
  <button
     type="button"
     class="group w-full text-left flex flex-col gap-1 px-3 py-2 text-sm transition-colors relative outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40 overflow-hidden"
-    :class="[
-      props.selected
-        ? 'bg-primary-500/8 dark:bg-primary-400/8 border-l-2 border-l-primary-500 dark:border-l-primary-400 pl-[10px]'
-        : 'hover:bg-active',
-      isSeenUnchanged && !props.selected ? 'opacity-55' : '',
-    ]"
-    :data-seen-unchanged="isSeenUnchanged || undefined"
+    :class="props.selected
+      ? 'bg-primary-500/8 dark:bg-primary-400/8 border-l-2 border-l-primary-500 dark:border-l-primary-400 pl-[10px]'
+      : 'hover:bg-active'"
+    :data-unseen="hasUnseenActivity || undefined"
     data-testid="item-row"
     :data-item-number="item.number"
     @click="emit('select', item)"
@@ -92,6 +94,14 @@ const bodySnippetHtml = computed(() => {
         :created-index="item.activityCreatedIndex"
       />
     </div>
+
+    <span
+      v-if="hasUnseenActivity"
+      class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary-500 dark:bg-primary-400"
+      aria-label="Unseen"
+      data-testid="item-row-unseen-dot"
+    />
+
 
     <div
       v-if="showRepoName"
@@ -118,8 +128,11 @@ const bodySnippetHtml = computed(() => {
       <div class="flex-1 min-w-0">
         <div class="flex items-baseline gap-2 flex-wrap">
           <span
-            class="font-medium truncate"
-            :class="{ 'italic': pending.pendingTitle.value }"
+            class="truncate"
+            :class="[
+              hasUnseenActivity ? 'font-semibold' : 'font-normal',
+              { italic: pending.pendingTitle.value },
+            ]"
             v-html="titleHtml"
           />
           <span
