@@ -59,7 +59,6 @@ const bodySnippetHtml = computed(() => {
     <div
       v-if="item.activityBuckets && item.activityBuckets.length"
       class="absolute inset-0 op-25 dark:op-20 pointer-events-none color-active"
-      style="mask-image: linear-gradient(to bottom, transparent 0%, black 50%, black 90%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 50%, black 90%, transparent 100%);"
     >
       <DisplayItemActivitySparkline
         :points="item.activityBuckets"

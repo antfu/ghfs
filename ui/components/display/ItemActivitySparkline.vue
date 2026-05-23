@@ -23,9 +23,11 @@ const MIN_SCALE = 4
 
 // Cap peaks at 60% of the container height so the sparkline never reaches
 // the very top edge — keeps it visually a background flourish rather than
-// a primary chart. In the 0–100 viewBox: baseline near the bottom, peaks
-// at y=40 (i.e. 60% up from the bottom).
-const BASELINE_Y = 98
+// a primary chart. Lift the baseline off the bottom edge so the flat
+// "no activity" stretches are clearly visible as a line rather than
+// dissolving into the row's bottom border. In the 0–100 viewBox: baseline
+// at y=85, peaks at y=40 (60% up from the bottom).
+const BASELINE_Y = 85
 const PEAK_Y = 40
 const USABLE_H = BASELINE_Y - PEAK_Y
 
