@@ -17,14 +17,18 @@ const open = computed({
 
 const localOptions = ref({ ...DEFAULT_PILE_OPTIONS })
 
-// Each time the dialog opens, reset to the saved options if we have any from
-// a previous run; otherwise the defaults.
+// Each time the dialog opens, seed the form from (in priority order):
+// 1. The initial-options override the caller passed (e.g. kind from the
+//    active project tab),
+// 2. The pile's saved options if there's a pile in flight,
+// 3. The defaults.
 watch(open, (next) => {
   if (next) {
-    const saved = cards.options.value
-    localOptions.value = saved && cards.total.value > 0
-      ? { ...saved }
+    const base = cards.total.value > 0
+      ? { ...cards.options.value }
       : { ...DEFAULT_PILE_OPTIONS }
+    const overrides = cards.pendingInitialOptions.value ?? {}
+    localOptions.value = { ...base, ...overrides }
   }
 })
 
@@ -159,8 +163,8 @@ function onCancel() {
             class="accent-primary-500"
           >
           <span>
-            Exclude items where I had the last word
-            <span v-if="userLogin" class="font-mono color-muted">(@{{ userLogin }} is the latest interacter)</span>
+            Hide items waiting for someone else to reply
+            <span v-if="userLogin" class="color-muted">(I'm <span class="font-mono">@{{ userLogin }}</span>)</span>
           </span>
         </label>
       </div>

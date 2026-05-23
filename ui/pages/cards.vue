@@ -29,6 +29,16 @@ const sourceLabel = computed(() => source.value.label)
 const sourceProject = computed(() => source.value.project ?? null)
 const userLogin = computed(() => currentUser.value?.login ?? null)
 
+// Sub-label reflects the active kind filter; we hide it when the pile
+// includes both kinds since the implicit "everything" needs no qualifier.
+const kindSublabel = computed(() => {
+  switch (cards.options.value.kind) {
+    case 'issue': return 'Issues'
+    case 'pull': return 'Pull requests'
+    default: return ''
+  }
+})
+
 const hydrating = ref(true)
 
 onMounted(async () => {
@@ -86,9 +96,9 @@ async function resolveSourceItems(): Promise<ListItem[]> {
     const payload = useAppState(src.project.id).payload.value
     if (!payload)
       return []
-    const wantKind = src.label === 'Pull requests' ? 'pull' : 'issue'
+    // Hand both kinds back — the pile's kind option does the actual filtering.
     return Object.values(payload.syncState.items)
-      .filter(s => s.data.item.kind === wantKind && s.data.item.state === 'open')
+      .filter(s => s.data.item.state === 'open' && !ui.isIgnored(s.data.item.number))
       .map(s => fromSyncItem(s, src.project!.id, payload.repo.repo))
   }
   return []
@@ -136,7 +146,7 @@ async function doDismiss() {
           :size="18"
         />
         <span class="font-medium">{{ sourceProject ? sourceProject.repo : sourceLabel }}</span>
-        <span v-if="sourceProject" class="color-muted">· {{ sourceLabel }}</span>
+        <span v-if="kindSublabel" class="color-muted">· {{ kindSublabel }}</span>
       </div>
 
       <div class="flex-1" />

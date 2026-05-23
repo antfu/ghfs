@@ -10,6 +10,7 @@ import type {
 } from '#ghfs/server-types'
 import type { ListItem } from '../types/list-item'
 import { useDebounceFn } from '@vueuse/core'
+import { fromSyncItem } from '../types/list-item'
 
 export type { CardRef, CardsSource, PileKindFilter, PileOptions, PilePick, QueuedCardOp }
 
@@ -53,6 +54,8 @@ const labelsPendingFor = ref<CardRef | null>(null)
 const startDialogOpen = ref(false)
 const pendingSourceItems = ref<ListItem[] | null>(null)
 const pendingSource = ref<CardsSource>({ label: 'Cards' })
+/** Initial option overrides for the dialog — e.g. kind seeded from active tab. */
+const pendingInitialOptions = ref<Partial<PileOptions> | null>(null)
 
 let hydrated = false
 let hydratingPromise: Promise<void> | null = null
@@ -333,9 +336,14 @@ export function useCardsMode() {
   }
 
   /** Open the start dialog. Stash the candidate items + source for the dialog. */
-  function openStartDialog(items: ListItem[], src: CardsSource): void {
+  function openStartDialog(
+    items: ListItem[],
+    src: CardsSource,
+    initialOptions?: Partial<PileOptions>,
+  ): void {
     pendingSourceItems.value = items
     pendingSource.value = src
+    pendingInitialOptions.value = initialOptions ?? null
     startDialogOpen.value = true
   }
 
@@ -486,17 +494,30 @@ export function useCardsMode() {
       openStartDialog(todos.listItems.value, { label: 'Todo' })
       return
     }
-    const { filteredItems } = useFilteredItems()
     const state = useAppState()
     const activeId = useActiveProjectId().value
-    if (activeId && state.payload.value) {
-      const kindLabel = state.filters.kind === 'pull' ? 'Pull requests' : 'Issues'
-      openStartDialog(filteredItems.value, {
-        label: kindLabel,
-        project: { id: activeId, repo: state.payload.value.repo.repo },
-      })
+    const payload = state.payload.value
+    if (activeId && payload) {
+      // Hand the dialog both issues and PRs so the user can switch the kind
+      // filter from there. Seed the kind from the tab they're currently on.
+      const items: ListItem[] = []
+      for (const sync of Object.values(payload.syncState.items)) {
+        const data = sync.data.item
+        if (data.state !== 'open')
+          continue
+        if (ui.isIgnored(data.number))
+          continue
+        items.push(fromSyncItem(sync, payload.projectId, payload.repo.repo))
+      }
+      const initialKind: PileKindFilter = state.filters.kind === 'pull' ? 'pull' : 'issue'
+      openStartDialog(
+        items,
+        { label: payload.repo.repo, project: { id: activeId, repo: payload.repo.repo } },
+        { kind: initialKind },
+      )
       return
     }
+    const { filteredItems } = useFilteredItems()
     openStartDialog(filteredItems.value, { label: 'Cards' })
   }
 
@@ -519,6 +540,7 @@ export function useCardsMode() {
     startDialogOpen,
     pendingSourceItems: computed(() => pendingSourceItems.value),
     pendingSource: computed(() => pendingSource.value),
+    pendingInitialOptions: computed(() => pendingInitialOptions.value),
     hydrate,
     openStartDialog,
     startFromCurrentContext,
