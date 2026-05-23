@@ -88,7 +88,7 @@ const cardsTooltip = computed(() => {
   const n = cardsSource.value.length
   if (n === 0)
     return 'No items to triage'
-  return `Cards mode — triage ${Math.min(n, 10)} random ${n === 1 ? 'item' : 'items'}`
+  return `Start a card pile — triage ${Math.min(n, 10)} ${n === 1 ? 'item' : 'items'}`
 })
 
 </script>
@@ -288,7 +288,7 @@ const cardsTooltip = computed(() => {
       <UiIconButton
         icon="i-ph-cards-three-duotone"
         :tooltip="cardsTooltip"
-        aria-label="Start cards mode"
+        aria-label="Start a card pile"
         data-testid="navbar-cards-mode"
         :disabled="disabled || !cardsAvailable"
         @click="execute"

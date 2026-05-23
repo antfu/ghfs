@@ -117,7 +117,7 @@ async function doDismiss() {
         <button
           type="button"
           class="btn-action-sm"
-          title="Exit cards mode"
+          title="Exit card pile"
           data-testid="cards-exit"
           @click="execute"
         >
@@ -256,7 +256,7 @@ async function doDismiss() {
       <template v-else>
         <div class="h-full flex flex-col items-center justify-center gap-3 color-muted">
           <span class="i-ph-cards-duotone text-4xl" />
-          <p>No cards to triage. Pick a list and start.</p>
+          <p>No card pile loaded. Pick a list and start.</p>
           <button type="button" class="btn-action text-sm" @click="exit">
             <span class="i-ph-arrow-left-duotone" />
             Back

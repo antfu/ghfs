@@ -17,7 +17,7 @@ export const PILE_SIZE_CHOICES = [5, 10, 15, 30, 50] as const
 export const PILE_PICK_CHOICES: ReadonlyArray<{ value: PilePick, label: string, hint: string }> = [
   { value: 'random', label: 'Random', hint: 'pick at random' },
   { value: 'recent', label: 'Most recent', hint: 'latest activity first' },
-  { value: 'stale', label: 'Least activity', hint: 'oldest update first' },
+  { value: 'stale', label: 'Least active', hint: 'fewest comments + events' },
 ]
 export const PILE_KIND_CHOICES: ReadonlyArray<{ value: PileKindFilter, label: string }> = [
   { value: 'all', label: 'Issues + PRs' },
@@ -99,16 +99,54 @@ function isBotAuthor(it: ListItem): boolean {
   return false
 }
 
-/** Has the current user already interacted with this item (created or commented)? */
-function isSelfInteracted(it: ListItem, login: string): boolean {
+/**
+ * Was the current user the last person to interact with this item — i.e.
+ * the user's reply (or other action) is the newest comment/event and nobody
+ * else has chimed in since? Used by the "I'm waiting for a reply" filter.
+ *
+ * Falls back to checking the item creator when the full sync state isn't
+ * loaded (hub-recent items don't carry comments + timeline).
+ */
+function isLatestInteractionByUser(it: ListItem, login: string): boolean {
   if (!login)
     return false
-  if (it.author === login)
-    return true
-  const comments = it.raw?.data.comments ?? []
-  if (comments.some(c => c.author === login))
-    return true
-  return false
+  const raw = it.raw
+  if (!raw)
+    return it.author === login
+
+  let latestAt = ''
+  let latestActor: string | null = null
+
+  for (const c of raw.data.comments ?? []) {
+    if (!c.createdAt)
+      continue
+    if (c.createdAt > latestAt) {
+      latestAt = c.createdAt
+      latestActor = c.author ?? null
+    }
+  }
+  for (const e of raw.data.timeline ?? []) {
+    if (!e.createdAt)
+      continue
+    if (e.createdAt > latestAt) {
+      latestAt = e.createdAt
+      latestActor = e.actor ?? null
+    }
+  }
+
+  if (latestAt === '') {
+    // No comments / events — the only "interaction" is the creation itself.
+    return raw.data.item.author === login
+  }
+  return latestActor === login
+}
+
+/** Total interaction count — comments + timeline events. Used by "least active" pick. */
+function activityCount(it: ListItem): number {
+  const raw = it.raw
+  if (!raw)
+    return Number.POSITIVE_INFINITY // unknown → treat as "lots of activity"
+  return (raw.data.comments?.length ?? 0) + (raw.data.timeline?.length ?? 0)
 }
 
 export function filterCandidates(
@@ -124,7 +162,7 @@ export function filterCandidates(
   if (opts.excludeBots)
     usable = usable.filter(it => !isBotAuthor(it))
   if (opts.excludeSelfInteracted && currentUserLogin)
-    usable = usable.filter(it => !isSelfInteracted(it, currentUserLogin))
+    usable = usable.filter(it => !isLatestInteractionByUser(it, currentUserLogin))
   return usable
 }
 
@@ -142,9 +180,14 @@ function pickFromCandidates(
       )
       break
     case 'stale':
-      ordered = [...usable].sort((a, b) =>
-        (a.updatedAt ?? '').localeCompare(b.updatedAt ?? ''),
-      )
+      // "Least active" — fewest comments + events first; tiebreak by oldest update.
+      ordered = [...usable].sort((a, b) => {
+        const ca = activityCount(a)
+        const cb = activityCount(b)
+        if (ca !== cb)
+          return ca - cb
+        return (a.updatedAt ?? '').localeCompare(b.updatedAt ?? '')
+      })
       break
     case 'random':
     default:

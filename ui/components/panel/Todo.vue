@@ -21,7 +21,7 @@ async function onSelect(item: ListItem) {
 function startCards() {
   if (todos.listItems.value.length === 0)
     return
-  cards.start(todos.listItems.value, { label: 'Todo' })
+  cards.openStartDialog(todos.listItems.value, { label: 'Todo' })
 }
 </script>
 
@@ -44,7 +44,7 @@ function startCards() {
         @click="startCards"
       >
         <span class="i-ph-cards-three-duotone" />
-        Cards mode
+        Start a pile
       </button>
     </div>
 
@@ -63,7 +63,7 @@ function startCards() {
         v-else-if="todos.items.value.length === 0"
         icon="i-ph-bookmark-simple-duotone"
         title="No items in your todo list"
-        message="Mark items as todo from cards mode to see them here."
+        message="Mark items as todo while triaging a card pile to see them here."
       />
       <ItemList
         v-else

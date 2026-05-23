@@ -453,11 +453,11 @@ export function createAppCommands(): Command[] {
       run: focusComment,
     },
 
-    // ─── Cards mode ─────────────────────────────────────────────────────
+    // ─── Card pile ──────────────────────────────────────────────────────
     {
       id: 'cards.start',
-      title: 'Cards mode',
-      category: 'Cards',
+      title: 'Start a card pile',
+      category: 'Card pile',
       icon: 'i-ph-cards-three-duotone',
       keybindings: [{ key: 'shift+c' }],
       when: '!onCardsPage',
@@ -465,8 +465,8 @@ export function createAppCommands(): Command[] {
     },
     {
       id: 'cards.dismiss',
-      title: 'Cards: Dismiss this pile',
-      category: 'Cards',
+      title: 'Card pile: Dismiss',
+      category: 'Card pile',
       icon: 'i-ph-trash-duotone',
       when: 'onCardsPage && cardsHasCurrent',
       help: 'onCardsPage',
@@ -477,8 +477,8 @@ export function createAppCommands(): Command[] {
     },
     {
       id: 'cards.comment',
-      title: 'Cards: Comment / close',
-      category: 'Cards',
+      title: 'Card pile: Comment / close',
+      category: 'Card pile',
       icon: 'i-octicon-comment-16',
       keybindings: ['c'],
       when: 'onCardsPage && cardsHasCurrent && !cardsAdvancing && !cardsCommentDialogOpen && !labelEditorOpen',
@@ -487,8 +487,8 @@ export function createAppCommands(): Command[] {
     },
     {
       id: 'cards.todo',
-      title: 'Cards: Mark as todo',
-      category: 'Cards',
+      title: 'Card pile: Mark as todo',
+      category: 'Card pile',
       icon: 'i-ph-bookmark-simple-duotone',
       keybindings: ['t'],
       when: 'onCardsPage && cardsHasCurrent && !cardsAdvancing && !cardsCommentDialogOpen && !labelEditorOpen && !cardsIsTodo',
@@ -497,8 +497,8 @@ export function createAppCommands(): Command[] {
     },
     {
       id: 'cards.ignore',
-      title: 'Cards: Mark as ignore',
-      category: 'Cards',
+      title: 'Card pile: Mark as ignore',
+      category: 'Card pile',
       icon: 'i-ph-eye-slash-duotone',
       keybindings: ['i'],
       when: 'onCardsPage && cardsHasCurrent && !cardsAdvancing && !cardsCommentDialogOpen && !labelEditorOpen && !cardsIsIgnored',
@@ -507,8 +507,8 @@ export function createAppCommands(): Command[] {
     },
     {
       id: 'cards.labels',
-      title: 'Cards: Edit labels',
-      category: 'Cards',
+      title: 'Card pile: Edit labels',
+      category: 'Card pile',
       icon: 'i-octicon-tag-16',
       keybindings: ['l'],
       when: 'onCardsPage && cardsHasCurrent && !cardsAdvancing && !cardsCommentDialogOpen && !labelEditorOpen',
@@ -517,8 +517,8 @@ export function createAppCommands(): Command[] {
     },
     {
       id: 'cards.skip',
-      title: 'Cards: Skip',
-      category: 'Cards',
+      title: 'Card pile: Skip',
+      category: 'Card pile',
       icon: 'i-ph-skip-forward-duotone',
       keybindings: ['n'],
       when: 'onCardsPage && cardsHasCurrent && !cardsAdvancing && !cardsCommentDialogOpen && !labelEditorOpen',
@@ -527,8 +527,8 @@ export function createAppCommands(): Command[] {
     },
     {
       id: 'cards.previous',
-      title: 'Cards: Previous card',
-      category: 'Cards',
+      title: 'Card pile: Previous card',
+      category: 'Card pile',
       icon: 'i-ph-skip-back-duotone',
       keybindings: [{ key: 'shift+n', label: ['⇧', 'N'] }],
       when: 'onCardsPage && cardsCanGoBack && !cardsAdvancing && !cardsCommentDialogOpen && !labelEditorOpen',
@@ -537,8 +537,8 @@ export function createAppCommands(): Command[] {
     },
     {
       id: 'cards.exit',
-      title: 'Cards: Exit',
-      category: 'Cards',
+      title: 'Card pile: Exit',
+      category: 'Card pile',
       icon: 'i-ph-arrow-left-duotone',
       when: 'onCardsPage && !cardsCommentDialogOpen && !labelEditorOpen',
       help: 'onCardsPage',

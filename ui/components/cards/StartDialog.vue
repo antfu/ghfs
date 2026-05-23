@@ -63,7 +63,7 @@ function onCancel() {
 <template>
   <UiModal
     v-model:open="open"
-    title="Start cards mode"
+    title="Start a card pile"
     icon="i-ph-cards-three-duotone"
     width="w-[min(92vw,36rem)]"
   >
@@ -159,8 +159,8 @@ function onCancel() {
             class="accent-primary-500"
           >
           <span>
-            Exclude items I've interacted with
-            <span v-if="userLogin" class="font-mono color-muted">(@{{ userLogin }})</span>
+            Exclude items where I had the last word
+            <span v-if="userLogin" class="font-mono color-muted">(@{{ userLogin }} is the latest interacter)</span>
           </span>
         </label>
       </div>
@@ -193,7 +193,7 @@ function onCancel() {
         @click="onStart"
       >
         <span class="i-ph-cards-three-duotone" />
-        Start cards mode
+        Start card pile
       </button>
     </template>
   </UiModal>
