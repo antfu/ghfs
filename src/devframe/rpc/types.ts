@@ -3,7 +3,7 @@ import type { ExecuteTriggerOptions, InitialPayload, QueueState, RemoteStatus, R
 import type { ActivityResult } from '../../sync/activity'
 import type { SyncProgressSnapshot, SyncStage, SyncSummary } from '../../sync/contracts'
 import type { ExecutionResult } from '../../types/execution'
-import type { ReactionTarget } from '../../types/provider'
+import type { IssueStateReason, ReactionTarget } from '../../types/provider'
 import type { SyncState } from '../../types/sync-state'
 import type { ReactionContent } from '../../utils/reactions'
 
@@ -64,6 +64,9 @@ export interface HubRecentItem {
   number: number
   title: string
   state: 'open' | 'closed'
+  stateReason?: IssueStateReason | null
+  pullIsDraft?: boolean
+  pullMerged?: boolean
   updatedAt: string
   author: string | null
   authorAvatarUrl?: string

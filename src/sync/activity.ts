@@ -1,4 +1,4 @@
-import type { SyncState } from '../types/sync-state'
+import type { SyncItemCanonicalData, SyncState } from '../types/sync-state'
 
 export interface ActivityResult {
   buckets: number[]
@@ -7,6 +7,48 @@ export interface ActivityResult {
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
+
+/**
+ * Feed every dated event on a single item into `tally`. Shared between the
+ * project-level and per-item bucket computations so "what counts as an
+ * activity beat" lives in exactly one place.
+ */
+export function tallyItemEvents(
+  data: SyncItemCanonicalData,
+  tally: (iso: string | null | undefined) => void,
+): void {
+  tally(data.item.createdAt)
+  tally(data.item.updatedAt)
+  tally(data.item.closedAt)
+  for (const c of data.comments ?? [])
+    tally(c.createdAt)
+  for (const t of data.timeline ?? [])
+    tally(t.createdAt)
+  for (const commit of data.commits ?? [])
+    tally(commit.committerDate ?? commit.authorDate)
+  if (data.pull?.mergedAt)
+    tally(data.pull.mergedAt)
+}
+
+function makeBucketTally(
+  buckets: number[],
+  days: number,
+  startOfTodayMs: number,
+  onTallied: () => void,
+) {
+  return (iso: string | null | undefined) => {
+    if (!iso)
+      return
+    const ts = Date.parse(iso)
+    if (Number.isNaN(ts))
+      return
+    const daysAgo = Math.floor((startOfTodayMs - startOfUtcDay(ts)) / MS_PER_DAY)
+    if (daysAgo < 0 || daysAgo >= days)
+      return
+    buckets[days - 1 - daysAgo] += 1
+    onTallied()
+  }
+}
 
 /**
  * Build daily activity buckets over the trailing `days` window. Buckets are
@@ -26,36 +68,63 @@ export function computeProjectActivityBuckets(
   const buckets = Array.from<number>({ length: days }).fill(0)
   const startOfTodayMs = startOfUtcDay(now)
   let total = 0
-
-  const tally = (iso: string | null | undefined) => {
-    if (!iso)
-      return
-    const ts = Date.parse(iso)
-    if (Number.isNaN(ts))
-      return
-    const daysAgo = Math.floor((startOfTodayMs - startOfUtcDay(ts)) / MS_PER_DAY)
-    if (daysAgo < 0 || daysAgo >= days)
-      return
-    buckets[days - 1 - daysAgo] += 1
+  const tally = makeBucketTally(buckets, days, startOfTodayMs, () => {
     total += 1
-  }
+  })
 
-  for (const entry of Object.values(state.items)) {
-    const data = entry.data
-    tally(data.item.createdAt)
-    tally(data.item.updatedAt)
-    tally(data.item.closedAt)
-    for (const c of data.comments ?? [])
-      tally(c.createdAt)
-    for (const t of data.timeline ?? [])
-      tally(t.createdAt)
-    for (const commit of data.commits ?? [])
-      tally(commit.committerDate ?? commit.authorDate)
-    if (data.pull?.mergedAt)
-      tally(data.pull.mergedAt)
-  }
+  for (const entry of Object.values(state.items))
+    tallyItemEvents(entry.data, tally)
 
   return { buckets, total, days }
+}
+
+/**
+ * Per-item version of {@link computeProjectActivityBuckets} — tallies the
+ * single item's own events into daily buckets over the trailing window.
+ */
+export function computeItemActivityBuckets(
+  data: SyncItemCanonicalData,
+  days = 30,
+  now = Date.now(),
+): ActivityResult {
+  const buckets = Array.from<number>({ length: days }).fill(0)
+  const startOfTodayMs = startOfUtcDay(now)
+  let total = 0
+  const tally = makeBucketTally(buckets, days, startOfTodayMs, () => {
+    total += 1
+  })
+  tallyItemEvents(data, tally)
+  return { buckets, total, days }
+}
+
+/**
+ * Convert an ISO timestamp into its position in a `days`-length oldest-first
+ * bucket array (same indexing convention as the bucket functions above).
+ *
+ * Returns:
+ *  - `undefined` if the ISO is missing, unparseable, or older than the window
+ *  - `days - 1` for timestamps on today (or in the future)
+ *  - the matching bucket index otherwise
+ *
+ * Used by the UI to mark events like an item's createdAt on a sparkline.
+ */
+export function activityBucketIndex(
+  iso: string | null | undefined,
+  days: number,
+  now = Date.now(),
+): number | undefined {
+  if (!iso)
+    return undefined
+  const ts = Date.parse(iso)
+  if (Number.isNaN(ts))
+    return undefined
+  const startOfTodayMs = startOfUtcDay(now)
+  const daysAgo = Math.floor((startOfTodayMs - startOfUtcDay(ts)) / MS_PER_DAY)
+  if (daysAgo >= days)
+    return undefined
+  if (daysAgo < 0)
+    return days - 1
+  return days - 1 - daysAgo
 }
 
 function startOfUtcDay(ms: number): number {
