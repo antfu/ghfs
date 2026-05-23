@@ -8,10 +8,15 @@ withDefaults(defineProps<{
 
 type Zone = 'top' | 'left' | 'right' | 'bottom'
 
+const cards = useCardsMode()
 const todoCmd = useCommand('cards.todo')
 const ignoreCmd = useCommand('cards.ignore')
 const skipCmd = useCommand('cards.skip')
 const commentCmd = useCommand('cards.comment')
+
+const isTodo = computed(() => cards.currentIsTodo.value)
+const isIgnored = computed(() => cards.currentIsIgnored.value)
+const hasPendingComment = computed(() => Boolean(cards.currentPendingComment.value))
 
 function commandFor(zone: Zone) {
   return zone === 'top'
@@ -161,14 +166,17 @@ function onClick(e: MouseEvent) {
       :class="{ 'edge-overlay-active': activeZone === 'bottom' }"
     />
 
-    <!-- Edge labels: tinted text in each zone's colour, brighter when active. -->
+    <!-- Edge labels: tinted text in each zone's colour, brighter when active.
+         Labels switch to past-tense ("Marked as todo" / "Edit comment") so
+         the user can tell the card is already in that state and the click
+         will toggle it off / re-open in edit mode. -->
     <div
       class="edge-label edge-label-top edge-zone-todo"
       :class="[{ 'edge-label-active': activeZone === 'top' }, !todoCmd.active.value && 'edge-label-disabled']"
       data-testid="card-edge-todo"
     >
-      <span class="i-ph-bookmark-simple-duotone" />
-      <span>Mark as todo</span>
+      <span :class="isTodo ? 'i-ph-bookmark-simple-fill' : 'i-ph-bookmark-simple-duotone'" />
+      <span>{{ isTodo ? 'Marked as todo' : 'Mark as todo' }}</span>
       <UiKbd command="cards.todo" />
     </div>
     <div
@@ -176,8 +184,8 @@ function onClick(e: MouseEvent) {
       :class="[{ 'edge-label-active': activeZone === 'left' }, !ignoreCmd.active.value && 'edge-label-disabled']"
       data-testid="card-edge-ignore"
     >
-      <span class="i-ph-eye-slash-duotone" />
-      <span>Mark as ignore</span>
+      <span :class="isIgnored ? 'i-ph-eye-slash-fill' : 'i-ph-eye-slash-duotone'" />
+      <span>{{ isIgnored ? 'Marked as ignore' : 'Mark as ignore' }}</span>
       <UiKbd command="cards.ignore" />
     </div>
     <div
@@ -194,8 +202,8 @@ function onClick(e: MouseEvent) {
       :class="[{ 'edge-label-active': activeZone === 'bottom' }, !commentCmd.active.value && 'edge-label-disabled']"
       data-testid="card-edge-comment"
     >
-      <span class="i-octicon-comment-16" />
-      <span>Comment</span>
+      <span :class="hasPendingComment ? 'i-octicon-pencil-16' : 'i-octicon-comment-16'" />
+      <span>{{ hasPendingComment ? 'Edit comment' : 'Comment' }}</span>
       <UiKbd command="cards.comment" />
     </div>
 
@@ -287,7 +295,7 @@ function onClick(e: MouseEvent) {
 }
 .edge-overlay-top.edge-overlay-active {
   height: 320px;
-  opacity: 1;
+  opacity: 0.6;
 }
 
 .edge-overlay-bottom {
@@ -302,7 +310,7 @@ function onClick(e: MouseEvent) {
 }
 .edge-overlay-bottom.edge-overlay-active {
   height: 320px;
-  opacity: 1;
+  opacity: 0.6;
 }
 
 .edge-overlay-left {
@@ -317,7 +325,7 @@ function onClick(e: MouseEvent) {
 }
 .edge-overlay-left.edge-overlay-active {
   width: 320px;
-  opacity: 1;
+  opacity: 0.6;
 }
 
 .edge-overlay-right {
@@ -332,7 +340,7 @@ function onClick(e: MouseEvent) {
 }
 .edge-overlay-right.edge-overlay-active {
   width: 320px;
-  opacity: 1;
+  opacity: 0.6;
 }
 
 /* Labels — flat text near each edge, tinted with the zone's text shade so

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { QueueEntry } from '#ghfs/server-types'
+
 const open = defineModel<boolean>('open', { required: true })
 
 const props = defineProps<{
@@ -18,11 +20,25 @@ const emit = defineEmits<{
 // project's pending ops + state.
 provideDetailScope({ projectId: props.projectId })
 
-const composerRef = ref<{ focus: () => void } | null>(null)
+const cards = useCardsMode()
+const composerRef = ref<{
+  focus: () => void
+  startEditing: (entry: QueueEntry) => void
+} | null>(null)
+
+const isEditing = computed(() => Boolean(cards.currentPendingComment.value))
 
 watch(open, async (next) => {
-  if (next) {
-    await nextTick()
+  if (!next)
+    return
+  await nextTick()
+  const pending = cards.currentPendingComment.value
+  if (pending && composerRef.value?.startEditing) {
+    // Pre-fill the composer with the pending op so the user can adjust the
+    // text they already queued instead of stacking a new comment on top.
+    composerRef.value.startEditing(pending)
+  }
+  else {
     composerRef.value?.focus()
   }
 })
@@ -36,7 +52,7 @@ function onSubmitted(opId: string | null) {
 <template>
   <UiModal
     v-model:open="open"
-    :title="`Comment on ${kind === 'pull' ? 'pull request' : 'issue'} #${itemNumber}`"
+    :title="`${isEditing ? 'Edit pending comment' : 'Comment'} on ${kind === 'pull' ? 'pull request' : 'issue'} #${itemNumber}`"
     icon="i-octicon-comment-16"
     width="w-[min(92vw,40rem)]"
   >

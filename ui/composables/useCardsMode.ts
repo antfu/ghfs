@@ -313,6 +313,27 @@ export function useCardsMode() {
     return ui.isIgnored(card.number)
   })
 
+  /**
+   * The pending add-comment / close-with-comment op for the current card, if
+   * one was queued during this session. Drives the "Edit comment" affordance:
+   * coming back to a card with a pending comment re-opens the dialog in edit
+   * mode rather than queuing a second comment.
+   */
+  const currentPendingComment = computed<QueueEntry | null>(() => {
+    const card = currentCard.value
+    if (!card)
+      return null
+    const state = useAppState(card.projectId)
+    const ops = (state.payload.value?.queue.entries ?? []) as QueueEntry[]
+    for (const e of ops) {
+      if (e.op.number !== card.number)
+        continue
+      if (e.op.action === 'add-comment' || e.op.action === 'close-with-comment')
+        return e
+    }
+    return null
+  })
+
   async function hydrate(): Promise<void> {
     if (hydrated)
       return
@@ -377,6 +398,10 @@ export function useCardsMode() {
   }
 
   function recordOp(projectId: string, opId: string): void {
+    // Deduplicate — editing a pending comment re-uses the same op id, and
+    // going back over a card already acted on can replay the submit path.
+    if (processedOps.value.some(o => o.projectId === projectId && o.opId === opId))
+      return
     processedOps.value = [...processedOps.value, { projectId, opId }]
     scheduleSave()
   }
@@ -440,13 +465,21 @@ export function useCardsMode() {
 
   const canGoBack = computed(() => index.value > 0)
 
+  /**
+   * Toggle the current card's todo state. Adding advances to the next card
+   * (the usual triage flow); removing stays on the card so the user can do
+   * something else (e.g. comment, ignore, or change their mind back).
+   */
   async function doMarkTodo(): Promise<void> {
     const card = currentCard.value
     if (!card)
       return
     await ensureLoaded(card.projectId)
-    if (!ui.isTodo(card.number))
-      ui.addTodo(card.number)
+    if (ui.isTodo(card.number)) {
+      ui.removeTodo(card.number)
+      return
+    }
+    ui.addTodo(card.number)
     await performAdvance()
   }
 
@@ -455,8 +488,11 @@ export function useCardsMode() {
     if (!card)
       return
     await ensureLoaded(card.projectId)
-    if (!ui.isIgnored(card.number))
-      ui.addIgnored(card.number)
+    if (ui.isIgnored(card.number)) {
+      ui.removeIgnored(card.number)
+      return
+    }
+    ui.addIgnored(card.number)
     await performAdvance()
   }
 
@@ -537,6 +573,7 @@ export function useCardsMode() {
     currentCanClose,
     currentIsTodo,
     currentIsIgnored,
+    currentPendingComment,
     startDialogOpen,
     pendingSourceItems: computed(() => pendingSourceItems.value),
     pendingSource: computed(() => pendingSource.value),

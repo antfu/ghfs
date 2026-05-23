@@ -36,6 +36,7 @@ export interface WhenContext extends Record<string, unknown> {
   cardsCommentDialogOpen: boolean
   cardsDone: boolean
   cardsCanGoBack: boolean
+  cardsHasPendingComment: boolean
 }
 
 export function useWhenContext(): ComputedRef<WhenContext> {
@@ -125,6 +126,7 @@ export function useWhenContext(): ComputedRef<WhenContext> {
       cardsCommentDialogOpen,
       cardsDone: cards.done.value,
       cardsCanGoBack: cards.canGoBack.value,
+      cardsHasPendingComment: Boolean(cards.currentPendingComment.value),
     }
   })
 }
