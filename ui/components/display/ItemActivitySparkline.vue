@@ -8,52 +8,82 @@ const props = withDefaults(defineProps<{
    * the window, so the polyline spans the full width and no line is drawn.
    */
   createdIndex?: number
+  /** Bucket indices where the current user was active. Renders a solid dot per index. */
+  dotIndices?: number[]
   color?: string
   /** Stroke color for the createdAt vertical line. */
   createdLineColor?: string
+  /** Fill color for current-user activity dots. */
+  dotColor?: string
 }>(), {
   color: 'currentColor',
   createdLineColor: '#22c55e',
+  dotColor: '#3b82f6',
 })
 
 // Floor the y-axis so a quiet item (1–2 events) doesn't visually
-// match a busy one — the line stays low until activity climbs above
+// match a busy one — the curve stays low until activity climbs above
 // MIN_SCALE.
 const MIN_SCALE = 4
 
-// Cap peaks at 60% of the container height so the sparkline never reaches
-// the very top edge — keeps it visually a background flourish rather than
-// a primary chart. Lift the baseline off the bottom edge so the flat
-// "no activity" stretches are clearly visible as a line rather than
-// dissolving into the row's bottom border. In the 0–100 viewBox: baseline
-// at y=85, peaks at y=40 (60% up from the bottom).
-const BASELINE_Y = 85
+// Baseline sits at the very bottom of the viewBox so flat "no activity"
+// stretches blend with the row's bottom border instead of looking like
+// a second border. Peaks top out at y=40 (60% of container height up
+// from the bottom).
+const BASELINE_Y = 100
 const PEAK_Y = 40
 const USABLE_H = BASELINE_Y - PEAK_Y
 
+// Half-window for moving-average smoothing. Window size = 2*HW+1.
+// Smooths out daily spikes into gentle hills.
+const SMOOTH_HW = 3
+
 interface Pt { x: number, y: number }
 
+const adjustedPoints = computed<number[]>(() => {
+  const pts = props.points.slice()
+  // The createdIndex bucket includes the createdAt event itself; subtract
+  // that one tally so the curve doesn't spike at item birth.
+  if (props.createdIndex != null && props.createdIndex >= 0 && props.createdIndex < pts.length)
+    pts[props.createdIndex] = Math.max(0, pts[props.createdIndex] - 1)
+  return pts
+})
+
+const smoothedPoints = computed<number[]>(() => {
+  const pts = adjustedPoints.value
+  return pts.map((_, i) => {
+    let sum = 0
+    let count = 0
+    const lo = Math.max(0, i - SMOOTH_HW)
+    const hi = Math.min(pts.length - 1, i + SMOOTH_HW)
+    for (let j = lo; j <= hi; j++) {
+      sum += pts[j]
+      count += 1
+    }
+    return sum / count
+  })
+})
+
+function curveY(value: number, max: number): number {
+  return BASELINE_Y - (value / max) * USABLE_H
+}
+
 const polyPoints = computed<Pt[]>(() => {
-  const pts = props.points
+  const pts = smoothedPoints.value
   if (pts.length < 2)
     return []
   const start = Math.max(0, Math.min(pts.length - 1, props.createdIndex ?? 0))
   if (pts.length - start < 2)
     return []
-  const max = Math.max(MIN_SCALE, ...pts)
-
-  return pts.slice(start).map((v, i) => {
-    const x = start + i
-    // The createdIndex bucket always includes the createdAt event itself;
-    // subtract that one tally so the line doesn't spike at item birth.
-    const value = i === 0 && props.createdIndex != null ? Math.max(0, v - 1) : v
-    const y = BASELINE_Y - (value / max) * USABLE_H
-    return { x, y }
-  })
+  const max = Math.max(MIN_SCALE / (2 * SMOOTH_HW + 1), ...pts)
+  return pts.slice(start).map((v, i) => ({
+    x: start + i,
+    y: curveY(v, max),
+  }))
 })
 
-// Build a smooth cubic-Bezier path through the points using the
-// Catmull-Rom → Bezier conversion (tension = 1, no overshoot).
+// Build a smooth cubic-Bezier path through the points using Catmull-Rom
+// → Bezier conversion. With pre-smoothed data the result is doubly soft.
 const pathD = computed(() => {
   const pts = polyPoints.value
   if (pts.length < 2)
@@ -73,6 +103,27 @@ const pathD = computed(() => {
   return parts.join('')
 })
 
+const dotPositions = computed(() => {
+  const indices = props.dotIndices ?? []
+  if (indices.length === 0)
+    return []
+  const smoothed = smoothedPoints.value
+  const n = smoothed.length
+  if (n === 0)
+    return []
+  const max = Math.max(MIN_SCALE / (2 * SMOOTH_HW + 1), ...smoothed)
+  return indices
+    .filter(i => i >= 0 && i < n)
+    .map((i) => {
+      const y = curveY(smoothed[i], max)
+      // Floor dots a few units above the baseline so they stay visible
+      // even when the curve is fully clipped at the bottom edge.
+      const yClamped = Math.min(y, BASELINE_Y - 4)
+      const xPercent = n > 1 ? (i / (n - 1)) * 100 : 50
+      return { i, x: xPercent, y: yClamped }
+    })
+})
+
 const showCreatedLine = computed(() =>
   props.createdIndex != null
   && props.createdIndex >= 0
@@ -88,34 +139,46 @@ const tooltipText = computed(() =>
 </script>
 
 <template>
-  <svg
-    width="100%"
-    height="100%"
-    :viewBox="`0 0 ${points.length} 100`"
-    preserveAspectRatio="none"
-    class="absolute inset-0"
-    data-testid="item-activity-sparkline"
-  >
-    <title>{{ tooltipText }}</title>
-    <line
-      v-if="showCreatedLine"
-      :x1="createdIndex"
-      :x2="createdIndex"
-      y1="0"
-      y2="100"
-      :stroke="createdLineColor"
-      stroke-width="1"
-      vector-effect="non-scaling-stroke"
+  <div class="absolute inset-0" data-testid="item-activity-sparkline">
+    <svg
+      width="100%"
+      height="100%"
+      :viewBox="`0 0 ${points.length} 100`"
+      preserveAspectRatio="none"
+      class="absolute inset-0"
+    >
+      <title>{{ tooltipText }}</title>
+      <line
+        v-if="showCreatedLine"
+        :x1="createdIndex"
+        :x2="createdIndex"
+        y1="0"
+        y2="100"
+        :stroke="createdLineColor"
+        stroke-width="1"
+        vector-effect="non-scaling-stroke"
+      />
+      <path
+        v-if="pathD"
+        :d="pathD"
+        fill="none"
+        :stroke="color"
+        stroke-width="1.25"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        vector-effect="non-scaling-stroke"
+      />
+    </svg>
+    <span
+      v-for="dot in dotPositions"
+      :key="dot.i"
+      class="absolute size-1 rounded-full pointer-events-none -translate-x-1/2 -translate-y-1/2"
+      :style="{
+        left: `${dot.x}%`,
+        top: `${dot.y}%`,
+        backgroundColor: dotColor,
+      }"
+      data-testid="item-activity-dot"
     />
-    <path
-      v-if="pathD"
-      :d="pathD"
-      fill="none"
-      :stroke="color"
-      stroke-width="1.25"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      vector-effect="non-scaling-stroke"
-    />
-  </svg>
+  </div>
 </template>
