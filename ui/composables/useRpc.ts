@@ -28,10 +28,12 @@ function ensureClient(): Promise<DevToolsRpcClient> {
   // devframe runtime on 7710 — fetching `__connection.json` cross-origin
   // hits CORS, so hardcode `connectionMeta` and let devframe open the WS
   // directly (WS is not subject to SOP). In production the SPA is served
-  // from the same origin so the default `__connection.json` fetch works.
+  // from the same origin; baseURL must be `/` rather than the default `./`
+  // because deep-link routes (e.g. `/{owner}/{repo}/{n}`) would otherwise
+  // resolve `__connection.json` relative to the route segment and 404.
   const connectOptions = import.meta.env?.DEV
     ? { connectionMeta: { backend: 'websocket' as const, websocket: 7710 } }
-    : {}
+    : { baseURL: '/' }
   clientPromise = connectDevframe(connectOptions).then((client) => {
     // `connectDevframe` builds an empty client RPC host; re-register the
     // ghfs:on* broadcast handlers that the old `createRpcClient` accepted
