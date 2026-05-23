@@ -255,10 +255,10 @@ async function discardThisItem() {
         </span>
       </div>
       <div class="flex items-center gap-1 shrink-0">
-        <UiWithCommand v-if="item.url" command="list.open">
+        <UiWithCommand v-if="item?.url" command="list.open">
           <UiIconButton
             as="a"
-            :href="item.url"
+            :href="item?.url"
             target="_blank"
             rel="noreferrer"
             icon="i-ph-arrow-square-out-duotone"
