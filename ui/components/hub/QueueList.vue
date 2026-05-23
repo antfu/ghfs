@@ -5,6 +5,8 @@ import { summarizeQueueOp } from '../../utils/queueSummary'
 
 const hubQueue = useHubQueue()
 const router = useRouter()
+const rpc = useRpc()
+const state = useAppState()
 
 function actionColor(action: string): string {
   return (ACTIONS_COLOR_HEX as Record<string, string>)[action] ?? '#6b7280'
@@ -12,6 +14,17 @@ function actionColor(action: string): string {
 
 function openItem(repo: string, number: number) {
   router.push(`/${repo}/${number}`)
+}
+
+async function remove(projectId: string, entry: QueueEntry) {
+  state.setError(null)
+  try {
+    await rpc.$call('ghfs:remove-queue-op', projectId, entry.id)
+    await hubQueue.load()
+  }
+  catch (error) {
+    state.setError(`${(error as Error).message}`)
+  }
 }
 </script>
 
@@ -50,7 +63,9 @@ function openItem(repo: string, number: number) {
         <li
           v-for="entry in group.queue.entries.filter((e: QueueEntry) => e.source !== 'per-item')"
           :key="entry.id"
-          class="flex items-start gap-2 px-4 py-2 hover:bg-active transition cursor-pointer"
+          class="group flex items-start gap-2 px-4 py-2 hover:bg-active transition cursor-pointer"
+          data-testid="hub-queue-entry"
+          :data-entry-id="entry.id"
           @click="openItem(group.repo, entry.op.number)"
         >
           <span
@@ -59,6 +74,14 @@ function openItem(repo: string, number: number) {
           >{{ entry.op.action }}</span>
           <span class="font-mono text-xs color-muted tabular-nums flex-none">#{{ entry.op.number }}</span>
           <span class="text-xs color-muted truncate flex-1">{{ summarizeQueueOp(entry.op as unknown as Record<string, unknown>) }}</span>
+          <UiIconButton
+            icon="i-ph-trash-duotone"
+            size="sm"
+            tooltip="Remove from queue"
+            class="hover-fade"
+            data-testid="hub-queue-entry-remove"
+            @click.stop="remove(group.projectId, entry)"
+          />
         </li>
       </ul>
     </section>

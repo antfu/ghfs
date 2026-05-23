@@ -52,7 +52,6 @@ const searching = computed(() => state.filters.search.trim().length > 0)
 const queueBadge = computed(() => (props.mode === 'hub' ? hubQueueTotal.value : upCount.value))
 const showHubBack = computed(() => isHubMode.value && props.mode === 'project')
 const onRecentPage = computed(() => route.path === '/recent')
-const onQueuePage = computed(() => route.path === '/queue')
 
 const forceSyncDialogOpen = ref(false)
 
@@ -213,23 +212,6 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
             <span>Recent</span>
           </button>
         </UiWithCommand>
-        <UiWithCommand v-slot="{ execute, disabled }" command="hub.queue-page">
-          <button
-            type="button"
-            class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 rounded transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
-            :class="onQueuePage ? 'color-active font-medium bg-active' : 'color-muted hover:color-base'"
-            data-testid="navbar-hub-queue-link"
-            :disabled="disabled"
-            @click="execute"
-          >
-            <span class="i-octicon-list-unordered-16" />
-            <span>Queue</span>
-            <span
-              v-if="hubQueueTotal > 0"
-              class="badge-color-green !px-1 !py-0 font-mono tabular-nums text-[10px] leading-none min-w-4 h-4 justify-center"
-            >{{ hubQueueTotal }}</span>
-          </button>
-        </UiWithCommand>
       </nav>
 
       <template v-if="onRecentPage">
@@ -286,7 +268,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
         </template>
       </UiIconButton>
     </UiWithCommand>
-    <UiWithCommand v-else-if="mode === 'hub' && !onQueuePage" v-slot="{ execute, disabled }" command="action.queue" placement="badge">
+    <UiWithCommand v-else-if="mode === 'hub'" v-slot="{ execute, disabled }" command="action.queue" placement="badge">
       <UiIconButton
         icon="i-ph-list-checks-duotone"
         tooltip="Quick view queue"

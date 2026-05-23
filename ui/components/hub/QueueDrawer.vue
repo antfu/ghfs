@@ -4,6 +4,21 @@ const hub = useHubState()
 const hubQueue = useHubQueue()
 
 const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
+
+const executeAllConfirmOpen = computed({
+  get() {
+    return hubUi.executeAllConfirmOpen.value
+  },
+  set(value: boolean) {
+    if (value) hubUi.openExecuteAllConfirm()
+    else hubUi.closeExecuteAllConfirm()
+  },
+})
+
+async function confirmExecuteAll() {
+  hubUi.closeExecuteAllConfirm()
+  await hubQueue.executeAll()
+}
 </script>
 
 <template>
@@ -25,17 +40,6 @@ const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
         <h2 class="font-medium">Queue</h2>
         <span class="color-muted text-sm font-mono tabular-nums">{{ hubQueue.totalCount.value }}</span>
         <div class="flex-1" />
-        <UiWithCommand v-slot="{ execute }" command="hub.queue-page">
-          <button
-            type="button"
-            class="btn-action-sm"
-            data-testid="hub-queue-open-page"
-            @click="execute"
-          >
-            <span class="i-ph-arrows-out-duotone" />
-            <span>Open</span>
-          </button>
-        </UiWithCommand>
         <UiWithCommand v-slot="{ execute }" command="action.queue">
           <UiIconButton
             icon="i-ph-x"
@@ -68,4 +72,30 @@ const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
       </footer>
     </aside>
   </Transition>
+
+  <UiModal
+    v-model:open="executeAllConfirmOpen"
+    icon="i-ph-play-duotone"
+    width="w-[min(92vw,30rem)]"
+    :title="`Execute ${hubQueue.totalCount.value} operation${hubQueue.totalCount.value === 1 ? '' : 's'}?`"
+  >
+    <div class="px-5 py-4">
+      <p class="text-sm color-muted">
+        These changes will be applied to GitHub across {{ hubQueue.groups.value.length }}
+        project{{ hubQueue.groups.value.length === 1 ? '' : 's' }} immediately. This cannot be undone from here — you'll need to revert on GitHub if needed.
+      </p>
+    </div>
+    <template #footer>
+      <button class="btn-action-sm" @click="hubUi.closeExecuteAllConfirm()">Cancel</button>
+      <button
+        class="btn-primary text-sm"
+        :disabled="hubQueue.executing.value !== null"
+        data-testid="hub-queue-execute-all-confirm"
+        @click="confirmExecuteAll"
+      >
+        <span class="i-ph-play-duotone" />
+        Execute
+      </button>
+    </template>
+  </UiModal>
 </template>
