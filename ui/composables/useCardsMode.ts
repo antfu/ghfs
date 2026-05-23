@@ -1,13 +1,15 @@
 import type {
   CardRef,
   CardsPileState,
+  CardsSharedState,
   CardsSource,
   PileKindFilter,
   PileOptions,
   PilePick,
-  QueueEntry,
   QueuedCardOp,
-} from '#ghfs/server-types'
+} from '#ghfs/rpc-types'
+import type { QueueEntry } from '#ghfs/server-types'
+import type { SharedState } from 'devframe/utils/shared-state'
 import type { ListItem } from '../types/list-item'
 import { useDebounceFn } from '@vueuse/core'
 import { fromSyncItem } from '../types/list-item'
@@ -57,9 +59,51 @@ const pendingSource = ref<CardsSource>({ label: 'Cards' })
 /** Initial option overrides for the dialog — e.g. kind seeded from active tab. */
 const pendingInitialOptions = ref<Partial<PileOptions> | null>(null)
 
-let hydrated = false
-let hydratingPromise: Promise<void> | null = null
+let sharedHandle: SharedState<CardsSharedState> | null = null
+let sharedHandlePromise: Promise<SharedState<CardsSharedState>> | null = null
 let saveFn: (() => void) | null = null
+
+/**
+ * Resolve once `state` has emitted its first `updated` event (the server's
+ * reply to the initial `get`). Falls back to a timeout so a server that
+ * has nothing saved still releases the hydrate spinner.
+ */
+function waitForFirstUpdate<T>(state: SharedState<T>, timeoutMs = 1500): Promise<void> {
+  return new Promise<void>((resolve) => {
+    let settled = false
+    const finish = () => {
+      if (settled)
+        return
+      settled = true
+      off()
+      resolve()
+    }
+    const off = state.on('updated', finish)
+    setTimeout(finish, timeoutMs)
+  })
+}
+
+async function ensureShared(): Promise<SharedState<CardsSharedState>> {
+  if (sharedHandle)
+    return sharedHandle
+  if (sharedHandlePromise)
+    return sharedHandlePromise
+  sharedHandlePromise = (async () => {
+    const client = await useRpcClient()
+    const state = await client.sharedState.get('ghfs:cards-pile', {
+      initialValue: { pile: null },
+    })
+    // The client returns the local initialValue immediately; the server
+    // reply arrives asynchronously and fires `updated`. Block hydrate
+    // on it so the page doesn't flash empty → loaded for a saved pile.
+    await waitForFirstUpdate(state)
+    applyServerState(state.value().pile ?? null)
+    state.on('updated', (next) => applyServerState(next.pile ?? null))
+    sharedHandle = state
+    return state
+  })()
+  return sharedHandlePromise
+}
 
 function shuffle<T>(input: T[]): T[] {
   const arr = [...input]
@@ -258,11 +302,11 @@ async function performAdvance(): Promise<void> {
 function ensureSaver(): () => void {
   if (saveFn)
     return saveFn
-  const rpc = useRpc()
-  saveFn = useDebounceFn(() => {
+  saveFn = useDebounceFn(async () => {
     if (pile.value.length === 0)
       return
-    rpc.$call('ghfs:cards-pile-set', snapshot()).catch(() => {})
+    const state = await ensureShared()
+    state.mutate((draft) => { draft.pile = snapshot() })
   }, 300)
   return saveFn
 }
@@ -275,7 +319,6 @@ export function useCardsMode() {
   const router = useRouter()
   const ui = useUiState()
   const { ensureLoaded } = useProjectPayload()
-  const rpc = useRpc()
 
   const currentCard = computed<CardRef | null>(() => currentCardSync())
   const total = computed(() => pile.value.length)
@@ -335,25 +378,13 @@ export function useCardsMode() {
   })
 
   async function hydrate(): Promise<void> {
-    if (hydrated)
-      return
-    if (hydratingPromise)
-      return hydratingPromise
-    hydratingPromise = (async () => {
-      try {
-        const fetched = await rpc.$call('ghfs:cards-pile-get')
-        applyServerState(fetched ?? null)
-        hydrated = true
-      }
-      catch {
-        // Treat hydration failure as an empty pile — user can start fresh.
-        applyServerState(null)
-      }
-      finally {
-        hydratingPromise = null
-      }
-    })()
-    return hydratingPromise
+    try {
+      await ensureShared()
+    }
+    catch {
+      // Connection failure: behave as empty pile so the user can start fresh.
+      applyServerState(null)
+    }
   }
 
   /** Open the start dialog. Stash the candidate items + source for the dialog. */
@@ -389,8 +420,13 @@ export function useCardsMode() {
     processedKeys.value = new Set()
     source.value = src
     options.value = { ...opts }
-    hydrated = true
-    await rpc.$call('ghfs:cards-pile-set', snapshot()).catch(() => {})
+    try {
+      const state = await ensureShared()
+      state.mutate((draft) => { draft.pile = snapshot() })
+    }
+    catch {
+      // Persistence failure is non-fatal — the pile still renders locally.
+    }
     startDialogOpen.value = false
     pendingSourceItems.value = null
     if (router.currentRoute.value.path !== '/cards')
@@ -441,7 +477,14 @@ export function useCardsMode() {
     source.value = { label: 'Cards' }
     commentDialogOpen.value = false
     labelsPendingFor.value = null
-    await rpc.$call('ghfs:cards-pile-clear').catch(() => {})
+    try {
+      const state = await ensureShared()
+      state.mutate((draft) => { draft.pile = null })
+    }
+    catch {
+      // Local state is already cleared; server may be unreachable but we
+      // don't want to fail the dismiss action.
+    }
   }
 
   /** Local reset (no server clear) — used when navigating away mid-pile. */

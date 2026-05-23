@@ -636,6 +636,15 @@ export function createAppCommands(): Command[] {
       run: () => { router.push('/') },
     },
     {
+      id: 'hub.cards',
+      title: 'Hub: Open card pile',
+      category: 'Hub',
+      icon: 'i-ph-cards-three-duotone',
+      when: 'hubMode && cardsHasPile && route != "/cards"',
+      help: 'hubMode',
+      run: () => { router.push('/cards') },
+    },
+    {
       id: 'hub.execute-all',
       title: 'Hub: Execute all queues',
       category: 'Hub',

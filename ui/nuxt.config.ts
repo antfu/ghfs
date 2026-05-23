@@ -58,8 +58,7 @@ export default defineNuxtConfig({
       include: [
         '@tanstack/vue-virtual',
         'colorjs.io',
-        'devframe/rpc/client',
-        'devframe/rpc/transports/ws-client',
+        'devframe/client',
         'floating-vue',
         'marked',
         'nostics',

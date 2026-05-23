@@ -164,6 +164,9 @@ export async function setupHubMode(
     autoSync,
   })
   registerGhfsRpc(devframeCtx)
+  await devframeCtx.rpc.sharedState.get('ghfs:cards-pile', {
+    initialValue: { pile: null },
+  })
 
   return {
     registry,

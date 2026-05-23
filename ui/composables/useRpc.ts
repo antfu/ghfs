@@ -1,60 +1,97 @@
 import type { GhfsCapabilities, GhfsClientFunctions, GhfsServerFunctions } from '#ghfs/rpc-types'
-import type { BirpcReturn } from 'birpc'
-import { createRpcClient } from 'devframe/rpc/client'
-import { createWsRpcChannel } from 'devframe/rpc/transports/ws-client'
+import type { DevToolsRpcClient } from 'devframe/client'
+import { connectDevframe } from 'devframe/client'
 
-export type GhfsRpc = BirpcReturn<GhfsServerFunctions, GhfsClientFunctions>
+type CallFn = <K extends keyof GhfsServerFunctions>(
+  name: K,
+  ...args: Parameters<GhfsServerFunctions[K]>
+) => ReturnType<GhfsServerFunctions[K]>
 
-let singleton: GhfsRpc | null = null
-let bootPromise: Promise<GhfsCapabilities> | null = null
+type EventFn = <K extends keyof GhfsServerFunctions>(
+  name: K,
+  ...args: Parameters<GhfsServerFunctions[K]>
+) => void
+
+export interface GhfsRpc {
+  $call: CallFn
+  $callEvent: EventFn
+  $callOptional: CallFn
+}
+
+let rpcShim: GhfsRpc | null = null
+let clientPromise: Promise<DevToolsRpcClient> | null = null
+
+function ensureClient(): Promise<DevToolsRpcClient> {
+  if (clientPromise)
+    return clientPromise
+  // In dev the Nuxt SPA runs on 7711 while the ghfs server hosts the
+  // devframe runtime on 7710 — fetching `__connection.json` cross-origin
+  // hits CORS, so hardcode `connectionMeta` and let devframe open the WS
+  // directly (WS is not subject to SOP). In production the SPA is served
+  // from the same origin so the default `__connection.json` fetch works.
+  const connectOptions = import.meta.env?.DEV
+    ? { connectionMeta: { backend: 'websocket' as const, websocket: 7710 } }
+    : {}
+  clientPromise = connectDevframe(connectOptions).then((client) => {
+    // `connectDevframe` builds an empty client RPC host; re-register the
+    // ghfs:on* broadcast handlers that the old `createRpcClient` accepted
+    // as a function map (one entry per server-side event the UI cares about).
+    const handlers = createClientHandlers()
+    for (const [name, handler] of Object.entries(handlers)) {
+      client.client.register({
+        name: name as any,
+        type: 'event',
+        handler: handler as any,
+      })
+    }
+    return client
+  })
+  return clientPromise
+}
 
 /**
- * Resolve the WebSocket URL for the ghfs backend. In production the SPA
- * is served from the same origin as the WS, so `window.location.host`
- * is correct. In dev, Nuxt's Vite serves the SPA on a different port
- * (7711) while the ghfs server hosts the WS on 7710 — using the wrong
- * port caused `ECONNRESET` storms because Vite has no `/__ws` route.
+ * Synchronous facade for the devframe RPC client. Callers can keep using
+ * `useRpc().$call('ghfs:foo', …)` exactly as before — the shim defers
+ * dispatch until the underlying `connectDevframe()` resolves.
  */
-function resolveWsUrl(): string {
-  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const host = window.location.hostname
-  const port = import.meta.env?.DEV ? '7710' : window.location.port
-  return `${proto}//${host}${port ? `:${port}` : ''}/__ws`
+export function useRpc(): GhfsRpc {
+  if (rpcShim)
+    return rpcShim
+  if (typeof window === 'undefined') {
+    rpcShim = makeNoopRpc()
+    return rpcShim
+  }
+  // Kick the connection off eagerly so the first `$call` doesn't pay the
+  // full handshake cost.
+  ensureClient()
+  rpcShim = {
+    $call: ((name, ...args) =>
+      ensureClient().then(c => c.call(name as any, ...args as any))) as CallFn,
+    $callEvent: ((name, ...args) => {
+      ensureClient().then(c => c.callEvent(name as any, ...args as any)).catch(() => {})
+    }) as EventFn,
+    $callOptional: ((name, ...args) =>
+      ensureClient().then(c => c.callOptional(name as any, ...args as any))) as CallFn,
+  }
+  return rpcShim
 }
 
-export function useRpc(): GhfsRpc {
-  if (!singleton) {
-    singleton = typeof window === 'undefined'
-      ? makeNoopRpc()
-      : createBirpcClient()
-  }
-  return singleton
+/**
+ * Access the full devframe client — needed for `rpc.sharedState`,
+ * `rpc.streaming`, etc. Resolves once the connection handshake completes.
+ */
+export function useRpcClient(): Promise<DevToolsRpcClient> {
+  if (typeof window === 'undefined')
+    return Promise.reject(new Error('devframe RPC not available (SSR)'))
+  return ensureClient()
 }
+
+let bootPromise: Promise<GhfsCapabilities> | null = null
 
 export function useCapabilities(): Promise<GhfsCapabilities> {
   if (!bootPromise)
     bootPromise = useRpc().$call('ghfs:capabilities')
   return bootPromise
-}
-
-function createBirpcClient(): GhfsRpc {
-  const channel = createWsRpcChannel({
-    url: resolveWsUrl(),
-    onDisconnected: () => {
-      // The devframe client transparently reconnects; nothing to do here.
-    },
-    onError: () => {
-      // Errors are surfaced via close; ignore here.
-    },
-  })
-
-  return createRpcClient<GhfsServerFunctions, GhfsClientFunctions>(
-    createClientHandlers(),
-    {
-      channel,
-      rpcOptions: { timeout: 120_000 },
-    },
-  )
 }
 
 function createClientHandlers(): GhfsClientFunctions {
@@ -156,12 +193,9 @@ function createClientHandlers(): GhfsClientFunctions {
 
 function makeNoopRpc(): GhfsRpc {
   const reject = () => Promise.reject(new Error('RPC not available (SSR)'))
-  return new Proxy({} as GhfsRpc, {
-    get(_, prop) {
-      if (prop === '$closed') return true
-      if (prop === '$functions') return {}
-      if (prop === '$close' || prop === '$rejectPendingCalls') return () => {}
-      return reject
-    },
-  })
+  return {
+    $call: reject as any,
+    $callEvent: (() => {}) as any,
+    $callOptional: reject as any,
+  }
 }

@@ -59,6 +59,9 @@ export async function setupUiMode(
     autoSync.setInterval(next.autoSyncIntervalMs)
   })
   registerGhfsRpc(devframeCtx)
+  await devframeCtx.rpc.sharedState.get('ghfs:cards-pile', {
+    initialValue: { pile: null },
+  })
 
   return {
     registry,

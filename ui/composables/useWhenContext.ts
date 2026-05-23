@@ -28,6 +28,7 @@ export interface WhenContext extends Record<string, unknown> {
   hasActiveProjectId: boolean
   anyOverlayOpen: boolean
   onCardsPage: boolean
+  cardsHasPile: boolean
   cardsHasCurrent: boolean
   cardsAdvancing: boolean
   cardsCanClose: boolean
@@ -118,6 +119,7 @@ export function useWhenContext(): ComputedRef<WhenContext> {
         || hubSettingsOpen || hubQueueDrawerOpen
         || hubExecuteAllConfirmOpen,
       onCardsPage,
+      cardsHasPile: cards.total.value > 0,
       cardsHasCurrent: Boolean(cards.currentCard.value),
       cardsAdvancing,
       cardsCanClose: cards.currentCanClose.value,

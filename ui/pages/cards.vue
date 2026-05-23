@@ -43,13 +43,19 @@ const hydrating = ref(true)
 
 onMounted(async () => {
   // Pull any persisted pile state from the server (survives client refresh).
+  // When no pile exists the page renders an empty state with a "Create a
+  // new pile" affordance instead of redirecting elsewhere.
   await cards.hydrate()
   hydrating.value = false
-  if (total.value === 0) {
-    // No pile loaded — drop back to the hub home.
-    router.replace('/')
-  }
 })
+
+async function createNewPile() {
+  const hubRecent = useHubRecent()
+  if (hubRecent.items.value.length === 0)
+    await hubRecent.load()
+  const items = useRecentFiltered().filteredItems.value
+  cards.openStartDialog(items, { label: 'Recent' })
+}
 
 // When the label editor (re-used from PanelDetail) closes after we opened it
 // from a card action, advance to the next card.
@@ -266,10 +272,15 @@ async function doDismiss() {
       <template v-else>
         <div class="h-full flex flex-col items-center justify-center gap-3 color-muted">
           <span class="i-ph-cards-duotone text-4xl" />
-          <p>No card pile loaded. Pick a list and start.</p>
-          <button type="button" class="btn-action text-sm" @click="exit">
-            <span class="i-ph-arrow-left-duotone" />
-            Back
+          <p>No card pile loaded.</p>
+          <button
+            type="button"
+            class="btn-action text-sm"
+            data-testid="cards-empty-create"
+            @click="createNewPile"
+          >
+            <span class="i-ph-cards-three-duotone" />
+            Create a new pile
           </button>
         </div>
       </template>

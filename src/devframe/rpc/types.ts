@@ -189,9 +189,6 @@ export interface GhfsServerFunctions {
   'ghfs:hub-remove-root': (path: string) => Promise<HubInfo>
   'ghfs:hub-recent-items': (limit?: number) => Promise<HubRecentItem[]>
   'ghfs:hub-todos': () => Promise<HubTodoItem[]>
-  'ghfs:cards-pile-get': () => Promise<CardsPileState | null>
-  'ghfs:cards-pile-set': (state: CardsPileState) => Promise<void>
-  'ghfs:cards-pile-clear': () => Promise<void>
   'ghfs:hub-queue': () => Promise<HubQueueGroup[]>
   'ghfs:hub-execute-queue': (options: { projectId?: string }) => Promise<ExecutionResult[]>
   'ghfs:hub-settings': () => Promise<HubSettings>
@@ -213,4 +210,19 @@ export interface GhfsClientFunctions {
   'ghfs:onRemoteStatusChange': (event: { projectId: string, status: RemoteStatus }) => void
   'ghfs:onProjectsChange': () => void
   'ghfs:onHubInfoChange': (event: HubInfo) => void
+}
+
+/**
+ * The card pile is a singleton synced via devframe's `sharedState` host so
+ * that page refreshes return to the same pile + progress. `pile === null`
+ * means no pile is loaded; otherwise it carries the full triage session.
+ */
+export interface CardsSharedState {
+  pile: CardsPileState | null
+}
+
+declare module 'devframe/types' {
+  interface DevToolsRpcSharedStates {
+    'ghfs:cards-pile': CardsSharedState
+  }
 }

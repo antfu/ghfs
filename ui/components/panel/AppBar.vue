@@ -18,8 +18,11 @@ const { upCount } = useQueue()
 const { totalCount: hubQueueTotal } = useHubQueue()
 const recentFiltered = useRecentFiltered()
 const todos = useHubTodos()
+const cards = useCardsMode()
 
 const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
+const cardsHasPile = computed(() => cards.total.value > 0)
+const onCardsPage = computed(() => route.path === '/cards')
 const repoName = computed(() => state.payload.value?.repo.repo ?? 'connecting…')
 const projectPath = computed(() => state.payload.value?.repo.projectPath ?? '')
 const hasToken = computed(() => state.payload.value?.repo.hasToken ?? false)
@@ -241,6 +244,19 @@ const cardsTooltip = computed(() => {
           >
             <span class="i-ph-bookmark-simple-duotone" />
             <span>Todo</span>
+          </button>
+        </UiWithCommand>
+        <UiWithCommand v-if="cardsHasPile" v-slot="{ execute, disabled }" command="hub.cards">
+          <button
+            type="button"
+            class="px-2.5 py-1.5 text-xs flex items-center gap-1.5 rounded transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
+            :class="onCardsPage ? 'color-active font-medium bg-active' : 'color-muted hover:color-base'"
+            data-testid="navbar-hub-cards-link"
+            :disabled="disabled"
+            @click="execute"
+          >
+            <span class="i-ph-cards-three-duotone" />
+            <span>Cards</span>
           </button>
         </UiWithCommand>
       </nav>
