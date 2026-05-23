@@ -2,7 +2,8 @@
 import type { ListItem } from '../../types/list-item'
 
 const recent = useHubRecent()
-const { filteredItems, search } = useRecentFiltered()
+const hub = useHubState()
+const { filteredItems, search, kind, counts } = useRecentFiltered()
 const activeId = useActiveProjectId()
 
 // Start fresh on every entry: clear any leftover selection synchronously so
@@ -15,6 +16,18 @@ onMounted(() => {
   recent.load()
 })
 
+const cardsTooltip = computed(() => {
+  const n = filteredItems.value.length
+  if (n === 0)
+    return 'No items to triage'
+  return `Start a card pile — triage ${Math.min(n, 10)} ${n === 1 ? 'item' : 'items'}`
+})
+
+const hasPayload = computed(() => recent.items.value.length > 0)
+const loading = computed(() => recent.loading.value && !hasPayload.value)
+const loadError = computed(() => (hasPayload.value ? null : recent.error.value))
+const searching = computed(() => search.value.trim().length > 0)
+
 function onSelect(item: ListItem) {
   void recent.selectItem(item)
 }
@@ -24,31 +37,38 @@ function onSelect(item: ListItem) {
   <div class="h-full flex flex-col" data-testid="hub-recent-page">
     <PanelAppBar mode="hub" />
 
-    <main class="flex-1 min-h-0">
-      <UiEmptyState
-        v-if="recent.loading.value && recent.items.value.length === 0"
-        icon="i-octicon-sync-16"
-        title="Loading recent activity…"
-      />
-      <UiEmptyState
-        v-else-if="recent.error.value"
-        icon="i-ph-warning-duotone"
-        :title="`Failed to load: ${recent.error.value}`"
-      />
-      <UiEmptyState
-        v-else-if="recent.items.value.length === 0"
-        icon="i-octicon-inbox-16"
-        title="No recent activity"
-        message="Enable projects in the hub and sync them to see items here."
-      />
-      <PanelProject
-        v-else
-        :items="filteredItems"
-        :selected-key="recent.selectedKey.value"
-        :search-highlight="search"
-        :show-repo-name="true"
-        @select="onSelect"
-      />
-    </main>
+    <PanelProject
+      :items="filteredItems"
+      :selected-key="recent.selectedKey.value"
+      :search-highlight="search"
+      :show-repo-name="true"
+      :loading="loading"
+      :load-error="loadError"
+      :has-payload="hasPayload"
+      header-variant="recent"
+      :projects="hub.projects.value"
+      :search="search"
+      :kind="kind"
+      :counts="counts"
+      :searching="searching"
+      search-placeholder="Search across all projects…"
+      empty-title="No recent activity"
+      empty-message="Enable projects in the hub and sync them to see items here."
+      @select="onSelect"
+      @update:search="(v: string) => search = v"
+    >
+      <template #header-actions>
+        <UiWithCommand v-slot="{ execute, disabled }" command="cards.start" placement="badge">
+          <UiIconButton
+            icon="i-ph-cards-three-duotone"
+            :tooltip="cardsTooltip"
+            aria-label="Start a card pile"
+            data-testid="list-header-cards-mode"
+            :disabled="disabled || filteredItems.length === 0"
+            @click="execute"
+          />
+        </UiWithCommand>
+      </template>
+    </PanelProject>
   </div>
 </template>

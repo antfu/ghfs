@@ -1,5 +1,5 @@
 import type { PendingOp } from '../../execute/types'
-import type { ExecuteTriggerOptions, InitialPayload, QueueState, RemoteStatus, RepoMeta, SeenEntry, SyncTriggerOptions, UiState } from '../../server/types'
+import type { ExecuteTriggerOptions, InitialPayload, QueueState, RemoteStatus, RepoLabel, RepoMeta, SeenEntry, SyncTriggerOptions, UiState } from '../../server/types'
 import type { ActivityResult } from '../../sync/activity'
 import type { SyncProgressSnapshot, SyncStage, SyncSummary } from '../../sync/contracts'
 import type { ExecutionResult } from '../../types/execution'
@@ -25,6 +25,12 @@ export interface ProjectSummary {
   lastSyncedAt?: string
   /** Most recent `item.updatedAt` across the project's tracked items. */
   lastActivityAt?: string
+  /**
+   * Repository label registry (names, colors, descriptions) from the most
+   * recent repo snapshot. Consumed by hub-level views (recent, todos) to
+   * color labels correctly for items belonging to non-active projects.
+   */
+  labels?: RepoLabel[]
 }
 
 export interface ProjectInitialPayload extends InitialPayload {

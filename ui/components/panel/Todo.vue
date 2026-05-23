@@ -2,6 +2,7 @@
 import type { ListItem } from '../../types/list-item'
 
 const todos = useHubTodos()
+const hub = useHubState()
 const cards = useCardsMode()
 const { ensureLoaded } = useProjectPayload()
 const router = useRouter()
@@ -11,7 +12,6 @@ onMounted(() => {
 })
 
 async function onSelect(item: ListItem) {
-  // Navigate to that project's detail view.
   await ensureLoaded(item.projectId)
   useActiveProjectId().value = item.projectId
   useAppState(item.projectId).selectItem(item.number)
@@ -29,24 +29,25 @@ function startCards() {
   <div class="h-full flex flex-col" data-testid="hub-todo-page">
     <PanelAppBar mode="hub" />
 
-    <div class="flex items-center gap-3 px-4 py-2 border-b border-base">
-      <h1 class="text-sm font-medium flex items-center gap-2">
-        <span class="i-ph-bookmark-simple-duotone color-active" />
-        Todo
-        <span class="font-mono color-muted">{{ todos.items.value.length }}</span>
-      </h1>
-      <div class="flex-1" />
-      <button
-        v-if="todos.listItems.value.length > 0"
-        type="button"
-        class="btn-action-sm"
-        data-testid="todo-cards-mode"
-        @click="startCards"
-      >
-        <span class="i-ph-cards-three-duotone" />
-        Start a pile
-      </button>
-    </div>
+    <ItemListHeader
+      variant="todo"
+      title="Todo"
+      :item-total="todos.items.value.length"
+      :projects="hub.projects.value"
+      :kind="todos.kind.value"
+      :counts="todos.counts.value"
+    >
+      <template #actions>
+        <UiIconButton
+          v-if="todos.listItems.value.length > 0"
+          icon="i-ph-cards-three-duotone"
+          tooltip="Start a card pile"
+          aria-label="Start a card pile"
+          data-testid="todo-cards-mode"
+          @click="startCards"
+        />
+      </template>
+    </ItemListHeader>
 
     <main class="flex-1 min-h-0">
       <UiEmptyState
@@ -67,7 +68,7 @@ function startCards() {
       />
       <ItemList
         v-else
-        :items="todos.listItems.value"
+        :items="todos.filteredListItems.value"
         :selected-key="null"
         :show-repo-name="true"
         class="h-full"

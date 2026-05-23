@@ -48,7 +48,8 @@ export function useWhenContext(): ComputedRef<WhenContext> {
   const hubUi = useHubUiState()
   const route = useRoute()
   const { filteredItems } = useFilteredItems()
-  const { filteredItems: recentFiltered } = useRecentFiltered()
+  const recentFilteredAll = useRecentFiltered()
+  const { filteredItems: recentFiltered, search: recentSearch } = recentFilteredAll
   const { upCount } = useQueue()
   const { totalCount: hubQueueTotal } = useHubQueue()
   const inputFocused = useInputFocus()
@@ -90,7 +91,9 @@ export function useWhenContext(): ComputedRef<WhenContext> {
       activeItemKind: (item?.kind as WhenContext['activeItemKind']) ?? null,
       activeItemState: (item?.state as WhenContext['activeItemState']) ?? null,
       hasEntries: onRecent ? recentFiltered.value.length > 0 : filteredItems.value.length > 0,
-      searching: state.value.filters.search.trim().length > 0,
+      searching: onRecent
+        ? recentSearch.value.trim().length > 0
+        : state.value.filters.search.trim().length > 0,
       hasToken: state.value.payload.value?.repo.hasToken ?? false,
       hasSyncableProjects: hub.projects.value.some(p => p.hasToken),
       syncing: state.value.syncing.value,

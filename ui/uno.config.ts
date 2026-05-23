@@ -85,7 +85,7 @@ export default defineConfig({
       'btn-toggle-pill-off': 'border-base bg-base color-muted hover:color-base hover:border-active hover:bg-active',
 
       'badge': 'inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium leading-none',
-      'kbd': 'inline-flex items-center justify-center h-4 min-w-4 px-1.5 rounded border border-base border-b-2 bg-secondary font-mono text-[10px] color-muted leading-none',
+      'kbd': 'inline-flex items-center justify-center h-4 min-w-4 px-1.5 rounded border border-base bg-secondary font-mono text-[10px] color-muted leading-none shadow-[inset_0_-1px_0_0_#8882]',
 
       'tab-trigger': 'px-3 py-2 -mb-px flex items-center gap-1.5 text-sm color-muted border-b-2 border-transparent hover:color-active data-[state=active]:color-active data-[state=active]:border-primary-500 dark:data-[state=active]:border-primary-400 transition rounded-t outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40',
       'tab-count': 'inline-flex items-center px-1.5 min-w-5 h-5 rounded-full bg-#8881 text-[10px] font-mono color-muted tabular-nums',

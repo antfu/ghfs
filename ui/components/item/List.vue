@@ -7,8 +7,12 @@ const props = withDefaults(defineProps<{
   selectedKey: string | null
   showRepoName?: boolean
   searchHighlight?: string
+  emptyTitle?: string
+  emptyMessage?: string
 }>(), {
   searchHighlight: '',
+  emptyTitle: 'No items match the current filter',
+  emptyMessage: 'Change filters, or use the sync icon to pull from GitHub.',
 })
 
 const emit = defineEmits<{
@@ -62,8 +66,8 @@ function measureRow(el: Element | { $el?: Element } | null): void {
     <UiEmptyState
       v-if="items.length === 0"
       icon="i-octicon-inbox-16"
-      title="No items match the current filter"
-      message="Change filters, or use the sync icon to pull from GitHub."
+      :title="emptyTitle"
+      :message="emptyMessage"
     />
     <div v-else :style="{ height: `${totalSize}px`, position: 'relative', width: '100%' }">
       <div

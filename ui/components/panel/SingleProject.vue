@@ -14,10 +14,22 @@ activeId.value = props.projectId
 const state = useAppState(props.projectId)
 useSelectedItemSync(() => props.projectId, () => props.initialNumber ?? null)
 
-const { filteredItems } = useFilteredItems()
+const { filteredItems, counts } = useFilteredItems()
 const payload = useProjectPayload()
+const hub = useHubState()
 
 const hasPayload = computed(() => Boolean(state.payload.value))
+
+const project = computed(() => hub.projects.value.find(p => p.id === props.projectId) ?? null)
+
+const searching = computed(() => state.filters.search.trim().length > 0)
+
+const cardsTooltip = computed(() => {
+  const n = filteredItems.value.length
+  if (n === 0)
+    return 'No items to triage'
+  return `Start a card pile — triage ${Math.min(n, 10)} ${n === 1 ? 'item' : 'items'}`
+})
 
 const selectedKey = computed(() => {
   const number = state.selectedNumber.value
@@ -28,9 +40,6 @@ const selectedKey = computed(() => {
 
 watch(() => props.projectId, (id) => {
   activeId.value = id
-  // Don't clear selection or payload — keep showing cached data so the
-  // navigation feels instant. The bucket is per-project anyway, so any
-  // previously-loaded data for *this* id is still correct.
   payload.loadInitial(id)
 }, { immediate: true })
 
@@ -56,7 +65,29 @@ function onSelect(item: ListItem) {
       :loading="payload.loading.value"
       :load-error="payload.error.value"
       :has-payload="hasPayload"
+      header-variant="project"
+      :project="project"
+      :projects="hub.projects.value"
+      :search="state.filters.search"
+      :kind="state.filters.kind"
+      :counts="counts"
+      :searching="searching"
+      search-placeholder="Search title, body, author, labels…"
       @select="onSelect"
-    />
+      @update:search="(v: string) => state.filters.search = v"
+    >
+      <template #header-actions>
+        <UiWithCommand v-slot="{ execute, disabled }" command="cards.start" placement="badge">
+          <UiIconButton
+            icon="i-ph-cards-three-duotone"
+            :tooltip="cardsTooltip"
+            aria-label="Start a card pile"
+            data-testid="list-header-cards-mode"
+            :disabled="disabled || filteredItems.length === 0"
+            @click="execute"
+          />
+        </UiWithCommand>
+      </template>
+    </PanelProject>
   </div>
 </template>

@@ -1,16 +1,30 @@
 <script setup lang="ts">
 interface Props {
   name: string
-  /** Fallback hex color, used when the label isn't in the repo label map (e.g. removed labels in timeline events). */
+  /**
+   * When set, resolve the color from the hub-level project registry
+   * (`useHubLabelMap()`) using this project id. Used in mixed-repo lists so
+   * labels from non-active projects render with their own repo's color.
+   */
+  projectId?: string
+  /** Fallback hex color, used when the label isn't found in any map. */
   fallbackColor?: string
 }
 
 const props = defineProps<Props>()
-const labelMap = useLabelColorMap()
+const activeMap = useLabelColorMap()
+const hubMap = useHubLabelMap()
 const isDark = useDark()
 
 const style = computed(() => {
-  const color = labelMap.value.get(props.name)?.color ?? props.fallbackColor
+  let color: string | undefined
+  if (props.projectId) {
+    color = hubMap.value.get(props.projectId)?.get(props.name)?.color
+  }
+  if (!color)
+    color = activeMap.value.get(props.name)?.color
+  if (!color)
+    color = props.fallbackColor
   return color ? labelStyle(color, isDark.value) : undefined
 })
 </script>

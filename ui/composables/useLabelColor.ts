@@ -56,3 +56,25 @@ export function useLabelColorMap(): ComputedRef<Map<string, RepoLabel>> {
     return map
   })
 }
+
+/**
+ * Cross-project label registry sourced from `useHubState().projects`. Each
+ * project carries its label definitions (names + colors) via
+ * `ProjectSummary.labels`, so hub-level lists (recent, todos) can color
+ * labels by their owning repo instead of falling back to neutral pills.
+ */
+export function useHubLabelMap(): ComputedRef<Map<string, Map<string, RepoLabel>>> {
+  const hub = useHubState()
+  return computed(() => {
+    const byProject = new Map<string, Map<string, RepoLabel>>()
+    for (const project of hub.projects.value) {
+      if (!project.labels?.length)
+        continue
+      const inner = new Map<string, RepoLabel>()
+      for (const label of project.labels)
+        inner.set(label.name, label)
+      byProject.set(project.id, inner)
+    }
+    return byProject
+  })
+}

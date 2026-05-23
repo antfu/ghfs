@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ProjectSummary } from '#ghfs/rpc-types'
 import type { ListItem } from '../../types/list-item'
 import { Pane, Splitpanes } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
@@ -11,15 +12,31 @@ const props = withDefaults(defineProps<{
   loading?: boolean
   loadError?: string | null
   hasPayload?: boolean
+
+  headerVariant?: 'project' | 'recent' | 'none'
+  project?: ProjectSummary | null
+  projects?: ProjectSummary[]
+  search?: string
+  kind?: 'issue' | 'pull'
+  counts?: { issues: number, pulls: number }
+  searching?: boolean
+  searchPlaceholder?: string
+  emptyTitle?: string
+  emptyMessage?: string
 }>(), {
   searchHighlight: '',
   loading: false,
   loadError: null,
   hasPayload: true,
+  headerVariant: 'none',
+  project: null,
+  projects: () => [],
+  searching: false,
 })
 
 const emit = defineEmits<{
   select: [item: ListItem]
+  'update:search': [value: string]
 }>()
 
 const ui = useUiState()
@@ -39,7 +56,6 @@ const showError = computed(() => Boolean(props.loadError) && !props.hasPayload)
 
 <template>
   <div class="h-full flex flex-col relative of-hidden">
-    <!-- Top progress bar shown while refreshing existing data; non-blocking. -->
     <div
       v-if="showRefreshBadge"
       class="absolute top-0 left-0 right-0 h-0.5 overflow-hidden z-20 pointer-events-none"
@@ -52,6 +68,23 @@ const showError = computed(() => Boolean(props.loadError) && !props.hasPayload)
       <Splitpanes class="h-full w-full ghfs-splitpanes" :dbl-click-splitter="false" @resize="onResize">
         <Pane :size="listPaneSize" min-size="20" max-size="60" class="bg-base">
           <div class="h-full flex flex-col" data-testid="item-list">
+            <ItemListHeader
+              v-if="headerVariant !== 'none'"
+              :variant="headerVariant"
+              :project="project"
+              :projects="projects"
+              :search="search"
+              :kind="kind"
+              :counts="counts"
+              :searching="searching"
+              :search-placeholder="searchPlaceholder"
+              @update:search="(v: string) => emit('update:search', v)"
+            >
+              <template #actions>
+                <slot name="header-actions" />
+              </template>
+            </ItemListHeader>
+
             <div v-if="showFirstLoad" class="flex flex-col items-center justify-center py-32 color-muted flex-1" data-testid="project-loading">
               <span class="i-octicon-sync-16 animate-spin text-2xl mb-3 color-active" />
               <p class="text-sm">Loading…</p>
@@ -65,6 +98,8 @@ const showError = computed(() => Boolean(props.loadError) && !props.hasPayload)
               :selected-key="selectedKey"
               :show-repo-name="showRepoName"
               :search-highlight="searchHighlight"
+              :empty-title="emptyTitle"
+              :empty-message="emptyMessage"
               class="flex-1 min-h-0"
               @select="emit('select', $event)"
             />

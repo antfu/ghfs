@@ -83,8 +83,23 @@ export function createAppCommands(): Command[] {
 
   const route = useRoute()
   const recent = useHubRecent()
-  const { filteredItems: recentFilteredItems } = useRecentFiltered()
+  const recentFiltered = useRecentFiltered()
+  const { filteredItems: recentFilteredItems } = recentFiltered
+  const todos = useHubTodos()
   const isRecentRoute = computed(() => route.path === '/recent')
+  const isTodoRoute = computed(() => route.path === '/todo')
+
+  function setKind(value: 'issue' | 'pull') {
+    if (isRecentRoute.value) {
+      recentFiltered.kind.value = value
+      return
+    }
+    if (isTodoRoute.value) {
+      todos.kind.value = value
+      return
+    }
+    state.value.filters.kind = value
+  }
 
   function moveFocus(delta: number) {
     if (isRecentRoute.value) {
@@ -357,7 +372,7 @@ export function createAppCommands(): Command[] {
       icon: 'i-octicon-issue-opened-16',
       keybindings: ['i'],
       when: '!searching && !onCardsPage',
-      run: () => { state.value.filters.kind = 'issue' },
+      run: () => setKind('issue'),
     },
     {
       id: 'tab.pulls',
@@ -366,7 +381,7 @@ export function createAppCommands(): Command[] {
       icon: 'i-octicon-git-pull-request-16',
       keybindings: ['p'],
       when: '!searching && !onCardsPage',
-      run: () => { state.value.filters.kind = 'pull' },
+      run: () => setKind('pull'),
     },
 
     // ─── Search ─────────────────────────────────────────────────────────

@@ -59,9 +59,10 @@ export async function buildRepoMeta(ctx: ProjectContext): Promise<RepoMeta> {
 }
 
 export async function summarizeProject(ctx: ProjectContext): Promise<ProjectSummary> {
-  const [repo, syncState] = await Promise.all([
+  const [repo, syncState, snapshot] = await Promise.all([
     buildRepoMeta(ctx),
     loadSyncState(ctx.storageDirAbsolute),
+    loadRepoSnapshot(ctx.storageDirAbsolute),
   ])
   let openIssues = 0
   let openPulls = 0
@@ -85,6 +86,11 @@ export async function summarizeProject(ctx: ProjectContext): Promise<ProjectSumm
     else
       openPulls += 1
   }
+  const labels = (snapshot?.labels ?? []).map(label => ({
+    name: label.name,
+    color: label.color,
+    description: label.description,
+  }))
   return {
     id: ctx.id,
     path: ctx.path,
@@ -99,6 +105,7 @@ export async function summarizeProject(ctx: ProjectContext): Promise<ProjectSumm
     newPullsToday,
     lastSyncedAt: syncState.lastSyncedAt,
     lastActivityAt,
+    labels,
   }
 }
 

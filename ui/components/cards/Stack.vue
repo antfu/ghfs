@@ -50,19 +50,20 @@ const visible = computed(() => {
 
 <style scoped>
 .card-stack {
-  /* Fill most of the available space — the action pills overlay the edges
-     so they don't need wide margins around the card. */
-  width: clamp(720px, 88vw, 1400px);
+  /* Reserve generous gutters left/right so the edge-action labels
+     ("Mark as todo", "Skip", …) have visible breathing room beside the
+     card; vertical headroom stays tighter since the top header is fixed. */
+  width: clamp(680px, 78vw, 1280px);
   height: clamp(480px, 86vh, 980px);
-  max-width: calc(100vw - 4rem);
+  max-width: calc(100vw - 10rem);
   max-height: calc(100vh - 6rem);
 }
 
 @media (max-width: 900px) {
   .card-stack {
-    width: min(94vw, 760px);
+    width: min(88vw, 720px);
     height: min(80vh, 680px);
-    max-width: 94vw;
+    max-width: 88vw;
     max-height: 80vh;
   }
 }

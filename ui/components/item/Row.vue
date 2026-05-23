@@ -151,7 +151,7 @@ const bodySnippetHtml = computed(() => {
         </div>
 
         <div v-if="labels.length" class="flex items-center gap-1 flex-wrap mt-0.5">
-          <DisplayLabel v-for="label in labels.slice(0, 5)" :key="label" :name="label" />
+          <DisplayLabel v-for="label in labels.slice(0, 5)" :key="label" :name="label" :project-id="item.projectId" />
           <span v-if="labels.length > 5" class="text-[10px] color-faint">+{{ labels.length - 5 }}</span>
         </div>
 
