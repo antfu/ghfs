@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { ListItem } from '../../types/list-item'
-import { activityBucketIndex } from '../../../src/sync/activity'
 
 const props = withDefaults(defineProps<{
   item: ListItem
@@ -14,8 +13,6 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   select: [item: ListItem]
 }>()
-
-const { currentUser } = useCurrentUser()
 
 const rawItem = computed(() => props.item.raw?.data.item)
 const rawPull = computed(() => props.item.raw?.data.pull)
@@ -35,33 +32,6 @@ const iconPull = computed(() => {
 
 const labels = computed(() => props.item.labels ?? [])
 const assignees = computed(() => props.item.assignees ?? [])
-
-// Bucket indices in `activityBuckets` where the current user had an
-// attributable event (created the item, commented, acted on the timeline,
-// or committed). Drives the dot markers on the sparkline.
-const userDotIndices = computed<number[]>(() => {
-  const data = props.item.raw?.data
-  const login = currentUser.value?.login
-  const days = props.item.activityBuckets?.length ?? 0
-  if (!data || !login || days === 0)
-    return []
-  const set = new Set<number>()
-  const collect = (iso: string | null | undefined, author: string | null | undefined) => {
-    if (!iso || !author || author !== login)
-      return
-    const idx = activityBucketIndex(iso, days)
-    if (idx != null)
-      set.add(idx)
-  }
-  collect(data.item.createdAt, data.item.author)
-  for (const c of data.comments ?? [])
-    collect(c.createdAt, c.author)
-  for (const t of data.timeline ?? [])
-    collect(t.createdAt, t.actor)
-  for (const commit of data.commits ?? [])
-    collect(commit.committerDate ?? commit.authorDate, commit.committerLogin ?? commit.authorLogin)
-  return Array.from(set).sort((a, b) => a - b)
-})
 
 // Pending ops are per-active-project (via useAppState). They only make sense
 // when this row belongs to the active project — i.e. when `raw` is present.
@@ -106,19 +76,6 @@ const bodySnippetHtml = computed(() => {
       <DisplayItemActivitySparkline
         :points="item.activityBuckets"
         :created-index="item.activityCreatedIndex"
-      />
-    </div>
-
-    <div
-      v-if="userDotIndices.length && item.activityBuckets"
-      class="absolute inset-0 pointer-events-none"
-    >
-      <span
-        v-for="i in userDotIndices"
-        :key="i"
-        class="absolute top-1/2 size-1.5 rounded-full bg-orange-500 dark:bg-orange-400 -translate-x-1/2 -translate-y-1/2"
-        :style="{ left: `${(i / Math.max(1, item.activityBuckets.length - 1)) * 100}%` }"
-        data-testid="item-activity-dot"
       />
     </div>
 
