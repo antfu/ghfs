@@ -3,14 +3,17 @@ const props = withDefaults(defineProps<{
   /** Daily activity buckets, oldest-first. Length defines the x-axis range. */
   points: number[]
   /**
-   * Bucket index where the item was created. The polyline starts here and
-   * a dashed vertical line marks the position. `undefined` ⇒ created before
+   * Bucket index where the item was created. The polyline starts here and a
+   * solid vertical line marks the position. `undefined` ⇒ created before
    * the window, so the polyline spans the full width and no line is drawn.
    */
   createdIndex?: number
   color?: string
+  /** Stroke color for the createdAt vertical line. */
+  createdLineColor?: string
 }>(), {
   color: 'currentColor',
+  createdLineColor: '#22c55e',
 })
 
 // Floor the y-axis so a quiet item (1–2 events) doesn't visually
@@ -18,24 +21,54 @@ const props = withDefaults(defineProps<{
 // MIN_SCALE.
 const MIN_SCALE = 4
 
-const polylinePoints = computed(() => {
+// Cap peaks at 60% of the container height so the sparkline never reaches
+// the very top edge — keeps it visually a background flourish rather than
+// a primary chart. In the 0–100 viewBox: baseline near the bottom, peaks
+// at y=40 (i.e. 60% up from the bottom).
+const BASELINE_Y = 98
+const PEAK_Y = 40
+const USABLE_H = BASELINE_Y - PEAK_Y
+
+interface Pt { x: number, y: number }
+
+const polyPoints = computed<Pt[]>(() => {
   const pts = props.points
   if (pts.length < 2)
-    return ''
-  // Start at the item's creation point (or the left edge if it was created
-  // before the window). The container's full width always represents the
-  // sparkline window regardless of how much of it the item has "lived".
+    return []
   const start = Math.max(0, Math.min(pts.length - 1, props.createdIndex ?? 0))
   if (pts.length - start < 2)
-    return ''
+    return []
   const max = Math.max(MIN_SCALE, ...pts)
-  // Leave 2 units of padding so the stroke isn't clipped at the edges.
-  const usableH = 96
+
   return pts.slice(start).map((v, i) => {
     const x = start + i
-    const y = 98 - (v / max) * usableH
-    return `${x},${y.toFixed(2)}`
-  }).join(' ')
+    // The createdIndex bucket always includes the createdAt event itself;
+    // subtract that one tally so the line doesn't spike at item birth.
+    const value = i === 0 && props.createdIndex != null ? Math.max(0, v - 1) : v
+    const y = BASELINE_Y - (value / max) * USABLE_H
+    return { x, y }
+  })
+})
+
+// Build a smooth cubic-Bezier path through the points using the
+// Catmull-Rom → Bezier conversion (tension = 1, no overshoot).
+const pathD = computed(() => {
+  const pts = polyPoints.value
+  if (pts.length < 2)
+    return ''
+  const parts: string[] = [`M${pts[0].x},${pts[0].y.toFixed(2)}`]
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] ?? pts[i]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = pts[i + 2] ?? p2
+    const c1x = p1.x + (p2.x - p0.x) / 6
+    const c1y = p1.y + (p2.y - p0.y) / 6
+    const c2x = p2.x - (p3.x - p1.x) / 6
+    const c2y = p2.y - (p3.y - p1.y) / 6
+    parts.push(`C${c1x.toFixed(2)},${c1y.toFixed(2)} ${c2x.toFixed(2)},${c2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`)
+  }
+  return parts.join('')
 })
 
 const showCreatedLine = computed(() =>
@@ -68,15 +101,13 @@ const tooltipText = computed(() =>
       :x2="createdIndex"
       y1="0"
       y2="100"
-      :stroke="color"
+      :stroke="createdLineColor"
       stroke-width="1"
-      stroke-dasharray="3 2"
       vector-effect="non-scaling-stroke"
-      opacity="0.4"
     />
-    <polyline
-      v-if="polylinePoints"
-      :points="polylinePoints"
+    <path
+      v-if="pathD"
+      :d="pathD"
       fill="none"
       :stroke="color"
       stroke-width="1.25"
