@@ -48,6 +48,14 @@ watch(
 const virtualItems = computed(() => virtualizer.value.getVirtualItems())
 const totalSize = computed(() => virtualizer.value.getTotalSize())
 
+function showRepoHeader(index: number): boolean {
+  if (!props.showRepoName)
+    return false
+  if (index === 0)
+    return true
+  return props.items[index - 1]!.repo !== props.items[index]!.repo
+}
+
 function measureRow(el: Element | { $el?: Element } | null): void {
   if (!el)
     return
@@ -82,7 +90,7 @@ function measureRow(el: Element | { $el?: Element } | null): void {
         <ItemRow
           :item="items[virtualRow.index]!"
           :selected="selectedKey === items[virtualRow.index]!.key"
-          :show-repo-name="showRepoName"
+          :show-repo-name="showRepoHeader(virtualRow.index)"
           :search-highlight="searchHighlight"
           @select="emit('select', $event)"
         />
