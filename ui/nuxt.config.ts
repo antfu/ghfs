@@ -86,8 +86,11 @@ export default defineNuxtConfig({
         // Dev-only HTTP passthrough for /api/*. The WebSocket at /__ws is
         // connected to directly by the client (see useRpc) to avoid Vite's
         // proxy layer crashing Nuxt on ECONNRESET during reconnects.
+        // `VITE_GHFS_WS_PORT` is set by `scripts/dev.ts` so the proxy
+        // follows whichever port the paired ghfs server actually got
+        // (necessary when multiple workspaces run dev in parallel).
         '/api': {
-          target: 'http://localhost:7710',
+          target: `http://localhost:${process.env.VITE_GHFS_WS_PORT ?? 7710}`,
           changeOrigin: true,
           configure(proxy) {
             proxy.on('error', () => {})

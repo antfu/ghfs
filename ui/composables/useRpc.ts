@@ -24,15 +24,19 @@ let clientPromise: Promise<DevToolsRpcClient> | null = null
 function ensureClient(): Promise<DevToolsRpcClient> {
   if (clientPromise)
     return clientPromise
-  // In dev the Nuxt SPA runs on 7711 while the ghfs server hosts the
-  // devframe runtime on 7710 — fetching `__connection.json` cross-origin
-  // hits CORS, so hardcode `connectionMeta` and let devframe open the WS
-  // directly (WS is not subject to SOP). In production the SPA is served
-  // from the same origin; baseURL must be `/` rather than the default `./`
-  // because deep-link routes (e.g. `/{owner}/{repo}/{n}`) would otherwise
-  // resolve `__connection.json` relative to the route segment and 404.
+  // In dev the Nuxt SPA runs on a different port from the ghfs server
+  // (defaults 7711 / 7710 but `scripts/dev.ts` shifts both when those are
+  // taken so multiple workspaces can run dev in parallel). Fetching
+  // `__connection.json` cross-origin hits CORS, so hardcode
+  // `connectionMeta` from `VITE_GHFS_WS_PORT` and let devframe open the
+  // WS directly (WS is not subject to SOP). In production the SPA is
+  // served from the same origin; baseURL must be `/` rather than the
+  // default `./` because deep-link routes (e.g. `/{owner}/{repo}/{n}`)
+  // would otherwise resolve `__connection.json` relative to the route
+  // segment and 404.
+  const devWsPort = Number(import.meta.env.VITE_GHFS_WS_PORT) || 7710
   const connectOptions = import.meta.env?.DEV
-    ? { connectionMeta: { backend: 'websocket' as const, websocket: 7710 } }
+    ? { connectionMeta: { backend: 'websocket' as const, websocket: devWsPort } }
     : { baseURL: '/' }
   clientPromise = connectDevframe(connectOptions).then((client) => {
     // `connectDevframe` builds an empty client RPC host; re-register the
