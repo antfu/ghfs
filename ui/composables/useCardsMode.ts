@@ -357,6 +357,7 @@ function scheduleSave(): void {
 export function useCardsMode() {
   const router = useRouter()
   const ui = useUiState()
+  const seenHistory = useSeenHistory()
   const { ensureLoaded } = useProjectPayload()
 
   const currentCard = computed<CardRef | null>(() => currentCardSync())
@@ -449,7 +450,7 @@ export function useCardsMode() {
     opts: PileOptions,
     currentUserLogin: string | null,
   ): Promise<void> {
-    const candidates = filterCandidates(items, opts, currentUserLogin, ui.getSeenEntry)
+    const candidates = filterCandidates(items, opts, currentUserLogin, seenHistory.getSeenEntry)
     const next = pickFromCandidates(candidates, opts, new Set())
     if (next.length === 0)
       return
@@ -483,7 +484,7 @@ export function useCardsMode() {
 
   /** Re-pick from the original source items, excluding cards already touched. */
   function anotherPile(items: ListItem[], currentUserLogin: string | null): void {
-    const candidates = filterCandidates(items, options.value, currentUserLogin, ui.getSeenEntry)
+    const candidates = filterCandidates(items, options.value, currentUserLogin, seenHistory.getSeenEntry)
     const fresh = pickFromCandidates(candidates, options.value, processedKeys.value)
     if (fresh.length === 0)
       return
@@ -495,7 +496,7 @@ export function useCardsMode() {
 
   /** Re-generate using the same options but a fresh source snapshot. */
   function restartPile(items: ListItem[], currentUserLogin: string | null): void {
-    const candidates = filterCandidates(items, options.value, currentUserLogin, ui.getSeenEntry)
+    const candidates = filterCandidates(items, options.value, currentUserLogin, seenHistory.getSeenEntry)
     const fresh = pickFromCandidates(candidates, options.value, new Set())
     if (fresh.length === 0)
       return

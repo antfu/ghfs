@@ -15,7 +15,7 @@ const emit = defineEmits<{
   select: [item: ListItem]
 }>()
 
-const ui = useUiState()
+const seenHistory = useSeenHistory()
 
 const rawItem = computed(() => props.item.raw?.data.item)
 const rawPull = computed(() => props.item.raw?.data.pull)
@@ -37,7 +37,7 @@ const labels = computed(() => props.item.labels ?? [])
 const assignees = computed(() => props.item.assignees ?? [])
 
 const isSeenUnchanged = computed(() => {
-  const seen = ui.getSeenEntry(`${props.item.projectId}#${props.item.number}`)
+  const seen = seenHistory.getSeenEntry(`${props.item.projectId}#${props.item.number}`)
   if (!seen)
     return false
   return isUnchangedSince(props.item, seen)

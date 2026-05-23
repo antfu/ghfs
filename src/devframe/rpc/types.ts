@@ -1,5 +1,5 @@
 import type { PendingOp } from '../../execute/types'
-import type { ExecuteTriggerOptions, InitialPayload, QueueState, RemoteStatus, RepoMeta, SyncTriggerOptions, UiState } from '../../server/types'
+import type { ExecuteTriggerOptions, InitialPayload, QueueState, RemoteStatus, RepoMeta, SeenEntry, SyncTriggerOptions, UiState } from '../../server/types'
 import type { ActivityResult } from '../../sync/activity'
 import type { SyncProgressSnapshot, SyncStage, SyncSummary } from '../../sync/contracts'
 import type { ExecutionResult } from '../../types/execution'
@@ -202,6 +202,7 @@ export interface GhfsServerFunctions {
   'ghfs:hub-execute-queue': (options: { projectId?: string }) => Promise<ExecutionResult[]>
   'ghfs:hub-settings': () => Promise<HubSettings>
   'ghfs:hub-set-settings': (patch: Partial<HubSettings>) => Promise<HubSettings>
+  'ghfs:hub-seen-history': () => Promise<Record<string, SeenEntry>>
 }
 
 export interface GhfsClientFunctions {

@@ -34,7 +34,7 @@ const emit = defineEmits<{
 const { currentUser } = useCurrentUser()
 const scope = useDetailScope()
 const appState = useAppState(scope?.projectId)
-const ui = useUiState()
+const seenHistory = useSeenHistory()
 const repo = computed(() => appState.payload.value?.repo.repo ?? null)
 const collapseBotComments = useCollapseBotComments()
 const bots = computed(() => appState.payload.value?.bots ?? [])
@@ -50,7 +50,7 @@ const lastSeen = computed(() => {
   const projectId = scope?.projectId
   if (!projectId)
     return null
-  return ui.getSeenEntry(`${projectId}#${props.item.number}`) ?? null
+  return seenHistory.getSeenEntry(`${projectId}#${props.item.number}`) ?? null
 })
 const firstNewEntryId = computed<string | null>(() => {
   const seen = lastSeen.value

@@ -4,7 +4,7 @@ import type { ExecutionResult } from '../types/execution'
 import type { SyncState } from '../types/sync-state'
 import type { UiState } from './ui-state'
 
-export type { UiState, UserOverride } from './ui-state'
+export type { SeenEntry, UiState, UserOverride } from './ui-state'
 
 export interface CurrentUser {
   login: string

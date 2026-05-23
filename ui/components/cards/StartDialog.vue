@@ -8,7 +8,7 @@ import {
 } from '../../composables/useCardsMode'
 
 const cards = useCardsMode()
-const ui = useUiState()
+const seenHistory = useSeenHistory()
 const { currentUser } = useCurrentUser()
 
 const open = computed({
@@ -38,7 +38,7 @@ const source = computed(() => cards.pendingSource.value)
 const userLogin = computed(() => currentUser.value?.login ?? null)
 
 const candidates = computed(() =>
-  filterCandidates(sourceItems.value, localOptions.value, userLogin.value, ui.getSeenEntry),
+  filterCandidates(sourceItems.value, localOptions.value, userLogin.value, seenHistory.getSeenEntry),
 )
 const candidateCount = computed(() => candidates.value.length)
 const willPick = computed(() => Math.min(localOptions.value.size, candidateCount.value))

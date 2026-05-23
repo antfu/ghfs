@@ -25,6 +25,7 @@ provideDetailScope({ projectId: effectiveProjectId.value })
 const state = useAppState(props.projectId)
 const rpc = useRpc()
 const ui = useUiState()
+const seenHistory = useSeenHistory()
 const { currentUser } = useCurrentUser()
 const userOverrideOpen = ref(false)
 
@@ -134,7 +135,7 @@ watch(
         lastCommentId = c.id
       }
     }
-    ui.markSeen(`${projectId}#${num}`, {
+    seenHistory.markSeen(`${projectId}#${num}`, {
       lastCommentId,
       lastSeenAt: new Date().toISOString(),
     })
