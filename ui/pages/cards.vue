@@ -178,20 +178,20 @@ async function doDismiss() {
         @click="doRestart"
       >
         <span class="i-ph-arrow-clockwise-duotone" />
-        Restart
+        Restart pile
       </button>
 
       <UiWithCommand v-if="total > 0" v-slot="{ execute, disabled }" command="cards.dismiss">
         <button
           type="button"
           class="btn-action-sm"
-          title="Dismiss this pile"
+          title="Discard this pile"
           data-testid="cards-dismiss"
           :disabled="disabled"
           @click="execute"
         >
           <span class="i-ph-trash-duotone" />
-          Dismiss
+          Discard pile
         </button>
       </UiWithCommand>
 

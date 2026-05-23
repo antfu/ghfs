@@ -223,19 +223,46 @@ function onClick(e: MouseEvent) {
   user-select: none;
 }
 
-/* Per-zone colour tokens. Each zone exposes a single `--zone-rgb` which the
-   overlays and labels both consume — keeps the colour identity consistent. */
+/* Per-zone colour tokens, mapped to the UnoCSS / Tailwind palette so the
+   gradients and labels stay in sync with the rest of the app's theme.
+   `--zone-rgb`  — base hue used by the radial gradient (always with alpha)
+   `--zone-text` — high-contrast hue for label + kbd text (deeper in light
+                   mode, lighter in dark mode so it reads on both surfaces). */
 .edge-zone-todo {
-  --zone-rgb: 34 197 94;       /* emerald — "save for later" */
+  --zone-rgb: 34 197 94;       /* green-500 — "save for later" */
+  --zone-text: 21 128 61;      /* green-700 */
 }
 .edge-zone-ignore {
-  --zone-rgb: 244 63 94;       /* rose — "dismiss" */
+  --zone-rgb: 239 68 68;       /* red-500 — "dismiss" */
+  --zone-text: 185 28 28;      /* red-700 */
 }
 .edge-zone-skip {
-  --zone-rgb: 245 158 11;      /* amber — "pass" */
+  --zone-rgb: 245 158 11;      /* amber-500 — "pass" */
+  --zone-text: 180 83 9;       /* amber-700 */
 }
 .edge-zone-comment {
-  --zone-rgb: 33 139 255;      /* blue (primary) — "interact" */
+  --zone-rgb: 9 105 218;       /* primary-500 — "interact" */
+  --zone-text: 5 80 174;       /* primary-600 */
+}
+
+/* Dark mode: lift the base hue toward the 400 shade so the gradient still
+   reads against the dark background, and lift the text toward 300 for
+   readability. */
+.dark .edge-zone-todo {
+  --zone-rgb: 74 222 128;      /* green-400 */
+  --zone-text: 134 239 172;    /* green-300 */
+}
+.dark .edge-zone-ignore {
+  --zone-rgb: 248 113 113;     /* red-400 */
+  --zone-text: 252 165 165;    /* red-300 */
+}
+.dark .edge-zone-skip {
+  --zone-rgb: 251 191 36;      /* amber-400 */
+  --zone-text: 252 211 77;     /* amber-300 */
+}
+.dark .edge-zone-comment {
+  --zone-rgb: 33 139 255;      /* primary-400 */
+  --zone-text: 84 174 255;     /* primary-300 */
 }
 
 .edge-overlay {
@@ -308,7 +335,7 @@ function onClick(e: MouseEvent) {
   opacity: 1;
 }
 
-/* Labels — flat text near each edge, tinted with the zone's own colour so
+/* Labels — flat text near each edge, tinted with the zone's text shade so
    the user reads the option's identity at a glance. */
 .edge-label {
   position: absolute;
@@ -316,7 +343,7 @@ function onClick(e: MouseEvent) {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.8125rem;
-  color: rgb(var(--zone-rgb) / 0.85);
+  color: rgb(var(--zone-text));
   pointer-events: none;
   z-index: 2;
   letter-spacing: 0.01em;
@@ -326,13 +353,12 @@ function onClick(e: MouseEvent) {
 
 .edge-label-active {
   opacity: 1;
-  color: rgb(var(--zone-rgb));
 }
 
-/* Kbd hints inherit the zone's colour. UiKbd renders a `<span><kbd /></span>`,
-   so we tint the inner kbd and give it a semi-transparent tinted background. */
+/* Kbd hints — text uses the readable text shade, background uses the
+   gradient hue at low alpha so the chip feels related to the bloom. */
 .edge-label :deep(.kbd) {
-  color: rgb(var(--zone-rgb));
+  color: rgb(var(--zone-text));
   background: rgb(var(--zone-rgb) / 0.12);
   border-color: rgb(var(--zone-rgb) / 0.32);
   border-bottom-color: rgb(var(--zone-rgb) / 0.45);
