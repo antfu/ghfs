@@ -97,6 +97,36 @@ export function computeItemActivityBuckets(
   return { buckets, total, days }
 }
 
+/**
+ * Convert an ISO timestamp into its position in a `days`-length oldest-first
+ * bucket array (same indexing convention as the bucket functions above).
+ *
+ * Returns:
+ *  - `undefined` if the ISO is missing, unparseable, or older than the window
+ *  - `days - 1` for timestamps on today (or in the future)
+ *  - the matching bucket index otherwise
+ *
+ * Used by the UI to mark events like an item's createdAt on a sparkline.
+ */
+export function activityBucketIndex(
+  iso: string | null | undefined,
+  days: number,
+  now = Date.now(),
+): number | undefined {
+  if (!iso)
+    return undefined
+  const ts = Date.parse(iso)
+  if (Number.isNaN(ts))
+    return undefined
+  const startOfTodayMs = startOfUtcDay(now)
+  const daysAgo = Math.floor((startOfTodayMs - startOfUtcDay(ts)) / MS_PER_DAY)
+  if (daysAgo >= days)
+    return undefined
+  if (daysAgo < 0)
+    return days - 1
+  return days - 1 - daysAgo
+}
+
 function startOfUtcDay(ms: number): number {
   return Math.floor(ms / MS_PER_DAY) * MS_PER_DAY
 }

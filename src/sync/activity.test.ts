@@ -1,6 +1,6 @@
 import type { SyncItemCanonicalData, SyncState } from '../types/sync-state'
 import { describe, expect, it } from 'vitest'
-import { computeItemActivityBuckets, computeProjectActivityBuckets, isCreatedToday } from './activity'
+import { activityBucketIndex, computeItemActivityBuckets, computeProjectActivityBuckets, isCreatedToday } from './activity'
 
 const NOW = Date.UTC(2026, 4, 21) // 2026-05-21
 const MS_PER_DAY = 24 * 60 * 60 * 1000
@@ -201,5 +201,31 @@ describe('computeItemActivityBuckets', () => {
     expect(result.buckets[30 - 1 - 5]).toBe(1)
     expect(result.buckets[30 - 1 - 7]).toBe(1)
     expect(result.buckets[30 - 1 - 10]).toBe(1)
+  })
+})
+
+describe('activityBucketIndex', () => {
+  it('returns undefined for missing or unparseable input', () => {
+    expect(activityBucketIndex(null, 180, NOW)).toBeUndefined()
+    expect(activityBucketIndex(undefined, 180, NOW)).toBeUndefined()
+    expect(activityBucketIndex('not-a-date', 180, NOW)).toBeUndefined()
+  })
+
+  it('returns undefined for timestamps older than the window', () => {
+    expect(activityBucketIndex(isoDaysAgo(200), 180, NOW)).toBeUndefined()
+    expect(activityBucketIndex(isoDaysAgo(180), 180, NOW)).toBeUndefined()
+  })
+
+  it('returns days-1 for today and clamps future timestamps to days-1', () => {
+    expect(activityBucketIndex(isoDaysAgo(0), 180, NOW)).toBe(179)
+    expect(activityBucketIndex(isoDaysAgo(-3), 180, NOW)).toBe(179)
+  })
+
+  it('places a timestamp 30 days ago at the matching index (oldest-first)', () => {
+    expect(activityBucketIndex(isoDaysAgo(30), 180, NOW)).toBe(180 - 1 - 30)
+  })
+
+  it('places a timestamp at the left edge (days-1 ago) at index 0', () => {
+    expect(activityBucketIndex(isoDaysAgo(179), 180, NOW)).toBe(0)
   })
 })

@@ -48,7 +48,7 @@ const bodySnippetHtml = computed(() => {
   <div class="border-b border-base">
  <button
     type="button"
-    class="group w-full text-left flex items-start gap-2.5 px-3 py-2 text-sm transition-colors relative outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40"
+    class="group w-full text-left px-3 py-2 text-sm transition-colors relative outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40 overflow-hidden"
     :class="props.selected
       ? 'bg-primary-500/8 dark:bg-primary-400/8 border-l-2 border-l-primary-500 dark:border-l-primary-400 pl-[10px]'
       : 'hover:bg-active'"
@@ -56,6 +56,18 @@ const bodySnippetHtml = computed(() => {
     :data-item-number="item.number"
     @click="emit('select', item)"
   >
+    <div
+      v-if="item.activityBuckets && item.activityBuckets.length"
+      class="absolute inset-0 op-25 dark:op-20 pointer-events-none color-active"
+      style="mask-image: linear-gradient(to bottom, transparent 0%, black 50%, black 90%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 50%, black 90%, transparent 100%);"
+    >
+      <DisplayItemActivitySparkline
+        :points="item.activityBuckets"
+        :created-index="item.activityCreatedIndex"
+      />
+    </div>
+
+    <div class="relative z-1 flex items-start gap-2.5">
     <template v-if="showRepoName">
       <DisplayProjectIcon
         :project="{ id: item.projectId, repo: item.repo }"
@@ -149,11 +161,8 @@ const bodySnippetHtml = computed(() => {
           <span class="color-faint">·</span>
           <span class="font-mono">{{ item.reactionsTotal }}</span>
         </template>
-        <template v-if="item.activityBuckets && item.activityBuckets.length">
-          <span class="color-faint">·</span>
-          <DisplayItemActivitySparkline :points="item.activityBuckets" />
-        </template>
       </div>
+    </div>
     </div>
   </button>
   </div>
