@@ -111,6 +111,37 @@ watch(effectiveNumber, () => {
   })
 })
 
+// Mark the currently-viewed item as "seen". Fires on initial mount, every
+// item switch, and whenever the comment count changes so a fresh sync that
+// lands while the user is still on the item updates the last-seen point
+// instead of leaving an old position behind.
+watch(
+  [effectiveNumber, effectiveProjectId, () => selected.value?.data.comments?.length ?? 0],
+  () => {
+    const num = effectiveNumber.value
+    const projectId = effectiveProjectId.value
+    const entry = selected.value
+    if (num == null || !projectId || !entry)
+      return
+    const comments = entry.data.comments ?? []
+    let lastCommentId: number | null = null
+    let latestAt = ''
+    for (const c of comments) {
+      if (!c.createdAt)
+        continue
+      if (c.createdAt > latestAt) {
+        latestAt = c.createdAt
+        lastCommentId = c.id
+      }
+    }
+    ui.markSeen(`${projectId}#${num}`, {
+      lastCommentId,
+      lastSeenAt: new Date().toISOString(),
+    })
+  },
+  { immediate: true },
+)
+
 function startEditingPendingComment(entry: QueueEntry) {
   composerRef.value?.startEditing(entry)
 }

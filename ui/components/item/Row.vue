@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ListItem } from '../../types/list-item'
+import { isUnchangedSince } from '../../composables/useCardsMode'
 
 const props = withDefaults(defineProps<{
   item: ListItem
@@ -14,11 +15,20 @@ const emit = defineEmits<{
   select: [item: ListItem]
 }>()
 
+const ui = useUiState()
+
 const rawItem = computed(() => props.item.raw?.data.item)
 const rawPull = computed(() => props.item.raw?.data.pull)
 
 const labels = computed(() => props.item.labels ?? [])
 const assignees = computed(() => props.item.assignees ?? [])
+
+const isSeenUnchanged = computed(() => {
+  const seen = ui.getSeenEntry(`${props.item.projectId}#${props.item.number}`)
+  if (!seen)
+    return false
+  return isUnchangedSince(props.item, seen)
+})
 
 // Pending ops are per-active-project (via useAppState). They only make sense
 // when this row belongs to the active project — i.e. when `raw` is present.
@@ -49,9 +59,13 @@ const bodySnippetHtml = computed(() => {
  <button
     type="button"
     class="group w-full text-left flex items-start gap-2.5 px-3 py-2 text-sm transition-colors relative outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40"
-    :class="props.selected
-      ? 'bg-primary-500/8 dark:bg-primary-400/8 border-l-2 border-l-primary-500 dark:border-l-primary-400 pl-[10px]'
-      : 'hover:bg-active'"
+    :class="[
+      props.selected
+        ? 'bg-primary-500/8 dark:bg-primary-400/8 border-l-2 border-l-primary-500 dark:border-l-primary-400 pl-[10px]'
+        : 'hover:bg-active',
+      isSeenUnchanged && !props.selected ? 'opacity-55' : '',
+    ]"
+    :data-seen-unchanged="isSeenUnchanged || undefined"
     data-testid="item-row"
     :data-item-number="item.number"
     @click="emit('select', item)"

@@ -7,6 +7,7 @@ import type {
   ProviderTimelineEvent,
 } from '../../../src/types/provider'
 import { isBotLogin } from '../../../src/utils/bot'
+import { formatRelative } from '../../composables/useRelativeTime'
 import {
   colorFor,
   commitUrlFor,
@@ -33,10 +34,35 @@ const emit = defineEmits<{
 const { currentUser } = useCurrentUser()
 const scope = useDetailScope()
 const appState = useAppState(scope?.projectId)
+const ui = useUiState()
 const repo = computed(() => appState.payload.value?.repo.repo ?? null)
 const collapseBotComments = useCollapseBotComments()
 const bots = computed(() => appState.payload.value?.bots ?? [])
 const expanded = reactive(new Set<string>())
+
+/**
+ * "Last seen" marker — sits before the first entry the user hasn't yet
+ * looked at. `firstNewEntryId` returns the id of that entry, or null when
+ * either no seen-record exists for this item or every entry is older than
+ * the last view (nothing to flag).
+ */
+const lastSeen = computed(() => {
+  const projectId = scope?.projectId
+  if (!projectId)
+    return null
+  return ui.getSeenEntry(`${projectId}#${props.item.number}`) ?? null
+})
+const firstNewEntryId = computed<string | null>(() => {
+  const seen = lastSeen.value
+  if (!seen)
+    return null
+  for (const entry of entries.value) {
+    if (entry.createdAt && entry.createdAt > seen.lastSeenAt)
+      return entry.id
+  }
+  return null
+})
+const lastSeenLabel = computed(() => formatRelative(lastSeen.value?.lastSeenAt))
 
 function toggleExpanded(id: string): void {
   if (expanded.has(id))
@@ -130,6 +156,19 @@ function shortSha(sha: string | undefined): string {
 
     <div class="flex flex-col gap-4">
       <template v-for="entry in entries" :key="entry.id">
+        <!-- "Last seen" divider before the first unseen entry -->
+        <div
+          v-if="entry.id === firstNewEntryId"
+          class="relative flex items-center gap-3 my-1 z-10"
+          data-testid="detail-last-seen-marker"
+        >
+          <div class="flex-1 h-px bg-orange-500/40" />
+          <span class="text-xs font-medium text-orange-600 dark:text-orange-400 whitespace-nowrap">
+            Last seen {{ lastSeenLabel }}
+          </span>
+          <div class="flex-1 h-px bg-orange-500/40" />
+        </div>
+
         <!-- Comment -->
         <div v-if="entry.kind === 'comment'" class="relative pl-10" :data-comment-id="entry.id">
           <!-- Collapsed bot comment -->

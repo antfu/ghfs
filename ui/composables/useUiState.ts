@@ -1,4 +1,4 @@
-import type { UiState, UserOverride } from '#ghfs/server-types'
+import type { SeenEntry, UiState, UserOverride } from '#ghfs/server-types'
 import { useDebounceFn } from '@vueuse/core'
 import { diagnostics } from '../utils/logger'
 
@@ -188,17 +188,18 @@ export function useUiState() {
     ensureSaver()()
   }
 
-  function getSeenHash(key: string): string | undefined {
+  function getSeenEntry(key: string): SeenEntry | undefined {
     return uiState.seenHistory?.[key]
   }
 
-  function markSeen(key: string, hash: string): void {
-    if (!key || !hash)
+  function markSeen(key: string, entry: SeenEntry): void {
+    if (!key || !entry?.lastSeenAt)
       return
     const current = uiState.seenHistory ?? {}
-    if (current[key] === hash)
+    const prev = current[key]
+    if (prev && prev.lastCommentId === entry.lastCommentId && prev.lastSeenAt === entry.lastSeenAt)
       return
-    uiState.seenHistory = { ...current, [key]: hash }
+    uiState.seenHistory = { ...current, [key]: entry }
     ensureSaver()()
   }
 
@@ -222,7 +223,7 @@ export function useUiState() {
     isIgnored,
     addIgnored,
     removeIgnored,
-    getSeenHash,
+    getSeenEntry,
     markSeen,
   }
 }
