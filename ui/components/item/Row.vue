@@ -93,7 +93,19 @@ const bodySnippetHtml = computed(() => {
       <DisplayItemActivitySparkline
         :points="item.activityBuckets"
         :created-index="item.activityCreatedIndex"
-        :dot-indices="userDotIndices"
+      />
+    </div>
+
+    <div
+      v-if="userDotIndices.length && item.activityBuckets"
+      class="absolute inset-0 pointer-events-none"
+    >
+      <span
+        v-for="i in userDotIndices"
+        :key="i"
+        class="absolute top-1/2 size-1.5 rounded-full bg-orange-500 dark:bg-orange-400 -translate-x-1/2 -translate-y-1/2"
+        :style="{ left: `${(i / Math.max(1, item.activityBuckets.length - 1)) * 100}%` }"
+        data-testid="item-activity-dot"
       />
     </div>
 

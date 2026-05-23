@@ -8,17 +8,12 @@ const props = withDefaults(defineProps<{
    * the window, so the polyline spans the full width and no line is drawn.
    */
   createdIndex?: number
-  /** Bucket indices where the current user was active. Renders a solid dot per index. */
-  dotIndices?: number[]
   color?: string
   /** Stroke color for the createdAt vertical line. */
   createdLineColor?: string
-  /** Fill color for current-user activity dots. */
-  dotColor?: string
 }>(), {
   color: 'currentColor',
   createdLineColor: '#22c55e',
-  dotColor: '#3b82f6',
 })
 
 // Floor the y-axis so a quiet item (1–2 events) doesn't visually
@@ -103,27 +98,6 @@ const pathD = computed(() => {
   return parts.join('')
 })
 
-const dotPositions = computed(() => {
-  const indices = props.dotIndices ?? []
-  if (indices.length === 0)
-    return []
-  const smoothed = smoothedPoints.value
-  const n = smoothed.length
-  if (n === 0)
-    return []
-  const max = Math.max(MIN_SCALE / (2 * SMOOTH_HW + 1), ...smoothed)
-  return indices
-    .filter(i => i >= 0 && i < n)
-    .map((i) => {
-      const y = curveY(smoothed[i], max)
-      // Floor dots a few units above the baseline so they stay visible
-      // even when the curve is fully clipped at the bottom edge.
-      const yClamped = Math.min(y, BASELINE_Y - 4)
-      const xPercent = n > 1 ? (i / (n - 1)) * 100 : 50
-      return { i, x: xPercent, y: yClamped }
-    })
-})
-
 const showCreatedLine = computed(() =>
   props.createdIndex != null
   && props.createdIndex >= 0
@@ -139,46 +113,34 @@ const tooltipText = computed(() =>
 </script>
 
 <template>
-  <div class="absolute inset-0" data-testid="item-activity-sparkline">
-    <svg
-      width="100%"
-      height="100%"
-      :viewBox="`0 0 ${points.length} 100`"
-      preserveAspectRatio="none"
-      class="absolute inset-0"
-    >
-      <title>{{ tooltipText }}</title>
-      <line
-        v-if="showCreatedLine"
-        :x1="createdIndex"
-        :x2="createdIndex"
-        y1="0"
-        y2="100"
-        :stroke="createdLineColor"
-        stroke-width="1"
-        vector-effect="non-scaling-stroke"
-      />
-      <path
-        v-if="pathD"
-        :d="pathD"
-        fill="none"
-        :stroke="color"
-        stroke-width="1.25"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        vector-effect="non-scaling-stroke"
-      />
-    </svg>
-    <span
-      v-for="dot in dotPositions"
-      :key="dot.i"
-      class="absolute size-1 rounded-full pointer-events-none -translate-x-1/2 -translate-y-1/2"
-      :style="{
-        left: `${dot.x}%`,
-        top: `${dot.y}%`,
-        backgroundColor: dotColor,
-      }"
-      data-testid="item-activity-dot"
+  <svg
+    width="100%"
+    height="100%"
+    :viewBox="`0 0 ${points.length} 100`"
+    preserveAspectRatio="none"
+    class="absolute inset-0"
+    data-testid="item-activity-sparkline"
+  >
+    <title>{{ tooltipText }}</title>
+    <line
+      v-if="showCreatedLine"
+      :x1="createdIndex"
+      :x2="createdIndex"
+      y1="0"
+      y2="100"
+      :stroke="createdLineColor"
+      stroke-width="1"
+      vector-effect="non-scaling-stroke"
     />
-  </div>
+    <path
+      v-if="pathD"
+      :d="pathD"
+      fill="none"
+      :stroke="color"
+      stroke-width="1.25"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      vector-effect="non-scaling-stroke"
+    />
+  </svg>
 </template>
