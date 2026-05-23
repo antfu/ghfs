@@ -149,6 +149,10 @@ const bodySnippetHtml = computed(() => {
           <span class="color-faint">·</span>
           <span class="font-mono">{{ item.reactionsTotal }}</span>
         </template>
+        <template v-if="item.activityBuckets && item.activityBuckets.length">
+          <span class="color-faint">·</span>
+          <DisplayItemActivitySparkline :points="item.activityBuckets" />
+        </template>
       </div>
     </div>
   </button>

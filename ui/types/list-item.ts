@@ -1,6 +1,9 @@
 import type { IssueKind, IssueState } from '../../src/types/issue'
 import type { SyncItemState } from '../../src/types/sync-state'
 import type { HubRecentItem } from '#ghfs/rpc-types'
+import { computeItemActivityBuckets } from '../../src/sync/activity'
+
+const ACTIVITY_DAYS = 30
 
 export interface ListItem {
   key: string
@@ -19,6 +22,7 @@ export interface ListItem {
   reactionsTotal?: number
   url?: string
   raw?: SyncItemState
+  activityBuckets?: number[]
 }
 
 export function listItemKey(input: { projectId: string, kind: IssueKind, number: number }): string {
@@ -44,6 +48,7 @@ export function fromSyncItem(entry: SyncItemState, projectId: string, repo: stri
     reactionsTotal: item.reactions?.totalCount,
     url: item.url,
     raw: entry,
+    activityBuckets: computeItemActivityBuckets(entry.data, ACTIVITY_DAYS).buckets,
   }
 }
 
