@@ -208,6 +208,10 @@ export function createAppCommands(): Command[] {
       state.value.executeConfirmOpen.value = false
       return
     }
+    if (hubUi.executeAllConfirmOpen.value) {
+      hubUi.closeExecuteAllConfirm()
+      return
+    }
     if (hubUi.settingsOpen.value) {
       hubUi.closeSettings()
       return
@@ -623,19 +627,6 @@ export function createAppCommands(): Command[] {
       run: () => { router.push('/todo') },
     },
     {
-      id: 'hub.queue-page',
-      title: 'Hub: Open queue page',
-      category: 'Hub',
-      icon: 'i-octicon-checklist-16',
-      keybindings: ['Q'],
-      when: 'hubMode && route != "/queue"',
-      help: 'hubMode',
-      run: () => {
-        hubUi.closeQueueDrawer()
-        router.push('/queue')
-      },
-    },
-    {
       id: 'hub.home',
       title: 'Hub: Open home',
       category: 'Hub',
@@ -649,9 +640,10 @@ export function createAppCommands(): Command[] {
       title: 'Hub: Execute all queues',
       category: 'Hub',
       icon: 'i-ph-play-duotone',
-      when: 'hubMode',
+      keybindings: ['X'],
+      when: 'hubMode && hubQueueTotal > 0 && !hubExecuteAllConfirmOpen',
       help: 'hubMode',
-      run: () => { hubQueue.executeAll() },
+      run: () => hubUi.openExecuteAllConfirm(),
     },
     {
       id: 'hub.prev-project',

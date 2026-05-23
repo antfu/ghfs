@@ -33,10 +33,11 @@ file in parentheses):
   hub root surfaces an error inline.
 - `/recent` shows items from every project, sorted by `updatedAt`;
   clicking a row routes to `/{owner}/{repo}/{number}` with selection.
-- `/queue` aggregates entries per project; per-project Execute fires
-  the right RPC; "Execute all" runs sequentially.
+- Hub queue drawer aggregates entries per project; per-project Execute
+  fires the right RPC; "Execute all" prompts a confirm dialog and runs
+  sequentially. Trash button on a drawer entry removes it.
 - Hub queue drawer opens from the navbar quick-view button and closes on
-  Escape.
+  Escape. `X` opens the execute-all confirm when entries are queued.
 
 ## Cross-cutting
 

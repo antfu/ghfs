@@ -22,7 +22,7 @@ withDefaults(defineProps<Props>(), { color: 'color-muted' })
       <DisplayAuthor v-if="actor" :author="actor" :size="16" />
       <slot />
       <span class="color-faint">·</span>
-      <DisplayDateBadge :time="createdAt" mode="day" />
+      <DisplayDateBadge :time="createdAt" />
     </div>
   </div>
 </template>

@@ -71,7 +71,7 @@ Features:
 
 - Project cards with activity sparkline, open issue / PR counts, last updated and last synced badges.
 - `/recent` — cross-project list of recently-updated issues and PRs.
-- `/queue` — aggregated queue across all enabled projects with per-project execute.
+- Queue drawer (`q`) — aggregated queue across all enabled projects with per-project execute; press `X` to execute everything.
 - Settings dialog (`,`) for hub root and an optional auto-sync interval (1–60 minutes).
 
 Flags mirror `ghfs ui` (`--port`, `--host`, `--cwd`, `--no-open`).

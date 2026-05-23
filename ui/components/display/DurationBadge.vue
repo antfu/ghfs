@@ -18,11 +18,9 @@ const props = withDefaults(
   defineProps<{
     ms?: number
     colorize?: ColorizeMode | true
-    mode?: 'day' | 'hour'
   }>(),
   {
     colorize: 'freshness',
-    mode: 'hour',
   },
 )
 
@@ -38,8 +36,11 @@ const timeAgo = computed<[string | number, string]>(() => {
   if (!props.ms)
     return ['', '']
   if (daysAgo.value < 1) {
-    if (props.mode === 'day')
-      return ['today', '']
+    const minutesAgo = Math.floor(props.ms / (1000 * 60))
+    if (minutesAgo < 1)
+      return ['just now', '']
+    if (minutesAgo < 60)
+      return [minutesAgo, 'min']
     const hoursAgo = Math.floor(props.ms / (1000 * 60 * 60))
     return [hoursAgo, 'hr']
   }

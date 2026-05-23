@@ -6,11 +6,9 @@ const props = withDefaults(
   defineProps<{
     time?: number | Date | string | null
     colorize?: ColorizeMode | true
-    mode?: 'day' | 'hour'
   }>(),
   {
     colorize: 'freshness',
-    mode: 'hour',
   },
 )
 
@@ -40,7 +38,6 @@ const ms = computed(() => (date.value ? Date.now() - date.value.getTime() : 0))
     :title="dateTitle"
     :ms="ms"
     :colorize="colorize"
-    :mode="mode"
     data-testid="date-badge"
   />
 </template>

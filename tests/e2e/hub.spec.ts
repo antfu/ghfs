@@ -28,14 +28,6 @@ test.describe('hub smoke', () => {
     expect(errors).toEqual([])
   })
 
-  test('GET /queue renders', async ({ page }) => {
-    const errors = captureErrors(page)
-    await page.goto(`${BASE}/queue`)
-    await expect(page.locator('[data-testid="navbar"]')).toBeVisible({ timeout: 10_000 })
-    await expect(page.locator('[data-testid="hub-queue-page"]')).toBeVisible({ timeout: 10_000 })
-    expect(errors).toEqual([])
-  })
-
   test('clicking a card opens /{owner}/{repo}', async ({ page }) => {
     const errors = captureErrors(page)
     await page.goto(`${BASE}/`)
@@ -70,10 +62,6 @@ test.describe('hub smoke', () => {
     await page.goto(`${BASE}/hub/recent`)
     await expect(page).toHaveURL(`${BASE}/recent`)
     await expect(page.locator('[data-testid="hub-recent-page"]')).toBeVisible({ timeout: 10_000 })
-
-    await page.goto(`${BASE}/hub/queue`)
-    await expect(page).toHaveURL(`${BASE}/queue`)
-    await expect(page.locator('[data-testid="hub-queue-page"]')).toBeVisible({ timeout: 10_000 })
 
     expect(errors).toEqual([])
   })

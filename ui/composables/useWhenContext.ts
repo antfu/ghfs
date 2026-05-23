@@ -22,6 +22,8 @@ export interface WhenContext extends Record<string, unknown> {
   hubPickerOpen: boolean
   hubSettingsOpen: boolean
   hubQueueDrawerOpen: boolean
+  hubExecuteAllConfirmOpen: boolean
+  hubQueueTotal: number
   hubProjectsCount: number
   hasActiveProjectId: boolean
   anyOverlayOpen: boolean
@@ -46,6 +48,7 @@ export function useWhenContext(): ComputedRef<WhenContext> {
   const { filteredItems } = useFilteredItems()
   const { filteredItems: recentFiltered } = useRecentFiltered()
   const { upCount } = useQueue()
+  const { totalCount: hubQueueTotal } = useHubQueue()
   const inputFocused = useInputFocus()
   const palette = useCommandPalette()
   const cards = useCardsMode()
@@ -72,6 +75,7 @@ export function useWhenContext(): ComputedRef<WhenContext> {
     const hubPickerOpen = hubUi.pickerOpen.value
     const hubSettingsOpen = hubUi.settingsOpen.value
     const hubQueueDrawerOpen = hubUi.queueDrawerOpen.value
+    const hubExecuteAllConfirmOpen = hubUi.executeAllConfirmOpen.value
     const onRecent = route.path === '/recent'
     const onCardsPage = route.path === '/cards'
     const cardsAdvancing = cards.advancing.value
@@ -100,6 +104,8 @@ export function useWhenContext(): ComputedRef<WhenContext> {
       hubPickerOpen,
       hubSettingsOpen,
       hubQueueDrawerOpen,
+      hubExecuteAllConfirmOpen,
+      hubQueueTotal: hubQueueTotal.value,
       hubProjectsCount: hub.projects.value.length,
       hasActiveProjectId: Boolean(activeId.value),
       // NB: cardsCommentDialogOpen is deliberately *not* in anyOverlayOpen.
@@ -108,7 +114,8 @@ export function useWhenContext(): ComputedRef<WhenContext> {
       // would fall through to closing the queue etc.) just causes conflicts.
       anyOverlayOpen: helpOpen || labelEditorOpen || queueOpen
         || executeConfirmOpen || hubPickerOpen
-        || hubSettingsOpen || hubQueueDrawerOpen,
+        || hubSettingsOpen || hubQueueDrawerOpen
+        || hubExecuteAllConfirmOpen,
       onCardsPage,
       cardsHasCurrent: Boolean(cards.currentCard.value),
       cardsAdvancing,
