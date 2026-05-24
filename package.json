@@ -25,7 +25,7 @@
   },
   "types": "./dist/index.d.mts",
   "bin": {
-    "cli": "./dist/cli.mjs"
+    "ghfs": "./dist/cli.mjs"
   },
   "files": [
     "dist",
