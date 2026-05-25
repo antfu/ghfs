@@ -254,7 +254,7 @@ defineExpose({ startEditing, focus })
         @keydown.meta.period.exact.prevent.stop="templatePickerOpen = true"
         @keydown.ctrl.period.exact.prevent.stop="templatePickerOpen = true"
       />
-      <DetailTemplatePicker
+      <PanelDetailTemplatePicker
         v-model:open="templatePickerOpen"
         :context="templateContext"
         class="absolute top-1.5 right-1.5"
