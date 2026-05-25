@@ -120,7 +120,6 @@ async function runHubServer(options: HubCommandOptions, runOpts: RunHubServerOpt
   const urlHost = host === '0.0.0.0' ? 'localhost' : host
   const directUrl = `http://${urlHost}:${port}/`
   printer.info(`ghfs hub running at ${directUrl}`)
-  printer.info('Pick the projects to include from the UI (top-right "Manage projects" button).')
   if (!initialToken)
     printer.info('No GitHub token yet; sync/execute will prompt or fail until one is available.')
 
