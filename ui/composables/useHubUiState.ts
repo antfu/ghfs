@@ -1,4 +1,4 @@
-export type SettingsTab = 'general' | 'projects' | 'templates' | 'ignored'
+export type SettingsTab = 'general' | 'account' | 'projects' | 'templates' | 'ignored'
 
 const settingsOpen = ref(false)
 const settingsTab = ref<SettingsTab>('general')

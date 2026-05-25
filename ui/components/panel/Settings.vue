@@ -20,11 +20,15 @@ const ignoredCount = computed(() => (ui.uiState.ignored ?? []).length)
     height="h-[36rem]"
     data-testid="settings-dialog"
   >
-    <TabsRoot v-model="tab" class="flex flex-col min-h-0 flex-1">
-      <TabsList class="flex items-stretch gap-1 px-4 pt-3 border-b border-base shrink-0">
+    <TabsRoot v-model="tab" class="flex flex-col">
+      <TabsList class="sticky top-0 z-1 bg-base flex items-stretch gap-1 px-4 pt-3 border-b border-base">
         <TabsTrigger value="general" class="tab-trigger" data-testid="settings-tab-general">
           <span class="i-ph-gear-six-duotone" />
           General
+        </TabsTrigger>
+        <TabsTrigger value="account" class="tab-trigger" data-testid="settings-tab-account">
+          <span class="i-ph-user-circle-duotone" />
+          Account
         </TabsTrigger>
         <TabsTrigger v-if="isHubMode" value="projects" class="tab-trigger" data-testid="settings-tab-projects">
           <span class="i-ph-folder-duotone" />
@@ -41,9 +45,12 @@ const ignoredCount = computed(() => (ui.uiState.ignored ?? []).length)
         </TabsTrigger>
       </TabsList>
 
-      <div class="flex-1 overflow-y-auto px-5 py-4">
+      <div class="px-5 py-4">
         <TabsContent value="general">
           <PanelSettingsGeneral :active="open && tab === 'general'" />
+        </TabsContent>
+        <TabsContent value="account">
+          <PanelSettingsAccount :active="open && tab === 'account'" />
         </TabsContent>
         <TabsContent v-if="isHubMode" value="projects">
           <PanelSettingsProjects :active="open && tab === 'projects'" />

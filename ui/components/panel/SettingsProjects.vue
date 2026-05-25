@@ -133,6 +133,13 @@ watch(() => props.active, (value) => {
   rootDraft.value = ''
   void refresh()
 }, { immediate: true })
+
+// Re-scan whenever the hub-roots list changes, even if mutated outside this
+// component (e.g. another tab, another window, or the CLI).
+watch(() => hub.hubRoots.value.join('|'), () => {
+  if (props.active)
+    void refresh()
+})
 </script>
 
 <template>
@@ -241,7 +248,9 @@ watch(() => props.active, (value) => {
         />
       </header>
 
-      <UiSearchField v-model="search" placeholder="Filter by name or path…" />
+      <div class="sticky top-12 z-1 bg-base -mx-1 px-1 py-1">
+        <UiSearchField v-model="search" placeholder="Filter by name or path…" />
+      </div>
 
       <UiEmptyState v-if="loading" size="sm">
         <span class="i-octicon-sync-16 animate-spin text-xl color-active mb-2" />
