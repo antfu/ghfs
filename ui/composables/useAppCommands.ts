@@ -58,6 +58,7 @@ export function createAppCommands(): Command[] {
   const hubUi = useHubUiState()
   const hubQueue = useHubQueue()
   const router = useRouter()
+  const { offline } = useOnlineState()
   const { filteredItems } = useFilteredItems()
   const { upCount } = useQueue()
   const palette = useCommandPalette()
@@ -163,6 +164,7 @@ export function createAppCommands(): Command[] {
 
   async function triggerSync() {
     if (state.value.syncing.value) return
+    if (offline.value) return
     state.value.setSyncing(true)
     state.value.setError(null)
     try {
@@ -176,6 +178,7 @@ export function createAppCommands(): Command[] {
   function askExecute() {
     if (state.value.executing.value) return
     if (upCount.value === 0) return
+    if (offline.value) return
     state.value.askExecute()
   }
   function toggleQueue() {
@@ -401,7 +404,7 @@ export function createAppCommands(): Command[] {
       category: 'Action',
       icon: 'i-octicon-sync-16',
       keybindings: ['s'],
-      when: 'hasToken && !syncing',
+      when: 'hasToken && !syncing && online',
       run: triggerSync,
     },
     {
@@ -418,7 +421,7 @@ export function createAppCommands(): Command[] {
       category: 'Action',
       icon: 'i-octicon-play-16',
       keybindings: ['x'],
-      when: 'hasToken && queueUpCount > 0 && !executing',
+      when: 'hasToken && queueUpCount > 0 && !executing && online',
       run: askExecute,
     },
     {
@@ -665,7 +668,7 @@ export function createAppCommands(): Command[] {
       category: 'Hub',
       icon: 'i-ph-play-duotone',
       keybindings: ['X'],
-      when: 'hubMode && hubQueueTotal > 0 && !hubExecuteAllConfirmOpen',
+      when: 'hubMode && hubQueueTotal > 0 && !hubExecuteAllConfirmOpen && online',
       help: 'hubMode',
       run: () => hubUi.openExecuteAllConfirm(),
     },
@@ -703,7 +706,7 @@ export function createAppCommands(): Command[] {
       category: 'Hub',
       icon: 'i-octicon-sync-16',
       keybindings: ['s'],
-      when: 'hubHome && hasSyncableProjects && !syncingAll',
+      when: 'hubHome && hasSyncableProjects && !syncingAll && online',
       help: 'hubMode',
       run: () => { syncAllProjects() },
     },

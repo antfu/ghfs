@@ -7,6 +7,7 @@ const hubQueue = useHubQueue()
 const router = useRouter()
 const rpc = useRpc()
 const state = useAppState()
+const { offline } = useOnlineState()
 
 function actionColor(action: string): string {
   return (ACTIONS_COLOR_HEX as Record<string, string>)[action] ?? '#6b7280'
@@ -51,7 +52,8 @@ async function remove(projectId: string, entry: QueueEntry) {
         <button
           type="button"
           class="btn-primary text-xs flex items-center gap-1.5"
-          :disabled="hubQueue.executing.value === group.projectId || hubQueue.executing.value === 'all'"
+          :disabled="hubQueue.executing.value === group.projectId || hubQueue.executing.value === 'all' || offline"
+          :title="offline ? 'Offline — execute paused' : undefined"
           data-testid="hub-queue-execute-project"
           @click="hubQueue.executeProject(group.projectId)"
         >

@@ -14,6 +14,7 @@ const activeId = useActiveProjectId()
 const state = useAppState()
 const rpc = useRpc()
 const { entries } = useQueue()
+const { offline } = useOnlineState()
 
 const warnings = computed<string[]>(() => state.payload.value?.queue.warnings ?? [])
 const hasToken = computed<boolean>(() => state.payload.value?.repo.hasToken ?? false)
@@ -83,6 +84,8 @@ async function confirmClear() {
 
 async function confirmExecute() {
   executeConfirmOpen.value = false
+  if (offline.value)
+    return
   const ids = entries.value.map(e => e.id)
   if (ids.length === 0)
     return
@@ -213,8 +216,8 @@ async function confirmExecute() {
         <UiWithCommand v-slot="{ execute, disabled }" command="action.execute">
           <button
             class="btn-primary text-sm"
-            :disabled="entries.length === 0 || state.executing.value || !hasToken || disabled"
-            :title="!hasToken ? 'No GitHub token available' : undefined"
+            :disabled="entries.length === 0 || state.executing.value || !hasToken || offline || disabled"
+            :title="offline ? 'Offline — execute paused' : (!hasToken ? 'No GitHub token available' : undefined)"
             @click="execute"
           >
             <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-ph-play-duotone'" />

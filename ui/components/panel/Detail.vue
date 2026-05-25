@@ -27,6 +27,7 @@ const rpc = useRpc()
 const ui = useUiState()
 const seenHistory = useSeenHistory()
 const { currentUser } = useCurrentUser()
+const { offline } = useOnlineState()
 const userOverrideOpen = ref(false)
 
 const effectiveNumber = computed<number | null>(() =>
@@ -159,6 +160,8 @@ async function removePendingComment(entry: QueueEntry) {
 
 async function executeThisItem() {
   if (!item.value || state.executing.value)
+    return
+  if (offline.value)
     return
   const ids = pending.entries.value.map(e => e.id)
   if (!ids.length)
@@ -308,8 +311,8 @@ async function discardThisItem() {
         <button
           type="button"
           class="btn-action-sm"
-          :disabled="state.executing.value || !hasToken"
-          :title="hasToken ? 'Execute the pending changes for this item only' : 'No GitHub token available'"
+          :disabled="state.executing.value || !hasToken || offline"
+          :title="offline ? 'Offline — execute paused' : (hasToken ? 'Execute the pending changes for this item only' : 'No GitHub token available')"
           @click="executeThisItem"
         >
           <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-ph-play-duotone'" />

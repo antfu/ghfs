@@ -12,6 +12,7 @@ export interface WhenContext extends Record<string, unknown> {
   syncing: boolean
   syncingAll: boolean
   executing: boolean
+  online: boolean
   queueUpCount: number
   inputFocused: boolean
   paletteOpen: boolean
@@ -55,6 +56,7 @@ export function useWhenContext(): ComputedRef<WhenContext> {
   const inputFocused = useInputFocus()
   const palette = useCommandPalette()
   const cards = useCardsMode()
+  const { online } = useOnlineState()
 
   return computed<WhenContext>(() => {
     const num = state.value.selectedNumber.value
@@ -99,6 +101,7 @@ export function useWhenContext(): ComputedRef<WhenContext> {
       syncing: state.value.syncing.value,
       syncingAll: hubUi.syncingAll.value,
       executing: state.value.executing.value,
+      online: online.value,
       queueUpCount: upCount.value,
       inputFocused: inputFocused.value,
       paletteOpen: palette.paletteOpen.value,

@@ -2,6 +2,7 @@
 const hubUi = useHubUiState()
 const hub = useHubState()
 const hubQueue = useHubQueue()
+const { offline } = useOnlineState()
 
 const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
 
@@ -61,7 +62,8 @@ async function confirmExecuteAll() {
           <button
             type="button"
             class="btn-primary text-sm"
-            :disabled="hubQueue.totalCount.value === 0 || hubQueue.executing.value !== null"
+            :disabled="hubQueue.totalCount.value === 0 || hubQueue.executing.value !== null || offline"
+            :title="offline ? 'Offline — execute paused' : undefined"
             data-testid="hub-queue-execute-all"
             @click="execute"
           >
@@ -89,7 +91,8 @@ async function confirmExecuteAll() {
       <button class="btn-action-sm" @click="hubUi.closeExecuteAllConfirm()">Cancel</button>
       <button
         class="btn-primary text-sm"
-        :disabled="hubQueue.executing.value !== null"
+        :disabled="hubQueue.executing.value !== null || offline"
+        :title="offline ? 'Offline — execute paused' : undefined"
         data-testid="hub-queue-execute-all-confirm"
         @click="confirmExecuteAll"
       >

@@ -6,6 +6,7 @@ const collapseBotComments = useCollapseBotComments()
 const hub = useHubState()
 const hubSettings = useHubSettings()
 const ui = useUiState()
+const { offline } = useOnlineState()
 const ignoredDialogOpen = ref(false)
 const ignoredCount = computed(() => (ui.uiState.ignored ?? []).length)
 
@@ -246,6 +247,14 @@ const intervalDisplay = computed(() => {
           <span class="text-xs color-muted" data-testid="settings-auto-sync-display">{{ intervalDisplay }}</span>
         </div>
         <p class="text-[11px] color-faint">Range: 1–60 minutes. Set to 0 to disable.</p>
+        <p
+          v-if="offline"
+          class="text-[11px] color-yellow-700 dark:color-yellow-300 flex items-center gap-1"
+          data-testid="settings-auto-sync-offline"
+        >
+          <span class="i-ph-cloud-slash-duotone" />
+          <span>Auto-sync paused while offline.</span>
+        </p>
       </section>
 
       <!-- UI -->

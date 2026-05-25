@@ -210,6 +210,13 @@ function createClientHandlers(): GhfsClientFunctions {
     },
     'ghfs:onSyncError': (event) => {
       const state = useAppState(event.projectId)
+      if (useOnlineState().offline.value) {
+        // Backend's auto-sync interval keeps firing while offline; suppress
+        // the noisy error toast and just clear the in-flight flag.
+        state.setProgress(null)
+        state.setSyncing(false)
+        return
+      }
       const prev = state.progress.value
       state.setProgress({
         kind: 'sync',
@@ -272,6 +279,11 @@ function createClientHandlers(): GhfsClientFunctions {
     },
     'ghfs:onExecuteError': (event) => {
       const state = useAppState(event.projectId)
+      if (useOnlineState().offline.value) {
+        state.setProgress(null)
+        state.setExecuting(false)
+        return
+      }
       const prev = state.progress.value
       state.setProgress({
         kind: 'execute',

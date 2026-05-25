@@ -28,6 +28,8 @@ export function useHubQueue() {
   }
 
   async function executeProject(projectId: string) {
+    if (useOnlineState().offline.value)
+      return
     executing.value = projectId
     try {
       await useRpc().$call('ghfs:hub-execute-queue', { projectId })
@@ -39,6 +41,8 @@ export function useHubQueue() {
   }
 
   async function executeAll() {
+    if (useOnlineState().offline.value)
+      return
     executing.value = 'all'
     try {
       await useRpc().$call('ghfs:hub-execute-queue', {})

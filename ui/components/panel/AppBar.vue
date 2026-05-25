@@ -16,6 +16,7 @@ const route = useRoute()
 const { upCount } = useQueue()
 const { totalCount: hubQueueTotal } = useHubQueue()
 const cards = useCardsMode()
+const { offline } = useOnlineState()
 
 const isHubMode = computed(() => hub.capabilities.value?.mode === 'hub')
 const cardsHasPile = computed(() => cards.total.value > 0)
@@ -65,6 +66,8 @@ function onSyncClick(event: MouseEvent, execute: () => void) {
 }
 
 const syncTooltip = computed(() => {
+  if (offline.value)
+    return 'Offline — sync paused'
   if (props.mode === 'hub')
     return hubUi.syncingAll.value ? 'Syncing all projects…' : 'Sync all projects'
   if (!hasToken.value)
@@ -189,13 +192,23 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
 
     <div class="flex-auto" />
 
+    <span
+      v-if="offline"
+      class="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs color-yellow-700 dark:color-yellow-300 bg-yellow-500/10"
+      title="Offline — sync, queue execution, and auto-sync are paused"
+      data-testid="navbar-offline-indicator"
+    >
+      <span class="i-ph-cloud-slash-duotone text-sm" />
+      <span>Offline</span>
+    </span>
+
     <div class="h-6 border-l border-base mx-1 flex-none" />
 
     <UiWithCommand v-if="mode === 'project'" v-slot="{ execute, disabled }" command="action.sync" placement="badge">
       <UiIconButton
         icon="i-octicon-sync-16"
         :tooltip="syncTooltip"
-        :disabled="syncing || !hasToken || disabled"
+        :disabled="syncing || !hasToken || offline || disabled"
         :spinning="syncing"
         @click="(e: MouseEvent) => onSyncClick(e, execute)"
       />
@@ -204,7 +217,7 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
       <UiIconButton
         icon="i-octicon-sync-16"
         :tooltip="syncTooltip"
-        :disabled="syncing"
+        :disabled="syncing || offline"
         :spinning="syncing"
         data-testid="navbar-hub-sync-all"
         @click="execute"

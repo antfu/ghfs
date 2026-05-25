@@ -4,6 +4,7 @@ const open = defineModel<boolean>('open', { required: true })
 const activeId = useActiveProjectId()
 const state = useAppState()
 const rpc = useRpc()
+const { offline } = useOnlineState()
 
 const repoName = computed(() => state.payload.value?.repo.repo ?? '')
 const queueCount = computed(() => state.payload.value?.queue.upCount ?? 0)
@@ -11,6 +12,8 @@ const itemCount = computed(() => Object.keys(state.payload.value?.syncState.item
 
 async function confirm() {
   if (state.executing.value)
+    return
+  if (offline.value)
     return
   const projectId = activeId.value
   if (!projectId)
@@ -71,7 +74,8 @@ async function confirm() {
       <button
         type="button"
         class="px-3 py-1.5 rounded text-sm bg-red-500 hover:bg-red-600 text-white transition disabled:op50 disabled:pointer-events-none outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
-        :disabled="state.executing.value || !activeId"
+        :disabled="state.executing.value || !activeId || offline"
+        :title="offline ? 'Offline — force sync paused' : undefined"
         data-testid="force-sync-confirm"
         @click="confirm"
       >

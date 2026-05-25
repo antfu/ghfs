@@ -11,6 +11,7 @@ const cache = reactive<Map<number, PatchEntry>>(new Map())
 export function usePullPatch(numberRef: Ref<number | null> | ComputedRef<number | null>) {
   const activeId = useActiveProjectId()
   const rpc = useRpc()
+  const { offline } = useOnlineState()
 
   const entry = computed<PatchEntry>(() => {
     const num = numberRef.value
@@ -22,6 +23,8 @@ export function usePullPatch(numberRef: Ref<number | null> | ComputedRef<number 
   async function load(force = false) {
     const num = numberRef.value
     if (num == null)
+      return
+    if (offline.value)
       return
     const existing = cache.get(num)
     if (!force && existing && existing.state !== 'idle' && existing.state !== 'error')

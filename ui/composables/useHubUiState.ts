@@ -49,7 +49,10 @@ export async function syncAllProjects(): Promise<void> {
   const hub = useHubState()
   const rpc = useRpc()
   const ui = useHubUiState()
+  const { offline } = useOnlineState()
   if (ui.syncingAll.value)
+    return
+  if (offline.value)
     return
   const targets = hub.projects.value.filter(p => p.hasToken)
   if (targets.length === 0)
