@@ -216,7 +216,7 @@ defineExpose({
     v-model:shown="open"
     :distance="6"
     :triggers="['click']"
-    :placement="'bottom-end'"
+    :placement="'top-start'"
     :auto-hide="!externalFocus"
     @apply-show="onShow"
     @apply-hide="onHide"

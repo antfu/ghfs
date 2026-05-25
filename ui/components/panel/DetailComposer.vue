@@ -349,24 +349,12 @@ defineExpose({ startEditing, focus })
 </script>
 
 <template>
-  <div class="flex flex-col gap-1.5">
-    <div class="flex items-center justify-end">
-      <PanelDetailTemplatePicker
-        ref="templatePicker"
-        v-model:open="templatePickerOpen"
-        :context="templateContext"
-        :external-query="slashActive ? slashQuery : undefined"
-        :external-focus="slashActive"
-        @pick="insertTemplate"
-        @cancel="onTemplatePickerCancel"
-      />
-    </div>
-    <div
-      class="border border-base rounded-lg bg-base transition"
-      :class="editingCommentId
-        ? 'ring-2 ring-yellow-500/60 border-yellow-500/60'
-        : 'focus-within:border-active focus-within:ring-2 focus-within:ring-primary-500/30'"
-    >
+  <div
+    class="border border-base rounded-lg bg-base transition"
+    :class="editingCommentId
+      ? 'ring-2 ring-yellow-500/60 border-yellow-500/60'
+      : 'focus-within:border-active focus-within:ring-2 focus-within:ring-primary-500/30'"
+  >
     <div class="relative">
       <textarea
         ref="textarea"
@@ -396,6 +384,15 @@ defineExpose({ startEditing, focus })
       />
     </div>
     <div class="flex items-center gap-2 px-2 py-1.5 border-t border-base">
+      <PanelDetailTemplatePicker
+        ref="templatePicker"
+        v-model:open="templatePickerOpen"
+        :context="templateContext"
+        :external-query="slashActive ? slashQuery : undefined"
+        :external-focus="slashActive"
+        @pick="insertTemplate"
+        @cancel="onTemplatePickerCancel"
+      />
       <span v-if="editingCommentId" class="text-xs color-muted">Editing a queued comment</span>
       <div class="flex-1" />
       <button
@@ -440,7 +437,6 @@ defineExpose({ startEditing, focus })
         <span v-else>Comment</span>
         <UiKbd keys="⌘ ↵" tone="muted" />
       </button>
-    </div>
     </div>
   </div>
 </template>
