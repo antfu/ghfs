@@ -15,6 +15,7 @@ const ignoredCount = computed(() => (ui.uiState.ignored ?? []).length)
     v-model:open="open"
     title="Settings"
     icon="i-ph-gear-six-duotone"
+    description="Configure ghfs — identity, sync, saved replies, projects, and ignored items."
     width="w-[min(92vw,42rem)]"
     height="h-[36rem]"
     data-testid="settings-dialog"

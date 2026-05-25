@@ -16,16 +16,6 @@ const adding = ref(false)
 const pendingRemove = ref<string | null>(null)
 const removing = ref<string | null>(null)
 
-watch(() => props.active, (value) => {
-  if (!value) {
-    pendingRemove.value = null
-    return
-  }
-  rootError.value = null
-  rootDraft.value = ''
-  void refresh()
-}, { immediate: true })
-
 async function addRoot() {
   const value = rootDraft.value.trim()
   if (!value || adding.value)
@@ -133,6 +123,16 @@ const filtered = computed(() => {
 })
 
 const enabledCount = computed(() => items.value.filter(i => i.enabled).length)
+
+watch(() => props.active, (value) => {
+  if (!value) {
+    pendingRemove.value = null
+    return
+  }
+  rootError.value = null
+  rootDraft.value = ''
+  void refresh()
+}, { immediate: true })
 </script>
 
 <template>
