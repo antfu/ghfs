@@ -15,8 +15,13 @@ const emit = defineEmits<{
 interface Entry {
   scope: 'repo' | 'global'
   title: string
+  /** Raw body (with `{{var}}` placeholders). */
   body: string
+  /** Body with placeholders resolved against the current context. */
+  resolved: string
 }
+
+type ScopeFilter = 'all' | 'repo' | 'global'
 
 const open = defineModel<boolean>('open', { default: false })
 
@@ -40,28 +45,47 @@ const triggerRef = ref<HTMLButtonElement | null>(null)
 const menuRef = ref<HTMLElement | null>(null)
 const root = ref<HTMLElement | null>(null)
 const searchField = ref<{ focus: () => void } | null>(null)
+const listRef = ref<HTMLElement | null>(null)
 const search = ref('')
 const highlightedIndex = ref(0)
+const scopeFilter = ref<ScopeFilter>('all')
+
+function resolveBody(body: string): string {
+  return applyVariables(body, props.context ?? {})
+}
 
 const entries = computed<Entry[]>(() => {
   return [
-    ...repoTemplates.value.map((t): Entry => ({ scope: 'repo', title: t.title, body: t.body })),
-    ...hubTemplates.value.map((t): Entry => ({ scope: 'global', title: t.title, body: t.body })),
+    ...repoTemplates.value.map((t): Entry => ({ scope: 'repo', title: t.title, body: t.body, resolved: resolveBody(t.body) })),
+    ...hubTemplates.value.map((t): Entry => ({ scope: 'global', title: t.title, body: t.body, resolved: resolveBody(t.body) })),
   ]
 })
 
+const repoCount = computed(() => entries.value.filter(e => e.scope === 'repo').length)
+const globalCount = computed(() => entries.value.filter(e => e.scope === 'global').length)
+const showScopeChips = computed(() => repoCount.value > 0 && globalCount.value > 0)
+
 const filtered = computed<Entry[]>(() => {
   const q = search.value.trim().toLowerCase()
+  const scoped = scopeFilter.value === 'all'
+    ? entries.value
+    : entries.value.filter(e => e.scope === scopeFilter.value)
   if (!q)
-    return entries.value
-  return entries.value.filter(e => e.title.toLowerCase().includes(q) || e.body.toLowerCase().includes(q))
+    return scoped
+  return scoped.filter(e =>
+    e.title.toLowerCase().includes(q)
+    || e.body.toLowerCase().includes(q)
+    || e.resolved.toLowerCase().includes(q),
+  )
 })
 
+const highlighted = computed<Entry | null>(() => filtered.value[highlightedIndex.value] ?? null)
+
 watch(open, async (v) => {
-  if (!v) {
+  if (!v)
     return
-  }
   search.value = ''
+  scopeFilter.value = 'all'
   highlightedIndex.value = 0
   if (!hub.templatesHydrated.value)
     void hub.loadCommentTemplates()
@@ -84,6 +108,12 @@ watch(filtered, () => {
     highlightedIndex.value = Math.max(0, filtered.value.length - 1)
 })
 
+watch(highlightedIndex, async () => {
+  await nextTick()
+  const el = listRef.value?.querySelector<HTMLElement>(`[data-index="${highlightedIndex.value}"]`)
+  el?.scrollIntoView({ block: 'nearest' })
+})
+
 function close() {
   open.value = false
   triggerRef.value?.focus()
@@ -91,8 +121,7 @@ function close() {
 
 function pick(entry: Entry) {
   open.value = false
-  const body = applyVariables(entry.body, props.context ?? {})
-  emit('pick', body)
+  emit('pick', entry.resolved)
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -113,12 +142,23 @@ function onKeydown(event: KeyboardEvent) {
       highlightedIndex.value = (highlightedIndex.value - 1 + filtered.value.length) % filtered.value.length
     return
   }
+  if ((event.key === 'Tab' && !event.shiftKey) && showScopeChips.value) {
+    event.preventDefault()
+    cycleScope(1)
+    return
+  }
   if (event.key === 'Enter') {
     event.preventDefault()
     const target = filtered.value[highlightedIndex.value]
     if (target)
       pick(target)
   }
+}
+
+function cycleScope(direction: 1 | -1) {
+  const order: ScopeFilter[] = ['all', 'repo', 'global']
+  const idx = order.indexOf(scopeFilter.value)
+  scopeFilter.value = order[(idx + direction + order.length) % order.length]!
 }
 
 function isTypingInSearch(event: KeyboardEvent): boolean {
@@ -168,11 +208,12 @@ defineExpose({
       <div
         v-if="open"
         ref="menuRef"
-        class="absolute z-dropdown top-full right-0 mt-1 w-[min(28rem,90vw)] panel-card !rounded-lg shadow-xl overflow-hidden"
+        class="absolute z-dropdown top-full right-0 mt-1 w-[min(32rem,92vw)] panel-card !rounded-lg shadow-xl overflow-hidden flex flex-col"
         data-testid="comment-template-menu"
         @keydown="onKeydown"
       >
-        <div class="px-3 py-2 border-b border-base">
+        <!-- Search -->
+        <div class="px-3 py-2 border-b border-base shrink-0">
           <UiSearchField
             ref="searchField"
             v-model="search"
@@ -180,28 +221,86 @@ defineExpose({
             data-testid="comment-template-search"
           />
         </div>
-        <div class="max-h-80 overflow-y-auto py-1">
-          <div v-if="filtered.length === 0" class="px-3 py-6 text-center text-xs color-muted">
-            <p v-if="entries.length === 0">
-              No saved replies yet. Add some in <span class="kbd">Settings</span>.
-            </p>
-            <p v-else>
-              No matching saved reply.
+
+        <!-- Scope filter chips -->
+        <div
+          v-if="showScopeChips"
+          class="flex items-center gap-1 px-3 py-1.5 border-b border-base shrink-0"
+          data-testid="comment-template-scope-filter"
+        >
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs rounded-full border outline-none transition whitespace-nowrap"
+            :class="scopeFilter === 'all'
+              ? 'bg-active color-base border-transparent'
+              : 'color-muted border-base hover:bg-active/60'"
+            data-testid="comment-template-scope-all"
+            @click="scopeFilter = 'all'"
+          >
+            <span>All</span>
+            <span class="tabular-nums op70 text-[11px]">{{ entries.length }}</span>
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs rounded-full border outline-none transition whitespace-nowrap"
+            :class="scopeFilter === 'repo'
+              ? 'bg-active color-base border-transparent'
+              : 'color-muted border-base hover:bg-active/60'"
+            data-testid="comment-template-scope-repo"
+            @click="scopeFilter = 'repo'"
+          >
+            <DisplayProjectIcon v-if="repoProject" :project="repoProject" :size="12" fallback-class="color-muted" />
+            <span v-else class="i-ph-git-branch-duotone text-xs" />
+            <span class="truncate max-w-32 font-mono">{{ repoProject?.repo ?? 'This repo' }}</span>
+            <span class="tabular-nums op70 text-[11px]">{{ repoCount }}</span>
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs rounded-full border outline-none transition whitespace-nowrap"
+            :class="scopeFilter === 'global'
+              ? 'bg-active color-base border-transparent'
+              : 'color-muted border-base hover:bg-active/60'"
+            data-testid="comment-template-scope-global"
+            @click="scopeFilter = 'global'"
+          >
+            <span class="i-ph-globe-duotone text-xs" />
+            <span>Global</span>
+            <span class="tabular-nums op70 text-[11px]">{{ globalCount }}</span>
+          </button>
+        </div>
+
+        <!-- List -->
+        <div ref="listRef" class="max-h-[22rem] overflow-y-auto py-1 flex-1">
+          <!-- Empty: nothing configured -->
+          <div v-if="entries.length === 0" class="px-4 py-8 text-center flex flex-col items-center gap-2">
+            <span class="i-ph-chat-circle-text-duotone text-3xl color-faint" />
+            <p class="text-sm color-muted">No saved replies yet</p>
+            <p class="text-xs color-faint">Add some in <span class="kbd">Settings</span> → Saved replies.</p>
+          </div>
+
+          <!-- Empty: search/filter -->
+          <div v-else-if="filtered.length === 0" class="px-4 py-8 text-center flex flex-col items-center gap-2">
+            <span class="i-ph-magnifying-glass-duotone text-2xl color-faint" />
+            <p class="text-sm color-muted">No matches</p>
+            <p v-if="scopeFilter !== 'all'" class="text-xs color-faint">
+              Try <button type="button" class="underline hover:color-active" @click="scopeFilter = 'all'">all scopes</button>
             </p>
           </div>
 
-          <ul v-else role="listbox">
+          <ul v-else role="listbox" class="px-1">
             <li
               v-for="(entry, index) in filtered"
               :key="`${entry.scope}-${index}-${entry.title}`"
               role="option"
               :aria-selected="index === highlightedIndex"
-              class="px-2"
+              :data-index="index"
             >
               <button
                 type="button"
-                class="w-full text-left flex items-start gap-2 px-2 py-1.5 rounded transition outline-none"
-                :class="index === highlightedIndex ? 'bg-active' : 'hover:bg-active'"
+                class="group w-full text-left flex items-start gap-2.5 px-2.5 py-2 rounded transition outline-none border-l-2"
+                :class="index === highlightedIndex
+                  ? 'bg-active border-l-primary-500'
+                  : 'border-l-transparent hover:bg-active/60'"
                 data-testid="comment-template-item"
                 :data-scope="entry.scope"
                 @click="pick(entry)"
@@ -213,27 +312,44 @@ defineExpose({
                   :title="repoProject ? `From ${repoProject.repo}` : 'From this repo'"
                   :aria-label="repoProject ? `From ${repoProject.repo}` : 'From this repo'"
                 >
-                  <DisplayProjectIcon v-if="repoProject" :project="repoProject" :size="14" fallback-class="color-muted" />
-                  <span v-else class="i-ph-git-branch-duotone text-sm color-muted" />
+                  <DisplayProjectIcon v-if="repoProject" :project="repoProject" :size="16" fallback-class="color-muted" />
+                  <span v-else class="i-ph-git-branch-duotone text-base color-muted" />
                 </span>
                 <span
                   v-else
-                  class="i-ph-globe-duotone text-sm color-muted shrink-0 mt-0.5"
+                  class="i-ph-globe-duotone text-base color-muted shrink-0 mt-0.5"
                   title="Global"
                   aria-label="Global"
                 />
                 <span class="flex-1 min-w-0 flex flex-col gap-0.5">
-                  <span class="text-sm font-medium truncate">{{ entry.title }}</span>
-                  <span class="text-xs color-muted line-clamp-2 whitespace-pre-wrap">{{ entry.body }}</span>
+                  <span class="text-sm font-medium truncate" :class="index === highlightedIndex ? 'color-base' : ''">{{ entry.title }}</span>
+                  <span class="text-xs color-muted line-clamp-2 whitespace-pre-wrap">{{ entry.resolved }}</span>
                 </span>
+                <span
+                  v-if="index === highlightedIndex"
+                  class="i-ph-arrow-bend-down-left-duotone color-active shrink-0 mt-0.5 text-base"
+                  aria-hidden="true"
+                />
               </button>
             </li>
           </ul>
         </div>
-        <div class="px-3 py-1.5 border-t border-base text-[10px] color-muted flex items-center justify-between">
-          <span>
-            <span class="kbd">↑</span><span class="kbd">↓</span> navigate · <span class="kbd">↵</span> insert · <span class="kbd">Esc</span> close
-          </span>
+
+        <!-- Footer hints -->
+        <div class="px-3 py-1.5 border-t border-base text-[10px] color-muted flex items-center gap-2 shrink-0">
+          <span class="kbd">↑</span><span class="kbd">↓</span>
+          <span>navigate</span>
+          <span class="color-faint">·</span>
+          <span class="kbd">↵</span>
+          <span>insert</span>
+          <template v-if="showScopeChips">
+            <span class="color-faint">·</span>
+            <span class="kbd">⇥</span>
+            <span>scope</span>
+          </template>
+          <div class="flex-1" />
+          <span class="kbd">Esc</span>
+          <span>close</span>
         </div>
       </div>
     </Transition>
