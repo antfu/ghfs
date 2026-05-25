@@ -26,6 +26,8 @@ const state = useAppState(props.projectId)
 const rpc = useRpc()
 const ui = useUiState()
 const seenHistory = useSeenHistory()
+const { offline } = useOnlineState()
+
 const effectiveNumber = computed<number | null>(() =>
   props.number != null ? props.number : state.selectedNumber.value,
 )
@@ -102,12 +104,25 @@ const titleHtml = computed(() => renderMarkdownInline(titleText.value))
 const scrollContainer = ref<HTMLElement | null>(null)
 const composerRef = ref<{ startEditing: (entry: QueueEntry) => void } | null>(null)
 
+const swr = useSwrSync()
+const isRefreshing = swr.isRefreshing(effectiveProjectId, effectiveNumber)
+
 watch(effectiveNumber, () => {
   nextTick(() => {
     if (scrollContainer.value)
       scrollContainer.value.scrollTop = 0
   })
 })
+
+// Background-refresh the currently-viewed item if its cached data is older
+// than the SWR TTL. Runs on every selection change including initial mount.
+watch(
+  [effectiveNumber, effectiveProjectId],
+  ([number, projectId]) => {
+    swr.checkAndRefresh(projectId, number)
+  },
+  { immediate: true },
+)
 
 // Mark the currently-viewed item as "seen". Fires on initial mount, every
 // item switch, and whenever the comment count changes so a fresh sync that
@@ -156,6 +171,8 @@ async function removePendingComment(entry: QueueEntry) {
 
 async function executeThisItem() {
   if (!item.value || state.executing.value)
+    return
+  if (offline.value)
     return
   const ids = pending.entries.value.map(e => e.id)
   if (!ids.length)
@@ -241,6 +258,12 @@ async function discardThisItem() {
         </span>
       </div>
       <div class="flex items-center gap-1 shrink-0">
+        <span
+          v-if="isRefreshing"
+          class="i-octicon-sync-16 animate-spin color-muted text-sm"
+          :title="`Refreshing #${item.number} from GitHub…`"
+          data-testid="detail-swr-indicator"
+        />
         <UiWithCommand v-if="item?.url" command="list.open">
           <UiIconButton
             as="a"
@@ -305,8 +328,8 @@ async function discardThisItem() {
         <button
           type="button"
           class="btn-action-sm"
-          :disabled="state.executing.value || !hasToken"
-          :title="hasToken ? 'Execute the pending changes for this item only' : 'No GitHub token available'"
+          :disabled="state.executing.value || !hasToken || offline"
+          :title="offline ? 'Offline — execute paused' : (hasToken ? 'Execute the pending changes for this item only' : 'No GitHub token available')"
           @click="executeThisItem"
         >
           <span :class="state.executing.value ? 'i-octicon-sync-16 animate-spin' : 'i-ph-play-duotone'" />

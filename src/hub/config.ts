@@ -17,6 +17,8 @@ const ConfigSchema = v.object({
   enabledProjects: v.optional(v.array(ProjectEntrySchema)),
   autoSyncIntervalMs: v.optional(v.pipe(v.number(), v.minValue(60_000), v.maxValue(3_600_000))),
   commentTemplates: v.optional(v.array(CommentTemplateSchema)),
+  swrSyncEnabled: v.optional(v.boolean()),
+  swrCacheTimeoutMs: v.optional(v.pipe(v.number(), v.minValue(30_000), v.maxValue(3_600_000))),
 })
 
 const LegacyEntrySchema = v.object({
@@ -48,6 +50,10 @@ export interface HubConfig {
   autoSyncIntervalMs?: number
   /** Global comment templates surfaced in the composer's template picker. */
   commentTemplates?: CommentTemplate[]
+  /** When false, disables SWR background refresh in the detail view. Default on. */
+  swrSyncEnabled?: boolean
+  /** Cache TTL for SWR background refreshes, in ms. Defaults to 5 min when undefined. */
+  swrCacheTimeoutMs?: number
 }
 
 export interface ResolveHubConfigPathOptions {
@@ -115,6 +121,8 @@ function parseConfig(raw: unknown): HubConfig {
       roots: dedupePaths((flat.output.roots ?? []).map(normalizePath)),
       enabledProjects: dedupeProjects((flat.output.enabledProjects ?? []).map(e => ({ path: normalizePath(e.path) }))),
       autoSyncIntervalMs: flat.output.autoSyncIntervalMs,
+      swrSyncEnabled: flat.output.swrSyncEnabled,
+      swrCacheTimeoutMs: flat.output.swrCacheTimeoutMs,
     }
     if (flat.output.commentTemplates !== undefined)
       config.commentTemplates = flat.output.commentTemplates.map(t => ({ title: t.title, body: t.body }))
@@ -161,6 +169,8 @@ export async function saveHubConfig(options: SaveHubConfigOptions): Promise<void
     enabledProjects: dedupeProjects(options.config.enabledProjects.map(e => ({ path: normalizePath(e.path) }))),
     autoSyncIntervalMs: options.config.autoSyncIntervalMs,
     commentTemplates: options.config.commentTemplates,
+    swrSyncEnabled: options.config.swrSyncEnabled,
+    swrCacheTimeoutMs: options.config.swrCacheTimeoutMs,
   }
   await mkdir(dirname(path), { recursive: true })
   // Strip undefined fields so the JSON stays tidy.
@@ -172,6 +182,10 @@ export async function saveHubConfig(options: SaveHubConfigOptions): Promise<void
     json.autoSyncIntervalMs = next.autoSyncIntervalMs
   if (next.commentTemplates !== undefined)
     json.commentTemplates = next.commentTemplates
+  if (next.swrSyncEnabled !== undefined)
+    json.swrSyncEnabled = next.swrSyncEnabled
+  if (next.swrCacheTimeoutMs !== undefined)
+    json.swrCacheTimeoutMs = next.swrCacheTimeoutMs
   await writeFile(path, `${JSON.stringify(json, null, 2)}\n`, 'utf8')
 }
 
@@ -185,9 +199,8 @@ export async function addHubRoot(options: MutateHubConfigOptions): Promise<HubCo
   if (current.roots.includes(target))
     return current
   const next: HubConfig = {
+    ...current,
     roots: [...current.roots, target],
-    enabledProjects: current.enabledProjects,
-    autoSyncIntervalMs: current.autoSyncIntervalMs,
   }
   await saveHubConfig({ homeDir: options.homeDir, config: next })
   return next
@@ -199,9 +212,9 @@ export async function removeHubRoot(options: MutateHubConfigOptions): Promise<Hu
   const nextRoots = current.roots.filter(r => r !== target)
   const nextProjects = current.enabledProjects.filter(p => !isUnder(p.path, target))
   const next: HubConfig = {
+    ...current,
     roots: nextRoots,
     enabledProjects: nextProjects,
-    autoSyncIntervalMs: current.autoSyncIntervalMs,
   }
   await saveHubConfig({ homeDir: options.homeDir, config: next })
   return next
@@ -214,9 +227,8 @@ export interface SetEnabledProjectsOptions extends ResolveHubConfigPathOptions {
 export async function setEnabledProjects(options: SetEnabledProjectsOptions): Promise<HubConfig> {
   const current = await loadHubConfig(options)
   const next: HubConfig = {
-    roots: current.roots,
+    ...current,
     enabledProjects: dedupeProjects(options.paths.map(p => ({ path: normalizePath(p) }))),
-    autoSyncIntervalMs: current.autoSyncIntervalMs,
   }
   await saveHubConfig({ homeDir: options.homeDir, config: next })
   return next
@@ -249,6 +261,22 @@ export async function setHubCommentTemplates(options: SetHubCommentTemplatesOpti
   const next: HubConfig = {
     ...current,
     commentTemplates: sanitized,
+  }
+  await saveHubConfig({ homeDir: options.homeDir, config: next })
+  return next
+}
+
+export interface SetHubSwrSettingsOptions extends ResolveHubConfigPathOptions {
+  swrSyncEnabled?: boolean
+  swrCacheTimeoutMs?: number
+}
+
+export async function setHubSwrSettings(options: SetHubSwrSettingsOptions): Promise<HubConfig> {
+  const current = await loadHubConfig(options)
+  const next: HubConfig = {
+    ...current,
+    swrSyncEnabled: options.swrSyncEnabled,
+    swrCacheTimeoutMs: options.swrCacheTimeoutMs,
   }
   await saveHubConfig({ homeDir: options.homeDir, config: next })
   return next

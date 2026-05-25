@@ -20,6 +20,7 @@ const effectiveProjectId = computed(() => scope?.projectId ?? activeId.value)
 const rpc = useRpc()
 const state = useAppState(scope?.projectId)
 const pending = usePendingOps(computed(() => props.itemNumber), scope?.projectId)
+const { offline } = useOnlineState()
 
 const viewerReactions = ref<Set<ReactionContent>>(new Set())
 const viewerLoaded = ref(false)
@@ -84,6 +85,8 @@ const hasAnything = computed(() => visibleContents.value.length > 0)
 
 async function ensureViewerLoaded(): Promise<void> {
   if (viewerLoaded.value || viewerLoading.value)
+    return
+  if (offline.value)
     return
   viewerLoading.value = true
   try {

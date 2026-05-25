@@ -172,5 +172,14 @@ export default defineConfig({
     'i-octicon-bell-16',
     'i-octicon-bell-slash-16',
     'i-octicon-trash-16',
+    // Sync/progress toast pipeline icons
+    'i-octicon-repo-16',
+    'i-octicon-search-16',
+    'i-octicon-download-16',
+    'i-octicon-file-16',
+    'i-octicon-database-16',
+    'i-octicon-alert-fill-16',
+    'i-octicon-x-16',
+    'i-octicon-play-16',
   ],
 })

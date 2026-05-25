@@ -13,6 +13,7 @@ const emit = defineEmits<{
 }>()
 
 const rpc = useRpc()
+const { offline } = useOnlineState()
 const executing = ref(false)
 const executeError = ref<string | null>(null)
 const executed = ref(false)
@@ -45,6 +46,8 @@ onMounted(() => {
 
 async function executeNow() {
   if (executing.value || opsCount.value === 0)
+    return
+  if (offline.value)
     return
   executing.value = true
   executeError.value = null
@@ -105,7 +108,8 @@ async function executeNow() {
         v-if="opsCount > 0 && !executed"
         type="button"
         class="btn-primary text-sm"
-        :disabled="executing"
+        :disabled="executing || offline"
+        :title="offline ? 'Offline — execute paused' : undefined"
         data-testid="card-done-execute"
         @click="executeNow"
       >

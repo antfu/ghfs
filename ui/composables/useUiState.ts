@@ -24,6 +24,8 @@ function ensureSaver(): () => void {
       lastPrTab: uiState.lastPrTab,
       userOverride: uiState.userOverride ? { ...uiState.userOverride } : undefined,
       autoSyncIntervalMs: uiState.autoSyncIntervalMs,
+      swrSyncEnabled: uiState.swrSyncEnabled,
+      swrCacheTimeoutMs: uiState.swrCacheTimeoutMs,
       todos: uiState.todos ? [...uiState.todos] : undefined,
       ignored: uiState.ignored ? [...uiState.ignored] : undefined,
       seenHistory: uiState.seenHistory ? { ...uiState.seenHistory } : undefined,
@@ -65,6 +67,8 @@ export function useUiState() {
     uiState.lastPrTab = normalizePrTab(next?.lastPrTab)
     uiState.userOverride = normalizeUserOverride(next?.userOverride)
     uiState.autoSyncIntervalMs = typeof next?.autoSyncIntervalMs === 'number' ? next.autoSyncIntervalMs : undefined
+    uiState.swrSyncEnabled = typeof next?.swrSyncEnabled === 'boolean' ? next.swrSyncEnabled : undefined
+    uiState.swrCacheTimeoutMs = typeof next?.swrCacheTimeoutMs === 'number' ? next.swrCacheTimeoutMs : undefined
     uiState.todos = Array.isArray(next?.todos) ? [...next.todos] : undefined
     uiState.ignored = Array.isArray(next?.ignored) ? [...next.ignored] : undefined
     uiState.seenHistory = next?.seenHistory && typeof next.seenHistory === 'object'
@@ -127,6 +131,24 @@ export function useUiState() {
     if (uiState.autoSyncIntervalMs === normalized)
       return
     uiState.autoSyncIntervalMs = normalized
+    ensureSaver()()
+  }
+
+  function setSwrSyncEnabled(value: boolean | undefined): void {
+    const normalized = typeof value === 'boolean' ? value : undefined
+    if (uiState.swrSyncEnabled === normalized)
+      return
+    uiState.swrSyncEnabled = normalized
+    ensureSaver()()
+  }
+
+  function setSwrCacheTimeoutMs(value: number | undefined): void {
+    const normalized = typeof value === 'number' && value >= 30_000 && value <= 3_600_000
+      ? Math.round(value)
+      : undefined
+    if (uiState.swrCacheTimeoutMs === normalized)
+      return
+    uiState.swrCacheTimeoutMs = normalized
     ensureSaver()()
   }
 
@@ -215,6 +237,8 @@ export function useUiState() {
     setLastPrTab,
     setUserOverride,
     setAutoSyncIntervalMs,
+    setSwrSyncEnabled,
+    setSwrCacheTimeoutMs,
     getTodos,
     isTodo,
     addTodo,

@@ -22,6 +22,17 @@ export interface UiState {
   userOverride?: UserOverride
   /** When set, the server triggers `sync` on this interval. Honoured in ui mode. */
   autoSyncIntervalMs?: number
+  /**
+   * Whether to background-refresh (SWR) the currently-viewed issue/PR when
+   * its cached data is older than `swrCacheTimeoutMs`. Treated as `true`
+   * when undefined so the feature is on by default.
+   */
+  swrSyncEnabled?: boolean
+  /**
+   * Cache TTL for SWR refreshes, in ms. Defaults to 5 min when undefined.
+   * Range: 30_000–3_600_000 (30 s – 60 min).
+   */
+  swrCacheTimeoutMs?: number
   /** Issue/PR numbers saved to the todo list. Auto-pruned when items close/merge. */
   todos?: number[]
   /** Issue/PR numbers hidden from list views via cards mode "mark as ignore". */
@@ -122,6 +133,8 @@ export async function loadUiState(storageDirAbsolute: string): Promise<UiState> 
       lastPrTab: normalizePrTab(parsed.lastPrTab),
       userOverride: normalizeUserOverride(parsed.userOverride),
       autoSyncIntervalMs: normalizeAutoSyncInterval(parsed.autoSyncIntervalMs),
+      swrSyncEnabled: normalizeSwrSyncEnabled(parsed.swrSyncEnabled),
+      swrCacheTimeoutMs: normalizeSwrCacheTimeoutMs(parsed.swrCacheTimeoutMs),
       todos: normalizeNumberArray(parsed.todos),
       ignored: normalizeNumberArray(parsed.ignored),
       seenHistory: normalizeSeenHistory(parsed.seenHistory),
@@ -140,11 +153,27 @@ function normalizeAutoSyncInterval(value: unknown): number | undefined {
   return Math.round(value)
 }
 
+export function normalizeSwrSyncEnabled(value: unknown): boolean | undefined {
+  if (typeof value !== 'boolean')
+    return undefined
+  return value
+}
+
+export function normalizeSwrCacheTimeoutMs(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value))
+    return undefined
+  if (value < 30_000 || value > 3_600_000)
+    return undefined
+  return Math.round(value)
+}
+
 export async function saveUiState(storageDirAbsolute: string, state: UiState): Promise<void> {
   await mkdir(storageDirAbsolute, { recursive: true })
   const tab = normalizePrTab(state.lastPrTab)
   const override = normalizeUserOverride(state.userOverride)
   const interval = normalizeAutoSyncInterval(state.autoSyncIntervalMs)
+  const swrEnabled = normalizeSwrSyncEnabled(state.swrSyncEnabled)
+  const swrTimeout = normalizeSwrCacheTimeoutMs(state.swrCacheTimeoutMs)
   const todos = normalizeNumberArray(state.todos)
   const ignored = normalizeNumberArray(state.ignored)
   const seenHistory = normalizeSeenHistory(state.seenHistory)
@@ -154,6 +183,8 @@ export async function saveUiState(storageDirAbsolute: string, state: UiState): P
     ...(tab ? { lastPrTab: tab } : {}),
     ...(override ? { userOverride: override } : {}),
     ...(interval != null ? { autoSyncIntervalMs: interval } : {}),
+    ...(swrEnabled != null ? { swrSyncEnabled: swrEnabled } : {}),
+    ...(swrTimeout != null ? { swrCacheTimeoutMs: swrTimeout } : {}),
     ...(todos ? { todos } : {}),
     ...(ignored ? { ignored } : {}),
     ...(seenHistory ? { seenHistory } : {}),

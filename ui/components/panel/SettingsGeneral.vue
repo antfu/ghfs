@@ -10,11 +10,16 @@ const hub = useHubState()
 const hubSettings = useHubSettings()
 const ui = useUiState()
 const { currentUser, override, setOverride } = useCurrentUser()
+const { offline } = useOnlineState()
 
 const mode = computed<'hub' | 'project'>(() => (hub.capabilities.value?.mode === 'hub' ? 'hub' : 'project'))
 
 // Auto-sync: minutes (UI) ↔ ms (RPC). 0 means disabled.
 const intervalMinutes = ref<number>(0)
+
+// SWR background refresh: enabled (default on) + timeout in minutes (default 5).
+const swrEnabled = ref<boolean>(true)
+const swrTimeoutMinutes = ref<number>(5)
 
 // Identity override (login / name / avatar URL) — persisted in `.ghfs/.ui.json`.
 const identityLogin = ref('')
@@ -64,10 +69,16 @@ async function refreshIntervalFromSource() {
     await hubSettings.load()
     const ms = hubSettings.settings.value?.autoSyncIntervalMs
     intervalMinutes.value = ms ? Math.round(ms / 60_000) : 0
+    swrEnabled.value = hubSettings.settings.value?.swrSyncEnabled !== false
+    const swrMs = hubSettings.settings.value?.swrCacheTimeoutMs
+    swrTimeoutMinutes.value = swrMs ? Math.max(1, Math.round(swrMs / 60_000)) : 5
   }
   else {
     const ms = ui.uiState.autoSyncIntervalMs
     intervalMinutes.value = ms ? Math.round(ms / 60_000) : 0
+    swrEnabled.value = ui.uiState.swrSyncEnabled !== false
+    const swrMs = ui.uiState.swrCacheTimeoutMs
+    swrTimeoutMinutes.value = swrMs ? Math.max(1, Math.round(swrMs / 60_000)) : 5
   }
 }
 
@@ -94,6 +105,32 @@ const intervalDisplay = computed(() => {
   if (intervalMinutes.value === 1)
     return 'Every minute.'
   return `Every ${intervalMinutes.value} minutes.`
+})
+
+async function applySwrEnabled(next: boolean) {
+  swrEnabled.value = next
+  if (mode.value === 'hub')
+    await hubSettings.setSwrSyncEnabled(next)
+  else
+    ui.setSwrSyncEnabled(next)
+}
+
+async function applySwrTimeout(rawMinutes: number) {
+  const minutes = Math.min(60, Math.max(1, Math.round(rawMinutes)))
+  swrTimeoutMinutes.value = minutes
+  const ms = Math.min(Math.max(minutes * 60_000, 30_000), 3_600_000)
+  if (mode.value === 'hub')
+    await hubSettings.setSwrCacheTimeoutMs(ms)
+  else
+    ui.setSwrCacheTimeoutMs(ms)
+}
+
+const swrDisplay = computed(() => {
+  if (!swrEnabled.value)
+    return 'Off — detail views show whatever was last synced.'
+  if (swrTimeoutMinutes.value === 1)
+    return 'Refresh on open if cached longer than 1 minute.'
+  return `Refresh on open if cached longer than ${swrTimeoutMinutes.value} minutes.`
 })
 </script>
 
@@ -196,6 +233,51 @@ const intervalDisplay = computed(() => {
         <span class="text-xs color-muted" data-testid="settings-auto-sync-display">{{ intervalDisplay }}</span>
       </div>
       <p class="text-[11px] color-faint">Range: 1–60 minutes. Set to 0 to disable.</p>
+      <p
+        v-if="offline"
+        class="text-[11px] color-yellow-700 dark:color-yellow-300 flex items-center gap-1"
+        data-testid="settings-auto-sync-offline"
+      >
+        <span class="i-ph-cloud-slash-duotone" />
+        <span>Auto-sync paused while offline.</span>
+      </p>
+    </section>
+
+    <section class="flex flex-col gap-2">
+      <header class="flex items-center gap-1.5">
+        <span class="i-ph-arrows-clockwise-duotone color-active text-sm" />
+        <h3 class="text-sm font-medium">Background refresh</h3>
+      </header>
+      <p class="text-xs color-muted">Re-fetch an issue/PR from GitHub when you open it, if the cached copy is older than the timeout.</p>
+      <label class="flex items-center justify-between gap-3 text-sm">
+        <span class="color-muted">Enabled</span>
+        <button
+          type="button"
+          class="btn-action-sm"
+          data-testid="settings-swr-toggle"
+          @click="applySwrEnabled(!swrEnabled)"
+        >
+          <span :class="swrEnabled ? 'i-ph-toggle-right-fill color-active' : 'i-ph-toggle-left-fill color-muted'" />
+          <span>{{ swrEnabled ? 'On' : 'Off' }}</span>
+        </button>
+      </label>
+      <div class="flex items-center gap-2">
+        <input
+          :value="swrTimeoutMinutes"
+          type="number"
+          min="1"
+          max="60"
+          step="1"
+          class="w-20 border border-base rounded bg-base px-2.5 py-1.5 text-sm font-mono tabular-nums outline-none focus:border-active focus:ring-2 focus:ring-primary-500/30 disabled:opacity-50"
+          data-testid="settings-swr-timeout-input"
+          :disabled="!swrEnabled"
+          @change="applySwrTimeout(Number(($event.target as HTMLInputElement).value))"
+        >
+        <span class="text-sm color-muted">min</span>
+        <span class="text-xs color-faint">·</span>
+        <span class="text-xs color-muted" data-testid="settings-swr-display">{{ swrDisplay }}</span>
+      </div>
+      <p class="text-[11px] color-faint">Range: 1–60 minutes. Refresh runs silently — no sync toast.</p>
     </section>
 
     <section class="flex flex-col gap-2">
