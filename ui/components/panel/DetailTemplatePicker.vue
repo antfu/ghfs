@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import type { CommentTemplate, RepoTemplate } from '#ghfs/rpc-types'
+import { Dropdown as VDropdown } from 'floating-vue'
 import { applyVariables } from '../../utils/templates'
 
 const props = defineProps<{
   /** Optional context for `{{author}}`, `{{number}}`, `{{title}}`. */
   context?: { author?: string | null, number?: number | null, title?: string | null }
+  /** External search query (e.g., from a slash-command in the textarea). */
+  externalQuery?: string
+  /** When true, do not autofocus the search field on open (slash-mode). */
+  externalFocus?: boolean
 }>()
 
 const emit = defineEmits<{
   /** Fired when the user picks a template — `body` already has variables applied. */
   pick: [body: string]
+  /** Fired when the popup closes without a selection. */
+  cancel: []
 }>()
 
 interface Entry {
@@ -26,9 +33,9 @@ type ScopeFilter = 'all' | 'repo' | 'global'
 const open = defineModel<boolean>('open', { default: false })
 
 const activeId = useActiveProjectId()
-const scope = useDetailScope()
-const effectiveProjectId = computed(() => scope?.projectId ?? activeId.value)
-const state = useAppState(scope?.projectId)
+const detail = useDetailScope()
+const effectiveProjectId = computed(() => detail?.projectId ?? activeId.value)
+const state = useAppState(detail?.projectId)
 const hub = useHubSettings()
 
 const repoProject = computed(() => {
@@ -41,14 +48,22 @@ const repoProject = computed(() => {
 const repoTemplates = computed<RepoTemplate[]>(() => state.payload.value?.repoTemplates?.templates ?? [])
 const hubTemplates = computed<CommentTemplate[]>(() => hub.commentTemplates.value)
 
-const triggerRef = ref<HTMLButtonElement | null>(null)
-const menuRef = ref<HTMLElement | null>(null)
-const root = ref<HTMLElement | null>(null)
 const searchField = ref<{ focus: () => void } | null>(null)
 const listRef = ref<HTMLElement | null>(null)
-const search = ref('')
+const internalSearch = ref('')
 const highlightedIndex = ref(0)
 const scopeFilter = ref<ScopeFilter>('all')
+
+// When `externalQuery` is provided we use it as the search; otherwise fall
+// back to the picker's own input.
+const search = computed<string>({
+  get() {
+    return props.externalQuery ?? internalSearch.value
+  },
+  set(value: string) {
+    internalSearch.value = value
+  },
+})
 
 function resolveBody(body: string): string {
   return applyVariables(body, props.context ?? {})
@@ -79,17 +94,13 @@ const filtered = computed<Entry[]>(() => {
   )
 })
 
-const highlighted = computed<Entry | null>(() => filtered.value[highlightedIndex.value] ?? null)
-
-watch(open, async (v) => {
-  if (!v)
-    return
-  search.value = ''
+async function onShow() {
+  internalSearch.value = ''
   scopeFilter.value = 'all'
   highlightedIndex.value = 0
   if (!hub.templatesHydrated.value)
     void hub.loadCommentTemplates()
-  // Fetch latest repo templates if we don't have them yet (e.g. file added after initial payload).
+  // Fetch latest repo templates if we don't have them yet (file added after initial payload).
   if (effectiveProjectId.value && state.payload.value && state.payload.value.repoTemplates?.templates.length === 0 && state.payload.value.repoTemplates.mtimeMs === null) {
     try {
       const next = await useRpc().$call('ghfs:repo-templates', effectiveProjectId.value)
@@ -100,8 +111,14 @@ watch(open, async (v) => {
     }
   }
   await nextTick()
-  searchField.value?.focus()
-})
+  if (!props.externalFocus)
+    searchField.value?.focus()
+}
+
+function onHide() {
+  // Reset highlight so the next open starts fresh.
+  highlightedIndex.value = 0
+}
 
 watch(filtered, () => {
   if (highlightedIndex.value >= filtered.value.length)
@@ -114,14 +131,33 @@ watch(highlightedIndex, async () => {
   el?.scrollIntoView({ block: 'nearest' })
 })
 
-function close() {
+function pick(entry: Entry) {
+  emit('pick', entry.resolved)
   open.value = false
-  triggerRef.value?.focus()
 }
 
-function pick(entry: Entry) {
+function next() {
+  if (filtered.value.length)
+    highlightedIndex.value = (highlightedIndex.value + 1) % filtered.value.length
+}
+
+function prev() {
+  if (filtered.value.length)
+    highlightedIndex.value = (highlightedIndex.value - 1 + filtered.value.length) % filtered.value.length
+}
+
+function confirm(): boolean {
+  const target = filtered.value[highlightedIndex.value]
+  if (target) {
+    pick(target)
+    return true
+  }
+  return false
+}
+
+function close() {
   open.value = false
-  emit('pick', entry.resolved)
+  emit('cancel')
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -132,14 +168,12 @@ function onKeydown(event: KeyboardEvent) {
   }
   if (event.key === 'ArrowDown' || (event.key === 'j' && !isTypingInSearch(event))) {
     event.preventDefault()
-    if (filtered.value.length)
-      highlightedIndex.value = (highlightedIndex.value + 1) % filtered.value.length
+    next()
     return
   }
   if (event.key === 'ArrowUp' || (event.key === 'k' && !isTypingInSearch(event))) {
     event.preventDefault()
-    if (filtered.value.length)
-      highlightedIndex.value = (highlightedIndex.value - 1 + filtered.value.length) % filtered.value.length
+    prev()
     return
   }
   if ((event.key === 'Tab' && !event.shiftKey) && showScopeChips.value) {
@@ -149,9 +183,7 @@ function onKeydown(event: KeyboardEvent) {
   }
   if (event.key === 'Enter') {
     event.preventDefault()
-    const target = filtered.value[highlightedIndex.value]
-    if (target)
-      pick(target)
+    confirm()
   }
 }
 
@@ -165,11 +197,6 @@ function isTypingInSearch(event: KeyboardEvent): boolean {
   return (event.target as HTMLElement)?.tagName === 'INPUT'
 }
 
-onClickOutside(root, () => {
-  if (open.value)
-    close()
-})
-
 defineExpose({
   toggle() {
     open.value = !open.value
@@ -177,49 +204,59 @@ defineExpose({
   openPicker() {
     open.value = true
   },
+  next,
+  prev,
+  confirm,
+  close,
 })
 </script>
 
 <template>
-  <div ref="root" class="relative">
-    <button
-      ref="triggerRef"
-      type="button"
-      class="inline-flex items-center justify-center w-7 h-7 rounded color-muted hover:color-active hover:bg-active focus-visible:bg-active focus-visible:color-active outline-none transition"
-      :class="{ 'bg-active color-active': open }"
-      :aria-haspopup="true"
-      :aria-expanded="open"
-      :aria-label="'Insert saved reply (⌘.)'"
-      data-testid="comment-template-trigger"
-      title="Insert saved reply (⌘.)"
-      @click="open = !open"
-    >
-      <span class="i-ph-chat-circle-text-duotone text-base" />
-    </button>
+  <VDropdown
+    v-model:shown="open"
+    :distance="6"
+    :triggers="['click']"
+    :placement="'bottom-end'"
+    :auto-hide="!externalFocus"
+    @apply-show="onShow"
+    @apply-hide="onHide"
+  >
+    <slot name="trigger" :open="open">
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs color-muted hover:color-active hover:bg-active focus-visible:bg-active focus-visible:color-active outline-none transition"
+        :class="{ 'bg-active color-active': open }"
+        :aria-haspopup="true"
+        :aria-expanded="open"
+        :aria-label="'Insert saved reply (⌘.)'"
+        data-testid="comment-template-trigger"
+        title="Insert saved reply (⌘.)"
+      >
+        <span class="i-ph-chat-circle-text-duotone text-base" />
+        <span>Saved replies</span>
+      </button>
+    </slot>
 
-    <Transition
-      enter-active-class="transition duration-150"
-      enter-from-class="op0 -translate-y-1"
-      enter-to-class="op100 translate-y-0"
-      leave-active-class="transition duration-100"
-      leave-from-class="op100 translate-y-0"
-      leave-to-class="op0 -translate-y-1"
-    >
+    <template #popper>
       <div
-        v-if="open"
-        ref="menuRef"
-        class="absolute z-dropdown top-full right-0 mt-1 w-[min(32rem,92vw)] panel-card !rounded-lg shadow-xl overflow-hidden flex flex-col"
+        class="w-[min(32rem,92vw)] flex flex-col"
         data-testid="comment-template-menu"
         @keydown="onKeydown"
       >
-        <!-- Search -->
-        <div class="px-3 py-2 border-b border-base shrink-0">
+        <!-- Search (hidden when slash-mode external query controls it) -->
+        <div v-if="!externalFocus" class="px-3 py-2 border-b border-base shrink-0">
           <UiSearchField
             ref="searchField"
-            v-model="search"
+            v-model="internalSearch"
             placeholder="Search saved replies…"
             data-testid="comment-template-search"
           />
+        </div>
+        <div v-else class="px-3 py-2 border-b border-base text-xs color-muted flex items-center gap-1.5">
+          <span class="i-ph-slash-duotone" />
+          <span>Filtering by</span>
+          <code class="font-mono color-base">/{{ externalQuery }}</code>
+          <span class="color-faint ml-auto">type to filter · <span class="kbd">↵</span> to insert</span>
         </div>
 
         <!-- Scope filter chips -->
@@ -271,14 +308,12 @@ defineExpose({
 
         <!-- List -->
         <div ref="listRef" class="max-h-[22rem] overflow-y-auto py-1 flex-1">
-          <!-- Empty: nothing configured -->
           <div v-if="entries.length === 0" class="px-4 py-8 text-center flex flex-col items-center gap-2">
             <span class="i-ph-chat-circle-text-duotone text-3xl color-faint" />
             <p class="text-sm color-muted">No saved replies yet</p>
             <p class="text-xs color-faint">Add some in <span class="kbd">Settings</span> → Saved replies.</p>
           </div>
 
-          <!-- Empty: search/filter -->
           <div v-else-if="filtered.length === 0" class="px-4 py-8 text-center flex flex-col items-center gap-2">
             <span class="i-ph-magnifying-glass-duotone text-2xl color-faint" />
             <p class="text-sm color-muted">No matches</p>
@@ -306,23 +341,18 @@ defineExpose({
                 @click="pick(entry)"
                 @mouseenter="highlightedIndex = index"
               >
-                <span
-                  v-if="entry.scope === 'repo'"
-                  class="shrink-0 mt-0.5"
-                  :title="repoProject ? `From ${repoProject.repo}` : 'From this repo'"
-                  :aria-label="repoProject ? `From ${repoProject.repo}` : 'From this repo'"
-                >
-                  <DisplayProjectIcon v-if="repoProject" :project="repoProject" :size="16" fallback-class="color-muted" />
-                  <span v-else class="i-ph-git-branch-duotone text-base color-muted" />
-                </span>
-                <span
-                  v-else
-                  class="i-ph-globe-duotone text-base color-muted shrink-0 mt-0.5"
-                  title="Global"
-                  aria-label="Global"
-                />
                 <span class="flex-1 min-w-0 flex flex-col gap-0.5">
-                  <span class="text-sm font-medium truncate" :class="index === highlightedIndex ? 'color-base' : ''">{{ entry.title }}</span>
+                  <span class="flex items-center gap-1.5 min-w-0">
+                    <span class="text-sm font-medium truncate" :class="index === highlightedIndex ? 'color-base' : ''">{{ entry.title }}</span>
+                    <span
+                      v-if="entry.scope === 'global'"
+                      class="shrink-0 inline-flex items-center gap-1 px-1.5 py-px text-[10px] uppercase tracking-wide rounded color-muted bg-active/40"
+                      data-testid="comment-template-global-badge"
+                    >
+                      <span class="i-ph-globe-duotone text-[10px]" />
+                      <span>global</span>
+                    </span>
+                  </span>
                   <span class="text-xs color-muted line-clamp-2 whitespace-pre-wrap">{{ entry.resolved }}</span>
                 </span>
                 <span
@@ -352,6 +382,6 @@ defineExpose({
           <span>close</span>
         </div>
       </div>
-    </Transition>
-  </div>
+    </template>
+  </VDropdown>
 </template>

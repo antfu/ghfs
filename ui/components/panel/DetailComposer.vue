@@ -45,6 +45,12 @@ const editingCommentId = ref<string | null>(null)
 const editingDraft = ref('')
 const textarea = ref<HTMLTextAreaElement | null>(null)
 const templatePickerOpen = ref(false)
+const templatePicker = ref<{
+  next: () => void
+  prev: () => void
+  confirm: () => boolean
+  close: () => void
+} | null>(null)
 
 const templateContext = computed(() => ({
   author: item.value?.author ?? null,
@@ -52,18 +58,128 @@ const templateContext = computed(() => ({
   title: item.value?.title ?? null,
 }))
 
+// ───── Slash command (`/foo`) ────────────────────────────────────────
+// When the user types `/` at the start of the textarea or right after
+// whitespace, open the picker and feed it the characters that follow until
+// a space, newline, or cursor jump ends slash mode.
+
+const slashStart = ref<number | null>(null)
+const slashQuery = ref('')
+const slashActive = computed(() => slashStart.value !== null)
+
+function checkSlash() {
+  const el = textarea.value
+  if (!el)
+    return
+  const text = el.value
+  const pos = el.selectionStart
+
+  if (slashStart.value !== null) {
+    // Existing slash session: extend while still consecutive non-whitespace
+    // text after `/`.
+    if (text[slashStart.value] === '/' && pos > slashStart.value) {
+      const suffix = text.slice(slashStart.value + 1, pos)
+      if (/\s/.test(suffix)) {
+        endSlash()
+        return
+      }
+      slashQuery.value = suffix
+      return
+    }
+    endSlash()
+    return
+  }
+
+  // New slash session: must be at start-of-textarea or after whitespace.
+  if (pos > 0 && text[pos - 1] === '/') {
+    const before = pos >= 2 ? text[pos - 2] : ''
+    const validBefore = before === '' || /\s/.test(before)
+    if (validBefore) {
+      slashStart.value = pos - 1
+      slashQuery.value = ''
+      templatePickerOpen.value = true
+    }
+  }
+}
+
+function endSlash() {
+  slashStart.value = null
+  slashQuery.value = ''
+  templatePickerOpen.value = false
+}
+
+function onTextareaInput() {
+  checkSlash()
+}
+
+function onTextareaSelectionChange() {
+  if (slashStart.value !== null)
+    checkSlash()
+}
+
 function insertTemplate(text: string) {
   const el = textarea.value
+  // Slash insertion: replace the `/...` query with the body.
+  if (slashStart.value !== null && el) {
+    const start = slashStart.value
+    const end = start + 1 + slashQuery.value.length
+    const before = el.value.slice(0, start)
+    const after = el.value.slice(end)
+    el.focus()
+    el.value = before + text + after
+    const cursor = before.length + text.length
+    el.setSelectionRange(cursor, cursor)
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+    endSlash()
+    return
+  }
   if (!el) {
     const current = commentDraft.value
     commentDraft.value = current ? `${current}\n\n${text}` : text
     return
   }
   el.focus()
-  const start = el.selectionStart
-  const end = el.selectionEnd
-  el.setRangeText(text, start, end, 'end')
+  const cursorStart = el.selectionStart
+  const cursorEnd = el.selectionEnd
+  el.setRangeText(text, cursorStart, cursorEnd, 'end')
   el.dispatchEvent(new Event('input', { bubbles: true }))
+}
+
+function onTextareaKeydown(event: KeyboardEvent) {
+  // Forward navigation keys to the picker when slash mode is active.
+  if (!slashActive.value || !templatePicker.value)
+    return
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    event.stopPropagation()
+    templatePicker.value.next()
+    return
+  }
+  if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    event.stopPropagation()
+    templatePicker.value.prev()
+    return
+  }
+  if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
+    if (templatePicker.value.confirm()) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    return
+  }
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    event.stopPropagation()
+    endSlash()
+  }
+}
+
+function onTemplatePickerCancel() {
+  // Picker was dismissed by user (Esc, click-outside). Drop slash mode but
+  // leave the `/...` text in the textarea — user can keep editing.
+  slashStart.value = null
+  slashQuery.value = ''
 }
 
 // Persistent draft for new comments lives in `.ghfs/.ui.json`. While editing
@@ -239,26 +355,38 @@ defineExpose({ startEditing, focus })
       ? 'ring-2 ring-yellow-500/60 border-yellow-500/60'
       : 'focus-within:border-active focus-within:ring-2 focus-within:ring-primary-500/30'"
   >
+    <div class="flex items-center justify-end px-2 pt-1.5">
+      <PanelDetailTemplatePicker
+        ref="templatePicker"
+        v-model:open="templatePickerOpen"
+        :context="templateContext"
+        :external-query="slashActive ? slashQuery : undefined"
+        :external-focus="slashActive"
+        @pick="insertTemplate"
+        @cancel="onTemplatePickerCancel"
+      />
+    </div>
     <div class="relative">
       <textarea
         ref="textarea"
         v-model="commentDraft"
         data-shortcut="comment-draft"
-        :placeholder="editingCommentId ? 'Editing pending comment…' : `Leave a comment on this ${kindLabel}`"
+        :placeholder="editingCommentId ? 'Editing pending comment…' : `Leave a comment on this ${kindLabel} — try /thanks`"
         rows="3"
-        class="peer w-full bg-transparent outline-none px-3 py-2 pr-10 text-sm resize-none font-sans"
+        class="peer w-full bg-transparent outline-none px-3 py-2 text-sm resize-none font-sans"
+        @input="onTextareaInput"
+        @keyup.arrow-left="onTextareaSelectionChange"
+        @keyup.arrow-right="onTextareaSelectionChange"
+        @keyup.arrow-up="onTextareaSelectionChange"
+        @keyup.arrow-down="onTextareaSelectionChange"
+        @click="onTextareaSelectionChange"
+        @keydown="onTextareaKeydown"
         @keydown.meta.enter.exact.prevent.stop="submitComment"
         @keydown.ctrl.enter.exact.prevent.stop="submitComment"
         @keydown.meta.shift.enter.prevent.stop="closeWithComment"
         @keydown.ctrl.shift.enter.prevent.stop="closeWithComment"
         @keydown.meta.period.exact.prevent.stop="templatePickerOpen = true"
         @keydown.ctrl.period.exact.prevent.stop="templatePickerOpen = true"
-      />
-      <PanelDetailTemplatePicker
-        v-model:open="templatePickerOpen"
-        :context="templateContext"
-        class="absolute top-1.5 right-1.5"
-        @pick="insertTemplate"
       />
       <UiWithCommand
         command="comment.focus"
