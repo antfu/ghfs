@@ -76,6 +76,14 @@ export interface SyncTriggerOptions {
   full?: boolean
   since?: string
   numbers?: number[]
+  /**
+   * Skip the noisy sync-progress broadcasts (`onSyncStageStart/Progress/
+   * StageEnd/Complete/Error`) that drive the global progress toast. The
+   * `onSyncStateChange` broadcast still fires from the file watcher, so
+   * reactive UI updates land normally. Used for background SWR refreshes
+   * triggered from detail views.
+   */
+  silent?: boolean
 }
 
 export interface ExecuteTriggerOptions {

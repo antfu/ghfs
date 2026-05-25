@@ -105,12 +105,25 @@ const titleHtml = computed(() => renderMarkdownInline(titleText.value))
 const scrollContainer = ref<HTMLElement | null>(null)
 const composerRef = ref<{ startEditing: (entry: QueueEntry) => void } | null>(null)
 
+const swr = useSwrSync()
+const isRefreshing = swr.isRefreshing(effectiveProjectId, effectiveNumber)
+
 watch(effectiveNumber, () => {
   nextTick(() => {
     if (scrollContainer.value)
       scrollContainer.value.scrollTop = 0
   })
 })
+
+// Background-refresh the currently-viewed item if its cached data is older
+// than the SWR TTL. Runs on every selection change including initial mount.
+watch(
+  [effectiveNumber, effectiveProjectId],
+  ([number, projectId]) => {
+    swr.checkAndRefresh(projectId, number)
+  },
+  { immediate: true },
+)
 
 // Mark the currently-viewed item as "seen". Fires on initial mount, every
 // item switch, and whenever the comment count changes so a fresh sync that
@@ -244,6 +257,12 @@ async function discardThisItem() {
         </span>
       </div>
       <div class="flex items-center gap-1 shrink-0">
+        <span
+          v-if="isRefreshing"
+          class="i-octicon-sync-16 animate-spin color-muted text-sm"
+          :title="`Refreshing #${item.number} from GitHub…`"
+          data-testid="detail-swr-indicator"
+        />
         <UiWithCommand v-if="item?.url" command="list.open">
           <UiIconButton
             as="a"

@@ -202,28 +202,30 @@ async function runSyncWithReporter(ctx: ProjectContext, options: SyncTriggerOpti
     full: options.full,
     since: options.since,
     numbers: options.numbers,
-    reporter: {
-      onStageStart(event) {
-        ctx.broadcast.onSyncStageStart({ stage: event.stage, message: event.message })
-      },
-      onStageUpdate(event) {
-        ctx.broadcast.onSyncProgress({
-          stage: event.stage,
-          message: event.message,
-          snapshot: event.snapshot,
-        })
-      },
-      onStageEnd(event) {
-        ctx.broadcast.onSyncStageEnd({ stage: event.stage, durationMs: event.durationMs })
-      },
-      onComplete(event) {
-        ctx.broadcast.onSyncComplete(event.summary)
-      },
-      onError(event) {
-        const message = event.error instanceof Error ? event.error.message : String(event.error)
-        ctx.broadcast.onSyncError(message)
-      },
-    },
+    reporter: options.silent
+      ? undefined
+      : {
+          onStageStart(event) {
+            ctx.broadcast.onSyncStageStart({ stage: event.stage, message: event.message })
+          },
+          onStageUpdate(event) {
+            ctx.broadcast.onSyncProgress({
+              stage: event.stage,
+              message: event.message,
+              snapshot: event.snapshot,
+            })
+          },
+          onStageEnd(event) {
+            ctx.broadcast.onSyncStageEnd({ stage: event.stage, durationMs: event.durationMs })
+          },
+          onComplete(event) {
+            ctx.broadcast.onSyncComplete(event.summary)
+          },
+          onError(event) {
+            const message = event.error instanceof Error ? event.error.message : String(event.error)
+            ctx.broadcast.onSyncError(message)
+          },
+        },
   })
 }
 

@@ -11,7 +11,11 @@ export const hubSettings = defineRpcFunction({
     return {
       handler: async (): Promise<HubSettings> => {
         const current = await loadHubConfig({ homeDir: hub.homeDir })
-        return { autoSyncIntervalMs: current.autoSyncIntervalMs }
+        return {
+          autoSyncIntervalMs: current.autoSyncIntervalMs,
+          swrSyncEnabled: current.swrSyncEnabled,
+          swrCacheTimeoutMs: current.swrCacheTimeoutMs,
+        }
       },
     }
   },

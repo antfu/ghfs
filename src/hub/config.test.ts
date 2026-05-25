@@ -10,6 +10,7 @@ import {
   saveHubConfig,
   setEnabledProjects,
   setHubAutoSyncInterval,
+  setHubSwrSettings,
 } from './config'
 
 const tempDirs: string[] = []
@@ -146,6 +147,47 @@ describe('hub config', () => {
     expect(config.autoSyncIntervalMs).toBe(180_000)
     const reloaded = await loadHubConfig({ homeDir })
     expect(reloaded.autoSyncIntervalMs).toBe(180_000)
+  })
+
+  it('setHubSwrSettings round-trips both fields', async () => {
+    const homeDir = await makeHome()
+    await addHubRoot({ homeDir, path: '/a' })
+    const config = await setHubSwrSettings({ homeDir, swrSyncEnabled: false, swrCacheTimeoutMs: 600_000 })
+    expect(config.swrSyncEnabled).toBe(false)
+    expect(config.swrCacheTimeoutMs).toBe(600_000)
+    const reloaded = await loadHubConfig({ homeDir })
+    expect(reloaded.swrSyncEnabled).toBe(false)
+    expect(reloaded.swrCacheTimeoutMs).toBe(600_000)
+  })
+
+  it('addHubRoot preserves autoSync and SWR fields', async () => {
+    const homeDir = await makeHome()
+    await setHubAutoSyncInterval({ homeDir, intervalMs: 180_000 })
+    await setHubSwrSettings({ homeDir, swrSyncEnabled: false, swrCacheTimeoutMs: 600_000 })
+    const config = await addHubRoot({ homeDir, path: '/new-root' })
+    expect(config.autoSyncIntervalMs).toBe(180_000)
+    expect(config.swrSyncEnabled).toBe(false)
+    expect(config.swrCacheTimeoutMs).toBe(600_000)
+  })
+
+  it('setHubAutoSyncInterval does not clobber SWR fields', async () => {
+    const homeDir = await makeHome()
+    await setHubSwrSettings({ homeDir, swrSyncEnabled: false, swrCacheTimeoutMs: 600_000 })
+    const config = await setHubAutoSyncInterval({ homeDir, intervalMs: 180_000 })
+    expect(config.autoSyncIntervalMs).toBe(180_000)
+    expect(config.swrSyncEnabled).toBe(false)
+    expect(config.swrCacheTimeoutMs).toBe(600_000)
+  })
+
+  it('omits SWR fields from disk when undefined', async () => {
+    const homeDir = await makeHome()
+    await saveHubConfig({
+      homeDir,
+      config: { roots: ['/a'], enabledProjects: [] },
+    })
+    const raw = JSON.parse(await readFile(resolveHubConfigPath({ homeDir }), 'utf8'))
+    expect('swrSyncEnabled' in raw).toBe(false)
+    expect('swrCacheTimeoutMs' in raw).toBe(false)
   })
 
   it('migrates a legacy hubs file on load', async () => {

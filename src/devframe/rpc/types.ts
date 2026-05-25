@@ -51,6 +51,20 @@ export interface HubInfo {
 
 export interface HubSettings {
   autoSyncIntervalMs?: number
+  swrSyncEnabled?: boolean
+  swrCacheTimeoutMs?: number
+}
+
+/**
+ * Patch shape for `ghfs:hub-set-settings`. Each field is treated as:
+ * - omitted / `undefined` → don't touch
+ * - `null` → clear (back to the implicit default)
+ * - value → set to value
+ */
+export interface HubSettingsPatch {
+  autoSyncIntervalMs?: number | null
+  swrSyncEnabled?: boolean | null
+  swrCacheTimeoutMs?: number | null
 }
 
 export interface HubScannedProject {
@@ -207,7 +221,7 @@ export interface GhfsServerFunctions {
   'ghfs:hub-queue': () => Promise<HubQueueGroup[]>
   'ghfs:hub-execute-queue': (options: { projectId?: string }) => Promise<ExecutionResult[]>
   'ghfs:hub-settings': () => Promise<HubSettings>
-  'ghfs:hub-set-settings': (patch: Partial<HubSettings>) => Promise<HubSettings>
+  'ghfs:hub-set-settings': (patch: HubSettingsPatch) => Promise<HubSettings>
   'ghfs:hub-seen-history': () => Promise<Record<string, SeenEntry>>
 }
 

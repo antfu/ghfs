@@ -18,8 +18,23 @@ export function useHubSettings() {
   }
 
   async function setAutoSyncIntervalMs(value: number | undefined) {
-    const patch: Partial<HubSettings> & { autoSyncIntervalMs?: number } = { autoSyncIntervalMs: value }
-    const next = await useRpc().$call('ghfs:hub-set-settings', patch)
+    const next = await useRpc().$call('ghfs:hub-set-settings', {
+      autoSyncIntervalMs: value === undefined ? null : value,
+    })
+    settings.value = next
+  }
+
+  async function setSwrSyncEnabled(value: boolean | undefined) {
+    const next = await useRpc().$call('ghfs:hub-set-settings', {
+      swrSyncEnabled: value === undefined ? null : value,
+    })
+    settings.value = next
+  }
+
+  async function setSwrCacheTimeoutMs(value: number | undefined) {
+    const next = await useRpc().$call('ghfs:hub-set-settings', {
+      swrCacheTimeoutMs: value === undefined ? null : value,
+    })
     settings.value = next
   }
 
@@ -28,5 +43,7 @@ export function useHubSettings() {
     hydrated: computed(() => hydrated.value),
     load,
     setAutoSyncIntervalMs,
+    setSwrSyncEnabled,
+    setSwrCacheTimeoutMs,
   }
 }
