@@ -1,14 +1,34 @@
 import type { ProjectInitialPayload } from '#ghfs/rpc-types'
 import type { QueueState, RemoteStatus } from '#ghfs/server-types'
+import type { SyncProgressSnapshot, SyncStage, SyncSummary } from '#ghfs/sync-contracts'
 import type { SyncState } from '#ghfs/sync-state'
+
+export interface ProgressCurrentItem {
+  kind: 'issue' | 'pull'
+  number: number
+  action: string
+}
 
 export interface ProgressState {
   kind: 'sync' | 'execute'
-  stage?: string
+  phase: 'running' | 'success' | 'error'
+  stage?: SyncStage
   message?: string
   processed?: number
   total?: number
   percent?: number
+  /** Epoch ms when the run started — used to render a live elapsed timer. */
+  startedAt?: number
+  /** Full counter snapshot from the sync engine (sync runs only). */
+  snapshot?: SyncProgressSnapshot
+  /** Item currently being fetched (parsed from fetch-stage messages). */
+  currentItem?: ProgressCurrentItem
+  /** Stages that have already ended; drives the pipeline-dot "done" state. */
+  stageHistory?: SyncStage[]
+  /** Final summary, populated after a sync completes successfully. */
+  summary?: SyncSummary
+  /** Stage where an error occurred, if known. */
+  errorStage?: SyncStage
 }
 
 export interface FilterState {
