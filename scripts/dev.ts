@@ -15,10 +15,18 @@ const cwd = cwdFlagIndex >= 0
   ? args[cwdFlagIndex + 1]
   : (mode === 'hub' ? '..' : undefined)
 
-async function isPortFree(port: number, host: string): Promise<boolean> {
+async function isPortFreeOn(port: number, host: string): Promise<boolean> {
   return new Promise((resolve) => {
     const server = createServer()
-    server.once('error', () => resolve(false))
+    server.once('error', (err: NodeJS.ErrnoException) => {
+      // EADDRINUSE → port really is busy on this stack. Anything else
+      // (e.g. EAFNOSUPPORT on a system with IPv6 disabled) means we can't
+      // bind here at all — so the cross-stack collision the probe is
+      // looking for is impossible. Treat that as "free" so we don't
+      // dead-end. A genuinely broken bind will still fail loudly at the
+      // child-process level.
+      resolve(err.code !== 'EADDRINUSE')
+    })
     server.once('listening', () => {
       server.close(() => resolve(true))
     })
@@ -26,21 +34,40 @@ async function isPortFree(port: number, host: string): Promise<boolean> {
   })
 }
 
-async function findFreePort(preferred: number, fallbackStart: number, fallbackEnd: number, host: string): Promise<number> {
-  if (await isPortFree(preferred, host))
-    return preferred
-  for (let p = fallbackStart; p <= fallbackEnd; p++) {
-    if (await isPortFree(p, host))
-      return p
+// Probe both IPv4 (127.0.0.1) and IPv6 (::1). On macOS these are
+// independent sockets, so a port can be busy on one and free on the
+// other — but browsers resolving `localhost` try ::1 first and fall
+// through to 127.0.0.1. A wrong neighbour on ::1 (e.g. another
+// workspace's Nuxt) hijacks the WS connection that should reach our
+// 127.0.0.1-bound ghfs server. Requiring both stacks free prevents that.
+async function isPortFree(port: number): Promise<boolean> {
+  for (const host of ['127.0.0.1', '::1']) {
+    if (!(await isPortFreeOn(port, host)))
+      return false
   }
-  throw new Error(`No free port available near ${preferred} on ${host}`)
+  return true
 }
 
-// ghfs server binds explicitly to 127.0.0.1; Nuxt's dev server resolves
-// `localhost` (typically `::1` on macOS), so each port must be probed on
-// the same host the eventual server will use.
-const ghfsPort = await findFreePort(7710, 7720, 7800, '127.0.0.1')
-const nuxtPort = await findFreePort(7711, 7721, 7800, 'localhost')
+async function findFreePort(preferred: number, fallbackStart: number, fallbackEnd: number): Promise<number> {
+  if (await isPortFree(preferred))
+    return preferred
+  for (let p = fallbackStart; p <= fallbackEnd; p++) {
+    if (await isPortFree(p))
+      return p
+  }
+  throw new Error(`No free port available near ${preferred}`)
+}
+
+// User-facing Nuxt dev server. Stays in the familiar low range so URLs
+// like `localhost:7711` are short and memorable.
+const nuxtPort = await findFreePort(7711, 7712, 7799)
+
+// ghfs RPC/WebSocket server. In dev the SPA is hosted by Nuxt, so this
+// port is only reached internally (proxied through the Nitro route at
+// `ui/server/routes/__connection.json.ts`). Push it into a high range
+// that doesn't compete with Nuxt, Vite, or other common dev tools — the
+// user never types or sees this number.
+const ghfsPort = await findFreePort(47710, 47711, 47999)
 
 console.log(`ghfs ${mode}: http://localhost:${ghfsPort}`)
 console.log(`Nuxt UI:    http://localhost:${nuxtPort}`)

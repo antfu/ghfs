@@ -90,7 +90,7 @@ export default defineNuxtConfig({
         // follows whichever port the paired ghfs server actually got
         // (necessary when multiple workspaces run dev in parallel).
         '/api': {
-          target: `http://localhost:${process.env.VITE_GHFS_WS_PORT ?? 7710}`,
+          target: `http://127.0.0.1:${process.env.VITE_GHFS_WS_PORT ?? 47710}`,
           changeOrigin: true,
           configure(proxy) {
             proxy.on('error', () => {})

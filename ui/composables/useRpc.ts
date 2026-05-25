@@ -53,21 +53,23 @@ let clientPromise: Promise<DevToolsRpcClient> | null = null
 function ensureClient(): Promise<DevToolsRpcClient> {
   if (clientPromise)
     return clientPromise
-  // In dev the Nuxt SPA runs on a different port from the ghfs server
-  // (defaults 7711 / 7710 but `scripts/dev.ts` shifts both when those are
-  // taken so multiple workspaces can run dev in parallel). Fetching
-  // `__connection.json` cross-origin hits CORS, so hardcode
-  // `connectionMeta` from `VITE_GHFS_WS_PORT` and let devframe open the
-  // WS directly (WS is not subject to SOP). In production the SPA is
-  // served from the same origin; baseURL must be `/` rather than the
-  // default `./` because deep-link routes (e.g. `/{owner}/{repo}/{n}`)
-  // would otherwise resolve `__connection.json` relative to the route
-  // segment and 404.
-  const devWsPort = Number(import.meta.env.VITE_GHFS_WS_PORT) || 7710
-  const connectOptions = import.meta.env?.DEV
-    ? { connectionMeta: { backend: 'websocket' as const, websocket: devWsPort } }
-    : { baseURL: '/' }
-  clientPromise = connectDevframe(connectOptions).then((client) => {
+  // Fetch our own `/__connection.json` and pass the result explicitly.
+  //
+  // Why not let devframe fetch it via `baseURL`? Because
+  // `connectDevframe()` first checks `window.__VITE_DEVTOOLS_CONNECTION_META__`,
+  // and the newer Vite/Nuxt DevTools sets that global to point at the
+  // Nuxt dev server's own WS — which lands devframe on the wrong port
+  // (the SPA port, not the paired ghfs server's port). Passing
+  // `connectionMeta` explicitly skips that lookup.
+  //
+  // In dev, `/__connection.json` is handled by the Nitro route at
+  // `server/routes/__connection.json.ts`, which proxies to whichever
+  // port the paired ghfs server bound to (via `VITE_GHFS_WS_PORT`). In
+  // prod, the SPA is served by the ghfs server itself, so the same
+  // request resolves to the same JSON without any proxy.
+  clientPromise = (async () => {
+    const meta = await fetch('/__connection.json').then(r => r.json())
+    const client = await connectDevframe({ connectionMeta: meta })
     // `connectDevframe` builds an empty client RPC host; re-register the
     // ghfs:on* broadcast handlers that the old `createRpcClient` accepted
     // as a function map (one entry per server-side event the UI cares about).
@@ -80,7 +82,7 @@ function ensureClient(): Promise<DevToolsRpcClient> {
       })
     }
     return client
-  })
+  })()
   return clientPromise
 }
 
