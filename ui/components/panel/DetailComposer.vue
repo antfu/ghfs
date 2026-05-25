@@ -349,12 +349,21 @@ defineExpose({ startEditing, focus })
 </script>
 
 <template>
-  <div
-    class="border border-base rounded-lg bg-base transition"
-    :class="editingCommentId
-      ? 'ring-2 ring-yellow-500/60 border-yellow-500/60'
-      : 'focus-within:border-active focus-within:ring-2 focus-within:ring-primary-500/30'"
+  <PanelDetailTemplatePicker
+    ref="templatePicker"
+    v-model:open="templatePickerOpen"
+    :context="templateContext"
+    :external-query="slashActive ? slashQuery : undefined"
+    :external-focus="slashActive"
+    @pick="insertTemplate"
+    @cancel="onTemplatePickerCancel"
   >
+    <div
+      class="border border-base rounded-lg bg-base transition"
+      :class="editingCommentId
+        ? 'ring-2 ring-yellow-500/60 border-yellow-500/60'
+        : 'focus-within:border-active focus-within:ring-2 focus-within:ring-primary-500/30'"
+    >
     <div class="relative">
       <textarea
         ref="textarea"
@@ -384,15 +393,20 @@ defineExpose({ startEditing, focus })
       />
     </div>
     <div class="flex items-center gap-2 px-2 py-1.5 border-t border-base">
-      <PanelDetailTemplatePicker
-        ref="templatePicker"
-        v-model:open="templatePickerOpen"
-        :context="templateContext"
-        :external-query="slashActive ? slashQuery : undefined"
-        :external-focus="slashActive"
-        @pick="insertTemplate"
-        @cancel="onTemplatePickerCancel"
-      />
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs color-muted hover:color-active hover:bg-active focus-visible:bg-active focus-visible:color-active outline-none transition"
+        :class="{ 'bg-active color-active': templatePickerOpen }"
+        :aria-haspopup="true"
+        :aria-expanded="templatePickerOpen"
+        aria-label="Insert saved reply (⌘.)"
+        data-testid="comment-template-trigger"
+        title="Insert saved reply (⌘.)"
+        @click="templatePickerOpen = !templatePickerOpen"
+      >
+        <span class="i-ph-chat-circle-text-duotone text-base" />
+        <span>Saved replies</span>
+      </button>
       <span v-if="editingCommentId" class="text-xs color-muted">Editing a queued comment</span>
       <div class="flex-1" />
       <button
@@ -438,5 +452,6 @@ defineExpose({ startEditing, focus })
         <UiKbd keys="⌘ ↵" tone="muted" />
       </button>
     </div>
-  </div>
+    </div>
+  </PanelDetailTemplatePicker>
 </template>

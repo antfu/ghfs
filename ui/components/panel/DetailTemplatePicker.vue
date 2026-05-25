@@ -214,28 +214,15 @@ defineExpose({
 <template>
   <VDropdown
     v-model:shown="open"
-    :distance="6"
-    :triggers="['click']"
+    :distance="8"
+    :triggers="[]"
     :placement="'top-start'"
     :auto-hide="!externalFocus"
+    class="block"
     @apply-show="onShow"
     @apply-hide="onHide"
   >
-    <slot name="trigger" :open="open">
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs color-muted hover:color-active hover:bg-active focus-visible:bg-active focus-visible:color-active outline-none transition"
-        :class="{ 'bg-active color-active': open }"
-        :aria-haspopup="true"
-        :aria-expanded="open"
-        :aria-label="'Insert saved reply (⌘.)'"
-        data-testid="comment-template-trigger"
-        title="Insert saved reply (⌘.)"
-      >
-        <span class="i-ph-chat-circle-text-duotone text-base" />
-        <span>Saved replies</span>
-      </button>
-    </slot>
+    <slot />
 
     <template #popper>
       <div
