@@ -1,5 +1,15 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import type { RepoLabel } from '#ghfs/server-types'
+import { useDark } from '@vueuse/core'
+import { useActiveProjectId, useAppState } from '../../composables/useAppState'
+import { useDetailScope } from '../../composables/useDetailScope'
+import { labelStyle } from '../../composables/useLabelColor'
+import { usePendingOps } from '../../composables/usePendingOps'
+import { useRpc } from '../../composables/useRpc'
+import { useUiState } from '../../composables/useUiState'
+import UiModal from '../ui/Modal.vue'
+import UiSearchField from '../ui/SearchField.vue'
 
 const activeId = useActiveProjectId()
 const scope = useDetailScope()

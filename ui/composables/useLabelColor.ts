@@ -1,5 +1,9 @@
+import { computed } from 'vue'
+import type { ComputedRef } from 'vue'
 import type { RepoLabel } from '#ghfs/server-types'
 import Color from 'colorjs.io'
+import { useAppState } from './useAppState'
+import { useHubState } from './useHubState'
 
 export interface LabelStyle {
   backgroundColor: string

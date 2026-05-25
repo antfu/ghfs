@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import type { QueueEntry } from '#ghfs/server-types'
+import { computed, nextTick, ref, watch } from 'vue'
+import { useCardsMode } from '../../composables/useCardsMode'
+import { provideDetailScope } from '../../composables/useDetailScope'
+import PanelDetailComposer from '../panel/DetailComposer.vue'
+import UiModal from '../ui/Modal.vue'
 
 const open = defineModel<boolean>('open', { required: true })
 

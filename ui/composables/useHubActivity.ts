@@ -1,4 +1,6 @@
+import { computed, ref } from 'vue'
 import type { ActivityResult } from '#ghfs/rpc-types'
+import { useRpc } from './useRpc'
 
 const cache = ref<ActivityResult | null>(null)
 let loading = false

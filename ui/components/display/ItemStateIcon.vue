@@ -2,6 +2,7 @@
 import type { IssueKind, IssueState } from '../../../src/types/issue'
 import type { IssueStateReason } from '../../../src/types/provider'
 import type { PendingDirection } from '../../composables/usePendingOps'
+import { computed } from 'vue'
 
 interface IconItemInfo {
   kind: IssueKind

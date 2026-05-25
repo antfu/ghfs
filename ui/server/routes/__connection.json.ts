@@ -1,3 +1,5 @@
+import { defineEventHandler } from 'h3'
+
 // Dev-only proxy. Devframe's client (`connectDevframe({ baseURL: '/' })`)
 // fetches `/__connection.json` from the SPA origin to discover the WS
 // endpoint. In production the SPA is served by the ghfs server itself,

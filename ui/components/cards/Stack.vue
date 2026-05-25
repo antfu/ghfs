@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { CardRef } from '../../composables/useCardsMode'
+import CardsFace from './Face.vue'
 
 const props = defineProps<{
   pile: CardRef[]

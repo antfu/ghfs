@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { ProjectSummary } from '#ghfs/rpc-types'
+import { computed } from 'vue'
+import UiSearchField from '../ui/SearchField.vue'
+import UiWithCommand from '../ui/WithCommand.vue'
 
 const props = withDefaults(defineProps<{
   variant: 'project' | 'recent' | 'todo'

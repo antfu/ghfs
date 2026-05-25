@@ -1,5 +1,8 @@
+import { computed } from 'vue'
+import type { ComputedRef, Ref } from 'vue'
 import type { QueueEntry } from '#ghfs/server-types'
 import type { PendingOp } from '../../src/execute/types'
+import { useAppState } from './useAppState'
 
 export type PendingDirection = 'close' | 'reopen' | null
 

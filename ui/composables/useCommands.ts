@@ -1,5 +1,9 @@
+import { computed, shallowRef } from 'vue'
+import type { ComputedRef } from 'vue'
 import type { WhenNode } from 'whenexpr'
 import { evaluate, parse } from 'whenexpr'
+import { bindingDisplay } from '../utils/parseKey'
+import { useWhenContext } from './useWhenContext'
 
 export interface KeybindingDef {
   /** Key chord or sequence (`'j'`, `'g g'`, `'mod+k'`, `'shift+Tab'`). */

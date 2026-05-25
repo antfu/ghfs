@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import type { ProjectSummary } from '#ghfs/rpc-types'
-import type { ListItem } from '../../types/list-item'
+import { computed } from 'vue'
 import { Pane, Splitpanes } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
+import type { ProjectSummary } from '#ghfs/rpc-types'
+import { useActiveProjectId } from '../../composables/useAppState'
+import { useUiState } from '../../composables/useUiState'
+import type { ListItem } from '../../types/list-item'
+import ItemList from '../item/List.vue'
+import ItemListHeader from '../item/ListHeader.vue'
+import UiProgressToast from '../ui/ProgressToast.vue'
+import PanelDetail from './Detail.vue'
+import PanelQueue from './Queue.vue'
 
 const props = withDefaults(defineProps<{
   items: ListItem[]

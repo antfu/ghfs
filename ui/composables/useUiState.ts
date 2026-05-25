@@ -1,6 +1,8 @@
+import { reactive, ref } from 'vue'
 import type { SeenEntry, UiState, UserOverride } from '#ghfs/server-types'
 import { useDebounceFn } from '@vueuse/core'
 import { diagnostics } from '../utils/logger'
+import { useRpc } from './useRpc'
 
 type PrTabId = 'conversation' | 'commits' | 'changes'
 

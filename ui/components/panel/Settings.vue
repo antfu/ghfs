@@ -1,5 +1,15 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
+import { useHubState } from '../../composables/useHubState'
 import type { SettingsTab } from '../../composables/useHubUiState'
+import { useUiState } from '../../composables/useUiState'
+import UiModal from '../ui/Modal.vue'
+import PanelSettingsAccount from './SettingsAccount.vue'
+import PanelSettingsGeneral from './SettingsGeneral.vue'
+import PanelSettingsIgnored from './SettingsIgnored.vue'
+import PanelSettingsProjects from './SettingsProjects.vue'
+import PanelSettingsTemplates from './SettingsTemplates.vue'
 
 const open = defineModel<boolean>('open', { required: true })
 const tab = defineModel<SettingsTab>('tab', { default: 'general' })

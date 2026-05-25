@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useAppState } from '../../composables/useAppState'
+import { useUiState } from '../../composables/useUiState'
+
 const ui = useUiState()
 const state = useAppState()
 

@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import UiKbd from './Kbd.vue'
+
 withDefaults(defineProps<{
   placeholder?: string
   icon?: string

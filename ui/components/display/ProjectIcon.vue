@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { ProjectSummary } from '#ghfs/rpc-types'
+import { computed, ref, watch } from 'vue'
+import { useProjectIcon } from '../../composables/useProjectIcon'
 
 const props = withDefaults(defineProps<{
   project: Pick<ProjectSummary, 'id' | 'repo'>

@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import type { QueuedOp } from '../../composables/useCardsMode'
+import { computed, onMounted, ref } from 'vue'
+import type { QueuedCardOp } from '../../composables/useCardsMode'
+import { useOnlineState } from '../../composables/useOnlineState'
+import { useRpc } from '../../composables/useRpc'
 
 const props = defineProps<{
   pileSize: number
-  processedOps: QueuedOp[]
+  processedOps: QueuedCardOp[]
   hasMoreItems: boolean
 }>()
 

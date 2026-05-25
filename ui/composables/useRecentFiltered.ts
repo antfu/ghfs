@@ -1,7 +1,10 @@
+import { computed, ref } from 'vue'
+import { refThrottled } from '@vueuse/core'
 import type { IssueKind } from '../../src/types/issue'
 import type { ListItem } from '../types/list-item'
-import { refThrottled } from '@vueuse/core'
 import { fromHubRecent } from '../types/list-item'
+import { useHubRecent } from './useHubRecent'
+import { useHubState } from './useHubState'
 
 const search = ref('')
 const kind = ref<IssueKind>('issue')

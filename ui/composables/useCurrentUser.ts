@@ -1,4 +1,7 @@
+import { computed } from 'vue'
 import type { CurrentUser, UserOverride } from '#ghfs/server-types'
+import { useAppState } from './useAppState'
+import { useUiState } from './useUiState'
 
 export function useCurrentUser() {
   const state = useAppState()

@@ -1,3 +1,5 @@
+import { ref } from 'vue'
+
 const paletteOpen = ref(false)
 const query = ref('')
 const selectedIndex = ref(0)

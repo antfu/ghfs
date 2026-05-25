@@ -1,3 +1,9 @@
+import { toValue, watch } from 'vue'
+import type { MaybeRefOrGetter } from 'vue'
+import { useRoute, useRouter } from '#imports'
+import { useAppState } from './useAppState'
+import { useHubState } from './useHubState'
+
 /**
  * Two-way sync between `state.selectedNumber` and the route's `number`
  * segment. Used by `PanelProject` so the URL reflects (and restores) the

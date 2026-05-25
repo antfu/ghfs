@@ -1,8 +1,11 @@
-import type { SyncItemState } from '../../src/types/sync-state'
-import type { ListItem } from '../types/list-item'
+import { computed } from 'vue'
 import { refThrottled } from '@vueuse/core'
+import type { SyncItemState } from '../../src/types/sync-state'
 import { getEffectiveUpdatedAt } from '../../src/sync/effective-updated'
+import type { ListItem } from '../types/list-item'
 import { fromSyncItem } from '../types/list-item'
+import { useAppState } from './useAppState'
+import { useUiState } from './useUiState'
 
 export function useFilteredItems() {
   const state = useAppState()

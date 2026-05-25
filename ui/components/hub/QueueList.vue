@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import type { QueueEntry } from '#ghfs/server-types'
 import { ACTIONS_COLOR_HEX } from '#ghfs/action-colors'
+import { useRouter } from '#imports'
+import { useAppState } from '../../composables/useAppState'
+import { useHubQueue } from '../../composables/useHubQueue'
+import { useOnlineState } from '../../composables/useOnlineState'
+import { useRpc } from '../../composables/useRpc'
 import { summarizeQueueOp } from '../../utils/queueSummary'
+import DisplayProjectIcon from '../display/ProjectIcon.vue'
+import UiEmptyState from '../ui/EmptyState.vue'
+import UiIconButton from '../ui/IconButton.vue'
 
 const hubQueue = useHubQueue()
 const router = useRouter()

@@ -1,6 +1,19 @@
 <script setup lang="ts">
 import type { ListItem } from '../../types/list-item'
+import { computed } from 'vue'
 import { isUnchangedSince } from '../../composables/useCardsMode'
+import { highlight, snippet } from '../../composables/useHighlight'
+import { renderMarkdownInline } from '../../composables/useMarkdown'
+import { usePendingOps } from '../../composables/usePendingOps'
+import { useSeenHistory } from '../../composables/useSeenHistory'
+import DisplayAuthor from '../display/Author.vue'
+import DisplayDateBadge from '../display/DateBadge.vue'
+import DisplayItemActivitySparkline from '../display/ItemActivitySparkline.vue'
+import DisplayItemStateIcon from '../display/ItemStateIcon.vue'
+import DisplayLabel from '../display/Label.vue'
+import DisplayProjectIcon from '../display/ProjectIcon.vue'
+import UiAvatar from '../ui/Avatar.vue'
+import UiBadge from '../ui/Badge.vue'
 
 const props = withDefaults(defineProps<{
   item: ListItem

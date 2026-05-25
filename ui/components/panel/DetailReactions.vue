@@ -1,10 +1,16 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import { Dropdown as VDropdown } from 'floating-vue'
 import type { QueueEntry } from '#ghfs/server-types'
 import type { PendingReactionOp } from '../../../src/execute/types'
 import type { ProviderReactions, ReactionTarget } from '../../../src/types/provider'
 import type { ReactionContent } from '../../../src/utils/reactions'
-import { Dropdown as VDropdown } from 'floating-vue'
 import { REACTION_CONTENTS, REACTION_EMOJI, reactionKeyFromContent } from '../../../src/utils/reactions'
+import { useActiveProjectId, useAppState } from '../../composables/useAppState'
+import { useDetailScope } from '../../composables/useDetailScope'
+import { useOnlineState } from '../../composables/useOnlineState'
+import { usePendingOps } from '../../composables/usePendingOps'
+import { useRpc } from '../../composables/useRpc'
 
 interface Props {
   itemNumber: number

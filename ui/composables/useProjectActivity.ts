@@ -1,4 +1,7 @@
+import { computed, ref, toValue } from 'vue'
+import type { MaybeRefOrGetter, Ref } from 'vue'
 import type { ActivityResult } from '#ghfs/rpc-types'
+import { useRpc } from './useRpc'
 
 const cache = new Map<string, Ref<ActivityResult | null>>()
 const loading = new Set<string>()

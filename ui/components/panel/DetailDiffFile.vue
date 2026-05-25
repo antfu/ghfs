@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import type { File as ParsedDiffFile } from 'parse-diff'
+import UiBadge from '../ui/Badge.vue'
 
 interface Props {
   file: ParsedDiffFile

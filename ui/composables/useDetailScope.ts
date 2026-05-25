@@ -1,4 +1,6 @@
+import { inject, provide } from 'vue'
 import type { InjectionKey } from 'vue'
+import { useActiveProjectId } from './useAppState'
 
 export interface DetailScope {
   /** Project id whose state the detail subtree should read from. */

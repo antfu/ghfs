@@ -1,7 +1,9 @@
+import { computed, ref } from 'vue'
 import type { HubTodoItem } from '#ghfs/rpc-types'
 import type { IssueKind } from '../../src/types/issue'
 import type { ListItem } from '../types/list-item'
 import { listItemKey } from '../types/list-item'
+import { useRpc } from './useRpc'
 
 const items = ref<HubTodoItem[]>([])
 const loading = ref(false)

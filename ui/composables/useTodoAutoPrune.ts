@@ -1,3 +1,7 @@
+import { watchEffect } from 'vue'
+import { useAppState } from './useAppState'
+import { useUiState } from './useUiState'
+
 /**
  * Watches the active project's payload + todos list and removes any todo whose
  * underlying issue/PR has flipped to closed or merged. Runs once per `useTodoAutoPrune()`

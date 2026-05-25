@@ -1,4 +1,6 @@
+import { computed } from 'vue'
 import type { QueueEntry } from '#ghfs/server-types'
+import { useAppState } from './useAppState'
 
 export function useQueue() {
   const state = useAppState()

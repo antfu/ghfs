@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { ListItem } from '../../types/list-item'
+import { computed, ref, watch } from 'vue'
 import { useVirtualizer } from '@tanstack/vue-virtual'
+import UiEmptyState from '../ui/EmptyState.vue'
+import ItemRow from './Row.vue'
 
 const props = withDefaults(defineProps<{
   items: ListItem[]

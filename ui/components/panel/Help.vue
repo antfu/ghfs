@@ -1,5 +1,11 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { evalWhen, getCompiledCommands, getKeybindingsFor } from '../../composables/useCommands'
 import type { Command } from '../../composables/useCommands'
+import { useUiState } from '../../composables/useUiState'
+import { useWhenContext } from '../../composables/useWhenContext'
+import { bindingDisplay } from '../../utils/parseKey'
+import UiModal from '../ui/Modal.vue'
 
 const ui = useUiState()
 const ctx = useWhenContext()

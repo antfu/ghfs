@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import type { CommentTemplate, RepoTemplate } from '#ghfs/rpc-types'
+import { useActiveProjectId, useAppState } from '../../composables/useAppState'
+import { useHubSettings } from '../../composables/useHubSettings'
+import { useRpc } from '../../composables/useRpc'
 
 interface Row { title: string, body: string }
 

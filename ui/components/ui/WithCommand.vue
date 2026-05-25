@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useCommand } from '../../composables/useCommands'
+import UiKbd from './Kbd.vue'
+
 defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(defineProps<{

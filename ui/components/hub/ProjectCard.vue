@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import type { ProjectSummary } from '#ghfs/rpc-types'
+import { computed } from 'vue'
+import { useAppState } from '../../composables/useAppState'
+import { useProjectActivity } from '../../composables/useProjectActivity'
+import DisplayActivitySparkline from '../display/ActivitySparkline.vue'
+import DisplayDateBadge from '../display/DateBadge.vue'
+import DisplayProjectIcon from '../display/ProjectIcon.vue'
 
 const props = defineProps<{
   project: ProjectSummary

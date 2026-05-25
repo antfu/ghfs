@@ -9,8 +9,6 @@ const isDev = process.env.NODE_ENV !== 'production'
 export default defineNuxtConfig({
   modules: [
     '@unocss/nuxt',
-    '@vueuse/nuxt',
-    'reka-ui/nuxt',
   ],
 
   css: [
@@ -49,6 +47,16 @@ export default defineNuxtConfig({
     },
   },
 
+  alias: {
+    '#ghfs/server-types': resolve(rootDir, '../src/server/types.ts'),
+    '#ghfs/action-colors': resolve(rootDir, '../src/execute/actions.ts'),
+    '#ghfs/rpc-types': resolve(rootDir, '../src/devframe/rpc/types.ts'),
+    '#ghfs/execute-types': resolve(rootDir, '../src/execute/types.ts'),
+    '#ghfs/execution-types': resolve(rootDir, '../src/types/execution.ts'),
+    '#ghfs/sync-contracts': resolve(rootDir, '../src/sync/contracts.ts'),
+    '#ghfs/sync-state': resolve(rootDir, '../src/types/sync-state.ts'),
+  },
+
   vite: {
     plugins: [
       nostics.vite(),
@@ -57,6 +65,7 @@ export default defineNuxtConfig({
     optimizeDeps: {
       include: [
         '@tanstack/vue-virtual',
+        '@vueuse/core',
         'colorjs.io',
         'devframe/client',
         'floating-vue',
@@ -64,22 +73,12 @@ export default defineNuxtConfig({
         'nostics',
         'nostics/reporters/dev',
         'parse-diff', // CJS
+        'reka-ui',
         'shiki',
         'splitpanes',
         'vue-data-ui',
         'whenexpr',
       ],
-    },
-    resolve: {
-      alias: {
-        '#ghfs/server-types': resolve(rootDir, '../src/server/types.ts'),
-        '#ghfs/action-colors': resolve(rootDir, '../src/execute/actions.ts'),
-        '#ghfs/rpc-types': resolve(rootDir, '../src/devframe/rpc/types.ts'),
-        '#ghfs/execute-types': resolve(rootDir, '../src/execute/types.ts'),
-        '#ghfs/execution-types': resolve(rootDir, '../src/types/execution.ts'),
-        '#ghfs/sync-contracts': resolve(rootDir, '../src/sync/contracts.ts'),
-        '#ghfs/sync-state': resolve(rootDir, '../src/types/sync-state.ts'),
-      },
     },
     server: {
       proxy: {
@@ -106,7 +105,12 @@ export default defineNuxtConfig({
   },
 
   imports: {
-    dirs: ['composables'],
+    autoImport: false,
+    scan: false,
+  },
+
+  components: {
+    dirs: [],
   },
 
   pages: true,

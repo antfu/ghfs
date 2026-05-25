@@ -1,4 +1,6 @@
+import { computed, ref } from 'vue'
 import type { CommentTemplate, HubSettings } from '#ghfs/rpc-types'
+import { useRpc } from './useRpc'
 
 const settings = ref<HubSettings | null>(null)
 const hydrated = ref(false)

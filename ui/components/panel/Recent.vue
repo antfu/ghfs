@@ -1,5 +1,14 @@
 <script setup lang="ts">
+import { computed, onMounted } from 'vue'
+import { useActiveProjectId } from '../../composables/useAppState'
+import { useHubRecent } from '../../composables/useHubRecent'
+import { useHubState } from '../../composables/useHubState'
+import { useRecentFiltered } from '../../composables/useRecentFiltered'
 import type { ListItem } from '../../types/list-item'
+import UiIconButton from '../ui/IconButton.vue'
+import UiWithCommand from '../ui/WithCommand.vue'
+import PanelAppBar from './AppBar.vue'
+import PanelProject from './Project.vue'
 
 const recent = useHubRecent()
 const hub = useHubState()

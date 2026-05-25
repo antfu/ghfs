@@ -1,4 +1,8 @@
+import { computed, ref } from 'vue'
 import type { SeenEntry } from '#ghfs/server-types'
+import { useHubState } from './useHubState'
+import { useRpc } from './useRpc'
+import { useUiState } from './useUiState'
 
 /**
  * Cross-project seen-history lookup.

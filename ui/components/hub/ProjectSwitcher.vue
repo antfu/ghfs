@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import type { ProjectSummary } from '#ghfs/rpc-types'
+import { computed, nextTick, ref, watch } from 'vue'
+import { useRouter } from '#imports'
+import { NuxtLink } from '#components'
+import { onClickOutside } from '@vueuse/core'
+import { useHubState } from '../../composables/useHubState'
+import DisplayProjectIcon from '../display/ProjectIcon.vue'
+import UiSearchField from '../ui/SearchField.vue'
 
 const props = defineProps<{
   projectId: string

@@ -1,3 +1,9 @@
+import { computed, reactive, watch } from 'vue'
+import type { ComputedRef, Ref } from 'vue'
+import { useActiveProjectId } from './useAppState'
+import { useOnlineState } from './useOnlineState'
+import { useRpc } from './useRpc'
+
 type PatchState = 'idle' | 'loading' | 'loaded' | 'missing' | 'error'
 
 interface PatchEntry {

@@ -1,8 +1,18 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import { ACTIONS_COLOR_HEX } from '#ghfs/action-colors'
 import type { QueueEntry } from '#ghfs/server-types'
 import type { SyncItemState } from '../../../src/types/sync-state'
-import { ACTIONS_COLOR_HEX } from '#ghfs/action-colors'
+import { useActiveProjectId, useAppState } from '../../composables/useAppState'
+import { useOnlineState } from '../../composables/useOnlineState'
+import { useQueue } from '../../composables/useQueue'
+import { useRpc } from '../../composables/useRpc'
 import { summarizeQueueOp } from '../../utils/queueSummary'
+import DisplayItemStateIcon from '../display/ItemStateIcon.vue'
+import UiEmptyState from '../ui/EmptyState.vue'
+import UiIconButton from '../ui/IconButton.vue'
+import UiModal from '../ui/Modal.vue'
+import UiWithCommand from '../ui/WithCommand.vue'
 
 interface Group {
   number: number

@@ -1,9 +1,3 @@
 {
-  "extends": "./.nuxt/tsconfig.json",
-  "compilerOptions": {
-    "paths": {
-      "#ghfs/server-types": ["../src/server/types.ts"],
-      "#ghfs/action-colors": ["../src/execute/actions.ts"]
-    }
-  }
+  "extends": "./.nuxt/tsconfig.json"
 }

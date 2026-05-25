@@ -1,4 +1,7 @@
+import { computed, ref } from 'vue'
 import type { HubQueueGroup } from '#ghfs/rpc-types'
+import { useOnlineState } from './useOnlineState'
+import { useRpc } from './useRpc'
 
 const groups = ref<HubQueueGroup[]>([])
 const loaded = ref(false)

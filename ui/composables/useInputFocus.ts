@@ -1,3 +1,6 @@
+import { ref } from 'vue'
+import { useEventListener } from '@vueuse/core'
+
 const isInputFocused = ref(false)
 let wired = false
 

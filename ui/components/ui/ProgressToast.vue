@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { SyncStage } from '#ghfs/sync-contracts'
-import type { ProgressState } from '~/composables/useAppState'
+import { computed } from 'vue'
+import { useTimestamp } from '@vueuse/core'
+import { useAppState } from '../../composables/useAppState'
+import type { ProgressState } from '../../composables/useAppState'
+import UiIconButton from './IconButton.vue'
 
 const state = useAppState()
 

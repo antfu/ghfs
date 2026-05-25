@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import type { CommentTemplate, RepoTemplate } from '#ghfs/rpc-types'
+import { computed, nextTick, ref, watch } from 'vue'
 import { Dropdown as VDropdown } from 'floating-vue'
+import type { CommentTemplate, RepoTemplate } from '#ghfs/rpc-types'
+import { useActiveProjectId, useAppState } from '../../composables/useAppState'
+import { useDetailScope } from '../../composables/useDetailScope'
+import { useHubSettings } from '../../composables/useHubSettings'
+import { useRpc } from '../../composables/useRpc'
 import { applyVariables } from '../../utils/templates'
+import DisplayProjectIcon from '../display/ProjectIcon.vue'
+import UiSearchField from '../ui/SearchField.vue'
 
 const props = defineProps<{
   /** Optional context for `{{author}}`, `{{number}}`, `{{title}}`. */

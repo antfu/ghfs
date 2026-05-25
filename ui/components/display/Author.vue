@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import UiSafeImage from '../ui/SafeImage.vue'
 
 interface AuthorObject {
   login: string

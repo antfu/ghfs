@@ -1,4 +1,9 @@
+import { useEventListener } from '@vueuse/core'
+import { chordToken, eventToToken, parseBinding } from '../utils/parseKey'
 import { diagnostics } from '../utils/logger'
+import { useCommandPalette } from './useCommandPalette'
+import { evalWhen, getCompiledKeybindings } from './useCommands'
+import { useWhenContext } from './useWhenContext'
 
 interface MatchableBinding {
   command: { id: string, run: () => void | Promise<void> }

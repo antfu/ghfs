@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { definePageMeta, useRoute, useRouter } from '#imports'
+import PanelSingleProject from '../../../components/panel/SingleProject.vue'
+import { useHubState } from '../../../composables/useHubState'
+
 // Stable key so navigation between `/owner/repo` and `/owner/repo/:number`
 // reuses the same page instance — without this Nuxt's default key includes
 // the optional :number, causing a remount + payload refetch on every select.

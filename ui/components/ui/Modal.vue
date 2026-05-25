@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
+import UiIconButton from './IconButton.vue'
+
 const props = withDefaults(defineProps<{
   title?: string
   icon?: string

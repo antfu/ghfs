@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useActiveProjectId, useAppState } from '../../composables/useAppState'
+import { useOnlineState } from '../../composables/useOnlineState'
+import { useRpc } from '../../composables/useRpc'
+import UiModal from '../ui/Modal.vue'
+
 const open = defineModel<boolean>('open', { required: true })
 
 const activeId = useActiveProjectId()

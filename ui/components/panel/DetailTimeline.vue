@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, reactive } from 'vue'
 import type { QueueEntry } from '#ghfs/server-types'
 import type {
   ProviderComment,
@@ -7,7 +8,20 @@ import type {
   ProviderTimelineEvent,
 } from '../../../src/types/provider'
 import { isBotLogin } from '../../../src/utils/bot'
+import { useAppState } from '../../composables/useAppState'
+import { useCollapseBotComments } from '../../composables/useCollapseBotComments'
+import { useCurrentUser } from '../../composables/useCurrentUser'
+import { useDetailScope } from '../../composables/useDetailScope'
+import { renderMarkdown } from '../../composables/useMarkdown'
 import { formatRelative } from '../../composables/useRelativeTime'
+import { useSeenHistory } from '../../composables/useSeenHistory'
+import DisplayAuthor from '../display/Author.vue'
+import DisplayDateBadge from '../display/DateBadge.vue'
+import DisplayLabel from '../display/Label.vue'
+import UiAvatar from '../ui/Avatar.vue'
+import UiIconButton from '../ui/IconButton.vue'
+import PanelDetailReactions from './DetailReactions.vue'
+import PanelDetailTimelineEventRow from './DetailTimelineEventRow.vue'
 import {
   colorFor,
   commitUrlFor,

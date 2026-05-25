@@ -1,6 +1,12 @@
 <script setup lang="ts">
+import { computed, nextTick, ref, watch } from 'vue'
+import { evalWhen, getCompiledCommands, getKeybindingsFor } from '../../composables/useCommands'
 import type { Command } from '../../composables/useCommands'
+import { useCommandPalette } from '../../composables/useCommandPalette'
+import { useWhenContext } from '../../composables/useWhenContext'
 import { diagnostics } from '../../utils/logger'
+import { bindingDisplay } from '../../utils/parseKey'
+import UiModal from '../ui/Modal.vue'
 
 const palette = useCommandPalette()
 const ctx = useWhenContext()

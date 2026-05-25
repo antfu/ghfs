@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useParsedDiff } from '../../composables/useParsedDiff'
+import { usePullPatch } from '../../composables/usePullPatch'
+import UiEmptyState from '../ui/EmptyState.vue'
+import PanelDetailDiffFile from './DetailDiffFile.vue'
+
 interface Props {
   number: number
   hasPatch: boolean

@@ -1,11 +1,17 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import {
   DEFAULT_PILE_OPTIONS,
   filterCandidates,
   PILE_KIND_CHOICES,
   PILE_PICK_CHOICES,
   PILE_SIZE_CHOICES,
+  useCardsMode,
 } from '../../composables/useCardsMode'
+import { useCurrentUser } from '../../composables/useCurrentUser'
+import { useSeenHistory } from '../../composables/useSeenHistory'
+import DisplayProjectIcon from '../display/ProjectIcon.vue'
+import UiModal from '../ui/Modal.vue'
 
 const cards = useCardsMode()
 const seenHistory = useSeenHistory()

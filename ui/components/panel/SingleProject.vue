@@ -1,5 +1,15 @@
 <script setup lang="ts">
+import { computed, watch } from 'vue'
+import { useActiveProjectId, useAppState } from '../../composables/useAppState'
+import { useFilteredItems } from '../../composables/useFilteredItems'
+import { useHubState } from '../../composables/useHubState'
+import { useProjectPayload } from '../../composables/useProjectPayload'
+import { useSelectedItemSync } from '../../composables/useSelectedItemSync'
 import type { ListItem } from '../../types/list-item'
+import UiIconButton from '../ui/IconButton.vue'
+import UiWithCommand from '../ui/WithCommand.vue'
+import PanelAppBar from './AppBar.vue'
+import PanelProject from './Project.vue'
 
 const props = defineProps<{
   projectId: string

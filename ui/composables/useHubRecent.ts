@@ -1,4 +1,8 @@
+import { computed, ref } from 'vue'
 import type { HubRecentItem } from '#ghfs/rpc-types'
+import { useActiveProjectId, useAppState } from './useAppState'
+import { useProjectPayload } from './useProjectPayload'
+import { useRpc } from './useRpc'
 
 const items = ref<HubRecentItem[]>([])
 const loading = ref(false)

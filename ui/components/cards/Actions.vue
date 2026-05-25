@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useCardsMode } from '../../composables/useCardsMode'
+import { useCommand } from '../../composables/useCommands'
+import UiKbd from '../ui/Kbd.vue'
+
 withDefaults(defineProps<{
   /** True while a card is sliding off — suspends hover feedback to keep things calm. */
   busy?: boolean

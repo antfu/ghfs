@@ -1,5 +1,6 @@
 <script setup lang="ts" generic="T">
 import { computed } from 'vue'
+import DisplayNumberBadge from '../display/NumberBadge.vue'
 
 const props = withDefaults(
   defineProps<{

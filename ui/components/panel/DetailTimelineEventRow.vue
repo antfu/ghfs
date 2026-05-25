@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import DisplayAuthor from '../display/Author.vue'
+import DisplayDateBadge from '../display/DateBadge.vue'
+
 interface Props {
   icon: string
   color?: string

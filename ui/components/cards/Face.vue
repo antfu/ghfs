@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import { computed, onMounted, watch } from 'vue'
+import { useAppState } from '../../composables/useAppState'
+import { useCardsMode } from '../../composables/useCardsMode'
 import type { CardRef } from '../../composables/useCardsMode'
+import { useProjectPayload } from '../../composables/useProjectPayload'
+import PanelDetail from '../panel/Detail.vue'
 
 const props = withDefaults(defineProps<{
   card: CardRef

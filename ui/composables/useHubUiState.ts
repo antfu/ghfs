@@ -1,3 +1,8 @@
+import { ref } from 'vue'
+import { useHubState } from './useHubState'
+import { useOnlineState } from './useOnlineState'
+import { useRpc } from './useRpc'
+
 export type SettingsTab = 'general' | 'account' | 'projects' | 'templates' | 'ignored'
 
 const settingsOpen = ref(false)

@@ -1,4 +1,21 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from '#imports'
+import { useDark } from '@vueuse/core'
+import { useActiveProjectId, useAppState } from '../../composables/useAppState'
+import { useCardsMode } from '../../composables/useCardsMode'
+import { useHubQueue } from '../../composables/useHubQueue'
+import { useHubState } from '../../composables/useHubState'
+import { useHubUiState } from '../../composables/useHubUiState'
+import { useOnlineState } from '../../composables/useOnlineState'
+import { useQueue } from '../../composables/useQueue'
+import { useRpc } from '../../composables/useRpc'
+import DisplayProjectIcon from '../display/ProjectIcon.vue'
+import HubProjectSwitcher from '../hub/ProjectSwitcher.vue'
+import UiIconButton from '../ui/IconButton.vue'
+import UiWithCommand from '../ui/WithCommand.vue'
+import PanelForceSyncDialog from './ForceSyncDialog.vue'
+
 const props = withDefaults(defineProps<{
   mode?: 'project' | 'hub'
 }>(), {

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { useCurrentUser } from '../../composables/useCurrentUser'
+import DisplayAuthor from '../display/Author.vue'
+
 const props = defineProps<{
   /** Whether the parent dialog is open and this tab is active. */
   active: boolean

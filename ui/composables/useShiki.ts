@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import type { HighlighterGeneric } from 'shiki'
 
 type Highlighter = HighlighterGeneric<string, string>

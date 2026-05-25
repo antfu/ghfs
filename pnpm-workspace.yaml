@@ -35,7 +35,7 @@ catalog:
   '@unocss/preset-web-fonts': ^66.6.8
   '@unocss/reset': ^66.6.8
   '@vitest/coverage-v8': 4.0.18
-  '@vueuse/nuxt': ^14.3.0
+  '@vueuse/core': ^14.3.0
   ansis: ^4.3.0
   bumpp: ^11.1.0
   cac: ^7.0.0

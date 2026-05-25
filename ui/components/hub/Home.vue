@@ -1,5 +1,17 @@
 <script setup lang="ts">
 import type { ProjectSummary } from '#ghfs/rpc-types'
+import { computed, onMounted, ref } from 'vue'
+import { navigateTo } from '#imports'
+import { useHubActivity } from '../../composables/useHubActivity'
+import { useHubState } from '../../composables/useHubState'
+import { useRpc } from '../../composables/useRpc'
+import DisplayActivitySparkline from '../display/ActivitySparkline.vue'
+import DisplayDateBadge from '../display/DateBadge.vue'
+import PanelAppBar from '../panel/AppBar.vue'
+import UiEmptyState from '../ui/EmptyState.vue'
+import UiModal from '../ui/Modal.vue'
+import UiWithCommand from '../ui/WithCommand.vue'
+import HubProjectCard from './ProjectCard.vue'
 
 const rpc = useRpc()
 const hub = useHubState()

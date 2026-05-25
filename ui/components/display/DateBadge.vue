@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ColorizeMode } from './DurationBadge.vue'
 import { computed } from 'vue'
+import DisplayDurationBadge from './DurationBadge.vue'
 
 const props = withDefaults(
   defineProps<{

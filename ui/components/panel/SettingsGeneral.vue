@@ -1,4 +1,12 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { useDark } from '@vueuse/core'
+import { useCollapseBotComments } from '../../composables/useCollapseBotComments'
+import { useHubSettings } from '../../composables/useHubSettings'
+import { useHubState } from '../../composables/useHubState'
+import { useOnlineState } from '../../composables/useOnlineState'
+import { useUiState } from '../../composables/useUiState'
+
 const props = defineProps<{
   /** Whether the parent dialog is open — triggers initial load of interval value. */
   active: boolean

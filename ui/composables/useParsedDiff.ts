@@ -1,3 +1,5 @@
+import { computed } from 'vue'
+import type { ComputedRef, Ref } from 'vue'
 import type { File as DiffFile } from 'parse-diff'
 import parseDiff from 'parse-diff'
 

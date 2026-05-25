@@ -1,3 +1,4 @@
+import { ref, shallowRef } from 'vue'
 import type { GhfsCapabilities, ProjectSummary } from '#ghfs/rpc-types'
 
 const capabilities = shallowRef<GhfsCapabilities | null>(null)

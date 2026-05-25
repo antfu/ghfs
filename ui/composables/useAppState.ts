@@ -1,3 +1,5 @@
+import { reactive, ref, shallowRef } from 'vue'
+import type { Ref } from 'vue'
 import type { ProjectInitialPayload, RepoTemplatesCache } from '#ghfs/rpc-types'
 import type { QueueState, RemoteStatus } from '#ghfs/server-types'
 import type { SyncProgressSnapshot, SyncStage, SyncSummary } from '#ghfs/sync-contracts'

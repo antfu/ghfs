@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useCommand } from '../../composables/useCommands'
+import { useInputFocus } from '../../composables/useInputFocus'
+
 interface Props {
   /** Look up the first keybinding bound to this command id. */
   command?: string

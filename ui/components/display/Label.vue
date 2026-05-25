@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useDark } from '@vueuse/core'
+import { labelStyle, useHubLabelMap, useLabelColorMap } from '../../composables/useLabelColor'
+
 interface Props {
   name: string
   /**

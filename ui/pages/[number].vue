@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { computed, watchEffect } from 'vue'
+import { useRoute, useRouter } from '#imports'
+import PanelSingleProject from '../components/panel/SingleProject.vue'
+import { useHubState } from '../composables/useHubState'
+
 const route = useRoute()
 const router = useRouter()
 const hub = useHubState()

@@ -1,3 +1,19 @@
+import { computed } from 'vue'
+import type { ComputedRef } from 'vue'
+import { useRoute } from '#imports'
+import { useActiveProjectId, useAppState } from './useAppState'
+import { useCardsMode } from './useCardsMode'
+import { useCommandPalette } from './useCommandPalette'
+import { useFilteredItems } from './useFilteredItems'
+import { useHubQueue } from './useHubQueue'
+import { useHubState } from './useHubState'
+import { useHubUiState } from './useHubUiState'
+import { useInputFocus } from './useInputFocus'
+import { useOnlineState } from './useOnlineState'
+import { useQueue } from './useQueue'
+import { useRecentFiltered } from './useRecentFiltered'
+import { useUiState } from './useUiState'
+
 export interface WhenContext extends Record<string, unknown> {
   route: string
   hubMode: boolean

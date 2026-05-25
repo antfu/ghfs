@@ -1,10 +1,16 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { QueueEntry } from '#ghfs/server-types'
 import type {
   ProviderComment,
   ProviderItem,
   ProviderTimelineEvent,
 } from '../../../src/types/provider'
+import { renderMarkdown } from '../../composables/useMarkdown'
+import DisplayAuthor from '../display/Author.vue'
+import DisplayDateBadge from '../display/DateBadge.vue'
+import PanelDetailReactions from './DetailReactions.vue'
+import PanelDetailTimeline from './DetailTimeline.vue'
 
 interface Props {
   item: ProviderItem

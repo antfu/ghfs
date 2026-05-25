@@ -1,4 +1,21 @@
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { useHead } from '#imports'
+import { NuxtPage } from '#components'
+import CardsStartDialog from './components/cards/StartDialog.vue'
+import HubQueueDrawer from './components/hub/QueueDrawer.vue'
+import PanelCommandPalette from './components/panel/CommandPalette.vue'
+import PanelHelp from './components/panel/Help.vue'
+import PanelSettings from './components/panel/Settings.vue'
+import { createAppCommands } from './composables/useAppCommands'
+import { useCommandHandler } from './composables/useCommandHandler'
+import { registerCommands } from './composables/useCommands'
+import { useHubState } from './composables/useHubState'
+import { useHubUiState } from './composables/useHubUiState'
+import { useRpc } from './composables/useRpc'
+import { useShiki } from './composables/useShiki'
+import { useTodoAutoPrune } from './composables/useTodoAutoPrune'
+
 useHead({
   htmlAttrs: { lang: 'en' },
   title: 'ghfs',

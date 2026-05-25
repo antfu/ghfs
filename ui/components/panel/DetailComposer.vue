@@ -1,5 +1,14 @@
 <script setup lang="ts">
+import { computed, nextTick, ref, watch } from 'vue'
 import type { QueueEntry } from '#ghfs/server-types'
+import { useActiveProjectId, useAppState } from '../../composables/useAppState'
+import { useDetailScope } from '../../composables/useDetailScope'
+import { usePendingOps } from '../../composables/usePendingOps'
+import { useRpc } from '../../composables/useRpc'
+import { useUiState } from '../../composables/useUiState'
+import UiKbd from '../ui/Kbd.vue'
+import UiWithCommand from '../ui/WithCommand.vue'
+import PanelDetailTemplatePicker from './DetailTemplatePicker.vue'
 
 const props = defineProps<{
   /** Issue/PR number this composer is for. */

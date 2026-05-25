@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 const props = withDefaults(defineProps<{
   /** Daily activity buckets, oldest-first. Length defines the x-axis range. */
   points: number[]

@@ -1,5 +1,12 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import type { HubScannedProject } from '#ghfs/rpc-types'
+import { useHubState } from '../../composables/useHubState'
+import { useRpc } from '../../composables/useRpc'
+import DisplayProjectIcon from '../display/ProjectIcon.vue'
+import UiEmptyState from '../ui/EmptyState.vue'
+import UiIconButton from '../ui/IconButton.vue'
+import UiSearchField from '../ui/SearchField.vue'
 
 const props = defineProps<{
   /** Whether the parent dialog is open — triggers an initial scan when shown. */
