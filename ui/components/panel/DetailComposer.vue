@@ -349,13 +349,8 @@ defineExpose({ startEditing, focus })
 </script>
 
 <template>
-  <div
-    class="border border-base rounded-lg bg-base transition"
-    :class="editingCommentId
-      ? 'ring-2 ring-yellow-500/60 border-yellow-500/60'
-      : 'focus-within:border-active focus-within:ring-2 focus-within:ring-primary-500/30'"
-  >
-    <div class="flex items-center justify-end px-2 pt-1.5">
+  <div class="flex flex-col gap-1.5">
+    <div class="flex items-center justify-end">
       <PanelDetailTemplatePicker
         ref="templatePicker"
         v-model:open="templatePickerOpen"
@@ -366,12 +361,18 @@ defineExpose({ startEditing, focus })
         @cancel="onTemplatePickerCancel"
       />
     </div>
+    <div
+      class="border border-base rounded-lg bg-base transition"
+      :class="editingCommentId
+        ? 'ring-2 ring-yellow-500/60 border-yellow-500/60'
+        : 'focus-within:border-active focus-within:ring-2 focus-within:ring-primary-500/30'"
+    >
     <div class="relative">
       <textarea
         ref="textarea"
         v-model="commentDraft"
         data-shortcut="comment-draft"
-        :placeholder="editingCommentId ? 'Editing pending comment…' : `Leave a comment on this ${kindLabel} — try /thanks`"
+        :placeholder="editingCommentId ? 'Editing pending comment…' : `Leave a comment on this ${kindLabel}`"
         rows="3"
         class="peer w-full bg-transparent outline-none px-3 py-2 text-sm resize-none font-sans"
         @input="onTextareaInput"
@@ -439,6 +440,7 @@ defineExpose({ startEditing, focus })
         <span v-else>Comment</span>
         <UiKbd keys="⌘ ↵" tone="muted" />
       </button>
+    </div>
     </div>
   </div>
 </template>
