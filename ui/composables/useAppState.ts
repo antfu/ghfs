@@ -1,4 +1,4 @@
-import type { ProjectInitialPayload } from '#ghfs/rpc-types'
+import type { ProjectInitialPayload, RepoTemplatesCache } from '#ghfs/rpc-types'
 import type { QueueState, RemoteStatus } from '#ghfs/server-types'
 import type { SyncState } from '#ghfs/sync-state'
 
@@ -94,6 +94,10 @@ export function useAppState(projectId?: string | null) {
     patchRemote(next: RemoteStatus) {
       if (bucket.payload.value)
         bucket.payload.value = { ...bucket.payload.value, remote: next }
+    },
+    patchRepoTemplates(next: RepoTemplatesCache) {
+      if (bucket.payload.value)
+        bucket.payload.value = { ...bucket.payload.value, repoTemplates: next }
     },
     setSyncing(value: boolean) {
       bucket.syncing.value = value

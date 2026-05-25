@@ -8,7 +8,7 @@ const props = withDefaults(defineProps<{
   fallbackClass?: string
   /**
    * Pre-resolved icon data URL. When set, skips the project-icon lookup and
-   * GitHub-avatar fallback. Used by HubProjectPicker where the scanned project
+   * GitHub-avatar fallback. Used by SettingsProjects where the scanned project
    * has no id yet and the server already produced the icon.
    */
   iconDataUrl?: string | null

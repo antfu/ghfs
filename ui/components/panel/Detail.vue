@@ -26,9 +26,6 @@ const state = useAppState(props.projectId)
 const rpc = useRpc()
 const ui = useUiState()
 const seenHistory = useSeenHistory()
-const { currentUser } = useCurrentUser()
-const userOverrideOpen = ref(false)
-
 const effectiveNumber = computed<number | null>(() =>
   props.number != null ? props.number : state.selectedNumber.value,
 )
@@ -390,32 +387,13 @@ async function discardThisItem() {
       />
     </div>
 
-    <footer v-if="!compact" class="border-t border-base px-6 py-3 bg-base flex flex-col gap-2">
-      <div class="flex items-center gap-2 text-xs color-muted">
-        <DisplayAuthor
-          v-if="currentUser?.login"
-          :author="{ login: currentUser.login, avatarUrl: currentUser.avatarUrl, name: currentUser.name }"
-          :size="18"
-          :link="false"
-        />
-        <span v-else class="font-mono">(no user)</span>
-        <span v-if="currentUser?.name" class="color-faint">· {{ currentUser.name }}</span>
-        <div class="flex-1" />
-        <UiIconButton
-          icon="i-ph-user-switch-duotone"
-          size="sm"
-          tooltip="Override user"
-          aria-label="Override user identity"
-          @click="userOverrideOpen = true"
-        />
-      </div>
+    <footer v-if="!compact" class="border-t border-base px-6 py-3 bg-base">
       <PanelDetailComposer
         ref="composerRef"
         :number="item.number"
         :kind="item.kind"
       />
     </footer>
-    <PanelDetailUserOverrideDialog v-model:open="userOverrideOpen" />
     <PanelDetailLabelEditor />
   </article>
 </template>

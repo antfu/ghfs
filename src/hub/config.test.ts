@@ -10,6 +10,7 @@ import {
   saveHubConfig,
   setEnabledProjects,
   setHubAutoSyncInterval,
+  setHubCommentTemplates,
 } from './config'
 
 const tempDirs: string[] = []
@@ -146,6 +147,64 @@ describe('hub config', () => {
     expect(config.autoSyncIntervalMs).toBe(180_000)
     const reloaded = await loadHubConfig({ homeDir })
     expect(reloaded.autoSyncIntervalMs).toBe(180_000)
+  })
+
+  it('round-trips commentTemplates', async () => {
+    const homeDir = await makeHome()
+    const templates = [
+      { title: 'Thanks', body: 'Thanks for the report!' },
+      { title: 'Repro?', body: 'Could you share a minimal reproduction?' },
+    ]
+    const config = await setHubCommentTemplates({ homeDir, templates })
+    expect(config.commentTemplates).toEqual(templates)
+    const reloaded = await loadHubConfig({ homeDir })
+    expect(reloaded.commentTemplates).toEqual(templates)
+  })
+
+  it('setHubCommentTemplates trims titles and drops empty entries', async () => {
+    const homeDir = await makeHome()
+    const config = await setHubCommentTemplates({
+      homeDir,
+      templates: [
+        { title: '  Thanks  ', body: 'Thanks!' },
+        { title: '', body: 'no title' },
+        { title: 'no body', body: '' },
+        { title: 'Hi', body: 'Hello' },
+      ],
+    })
+    expect(config.commentTemplates).toEqual([
+      { title: 'Thanks', body: 'Thanks!' },
+      { title: 'Hi', body: 'Hello' },
+    ])
+  })
+
+  it('omits commentTemplates from disk when never set', async () => {
+    const homeDir = await makeHome()
+    await saveHubConfig({ homeDir, config: { roots: ['/a'], enabledProjects: [] } })
+    const raw = JSON.parse(await readFile(resolveHubConfigPath({ homeDir }), 'utf8'))
+    expect('commentTemplates' in raw).toBe(false)
+  })
+
+  it('preserves commentTemplates when other fields are mutated', async () => {
+    const homeDir = await makeHome()
+    await setHubCommentTemplates({ homeDir, templates: [{ title: 'Hi', body: 'Hello' }] })
+    await setHubAutoSyncInterval({ homeDir, intervalMs: 120_000 })
+    const reloaded = await loadHubConfig({ homeDir })
+    expect(reloaded.commentTemplates).toEqual([{ title: 'Hi', body: 'Hello' }])
+    expect(reloaded.autoSyncIntervalMs).toBe(120_000)
+  })
+
+  it('distinguishes never-set (undefined) from explicitly-empty commentTemplates', async () => {
+    const homeDir = await makeHome()
+    // Never set: field absent from JSON.
+    await saveHubConfig({ homeDir, config: { roots: ['/a'], enabledProjects: [] } })
+    const initial = await loadHubConfig({ homeDir })
+    expect(initial.commentTemplates).toBeUndefined()
+
+    // Explicit empty: field present but empty.
+    await setHubCommentTemplates({ homeDir, templates: [] })
+    const cleared = await loadHubConfig({ homeDir })
+    expect(cleared.commentTemplates).toEqual([])
   })
 
   it('migrates a legacy hubs file on load', async () => {

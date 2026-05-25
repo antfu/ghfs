@@ -13,6 +13,7 @@ import { GHFS_VERSION } from '../../meta'
 import { forceSyncStorage } from '../../server/force-sync'
 import { buildQueueState } from '../../server/queue-builder'
 import { clearQueue } from '../../server/queue-writer'
+import { loadRepoTemplates } from '../../server/repo-templates'
 import { loadUiState } from '../../server/ui-state'
 import { appendExecutionResult, syncRepository } from '../../sync'
 import { isCreatedToday } from '../../sync/activity'
@@ -110,7 +111,7 @@ export async function summarizeProject(ctx: ProjectContext): Promise<ProjectSumm
 }
 
 export async function buildInitialPayload(ctx: ProjectContext): Promise<ProjectInitialPayload> {
-  const [repo, syncState, queue, uiState, snapshot] = await Promise.all([
+  const [repo, syncState, queue, uiState, snapshot, repoTemplates] = await Promise.all([
     buildRepoMeta(ctx),
     loadSyncState(ctx.storageDirAbsolute),
     buildQueueState({
@@ -119,6 +120,12 @@ export async function buildInitialPayload(ctx: ProjectContext): Promise<ProjectI
     }),
     loadUiState(ctx.storageDirAbsolute),
     loadRepoSnapshot(ctx.storageDirAbsolute),
+    loadRepoTemplates(ctx.path, ctx.storageDirAbsolute).catch(() => ({
+      templates: [],
+      warnings: [],
+      mtimeMs: null,
+      sourcePath: join(ctx.path, '.github', 'replies.yml'),
+    })),
   ])
 
   const repositoryLabels = (snapshot?.labels ?? []).map(label => ({
@@ -161,6 +168,7 @@ export async function buildInitialPayload(ctx: ProjectContext): Promise<ProjectI
     repositoryLabels,
     currentUser,
     bots: ctx.config.bots,
+    repoTemplates,
   }
 }
 

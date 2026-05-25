@@ -44,6 +44,27 @@ const submitting = ref(false)
 const editingCommentId = ref<string | null>(null)
 const editingDraft = ref('')
 const textarea = ref<HTMLTextAreaElement | null>(null)
+const templatePickerOpen = ref(false)
+
+const templateContext = computed(() => ({
+  author: item.value?.author ?? null,
+  number: props.number,
+  title: item.value?.title ?? null,
+}))
+
+function insertTemplate(text: string) {
+  const el = textarea.value
+  if (!el) {
+    const current = commentDraft.value
+    commentDraft.value = current ? `${current}\n\n${text}` : text
+    return
+  }
+  el.focus()
+  const start = el.selectionStart
+  const end = el.selectionEnd
+  el.setRangeText(text, start, end, 'end')
+  el.dispatchEvent(new Event('input', { bubbles: true }))
+}
 
 // Persistent draft for new comments lives in `.ghfs/.ui.json`. While editing
 // a pending comment we bind to `editingDraft` instead so the live edit doesn't
@@ -225,11 +246,19 @@ defineExpose({ startEditing, focus })
         data-shortcut="comment-draft"
         :placeholder="editingCommentId ? 'Editing pending comment…' : `Leave a comment on this ${kindLabel}`"
         rows="3"
-        class="peer w-full bg-transparent outline-none px-3 py-2 text-sm resize-none font-sans"
+        class="peer w-full bg-transparent outline-none px-3 py-2 pr-10 text-sm resize-none font-sans"
         @keydown.meta.enter.exact.prevent.stop="submitComment"
         @keydown.ctrl.enter.exact.prevent.stop="submitComment"
         @keydown.meta.shift.enter.prevent.stop="closeWithComment"
         @keydown.ctrl.shift.enter.prevent.stop="closeWithComment"
+        @keydown.meta.period.exact.prevent.stop="templatePickerOpen = true"
+        @keydown.ctrl.period.exact.prevent.stop="templatePickerOpen = true"
+      />
+      <DetailTemplatePicker
+        v-model:open="templatePickerOpen"
+        :context="templateContext"
+        class="absolute top-1.5 right-1.5"
+        @pick="insertTemplate"
       />
       <UiWithCommand
         command="comment.focus"

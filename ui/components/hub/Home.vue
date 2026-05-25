@@ -3,10 +3,8 @@ import type { ProjectSummary } from '#ghfs/rpc-types'
 
 const rpc = useRpc()
 const hub = useHubState()
-const hubUi = useHubUiState()
 
 const projects = computed<ProjectSummary[]>(() => hub.projects.value)
-const pickerOpen = computed({ get: () => hubUi.pickerOpen.value, set: v => (hubUi.pickerOpen.value = v) })
 const focusedIndex = ref(0)
 
 const onboardingOpen = ref(false)
@@ -265,8 +263,6 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
         </section>
       </div>
     </main>
-
-    <HubProjectPicker v-if="pickerOpen" @close="pickerOpen = false" />
 
     <UiModal
       v-if="onboardingOpen"

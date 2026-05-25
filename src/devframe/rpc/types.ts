@@ -1,4 +1,6 @@
 import type { PendingOp } from '../../execute/types'
+import type { CommentTemplate } from '../../hub/config'
+import type { RepoTemplate, RepoTemplatesCache } from '../../server/repo-templates'
 import type { ExecuteTriggerOptions, InitialPayload, QueueState, RemoteStatus, RepoLabel, RepoMeta, SeenEntry, SyncTriggerOptions, UiState } from '../../server/types'
 import type { ActivityResult } from '../../sync/activity'
 import type { SyncProgressSnapshot, SyncStage, SyncSummary } from '../../sync/contracts'
@@ -7,7 +9,7 @@ import type { IssueStateReason, ReactionTarget } from '../../types/provider'
 import type { SyncState } from '../../types/sync-state'
 import type { ReactionContent } from '../../utils/reactions'
 
-export type { ActivityResult }
+export type { ActivityResult, CommentTemplate, RepoTemplate, RepoTemplatesCache }
 
 export interface ProjectSummary {
   id: string
@@ -35,6 +37,8 @@ export interface ProjectSummary {
 
 export interface ProjectInitialPayload extends InitialPayload {
   projectId: string
+  /** Cached `.github/replies.yml` content; hydrates the comment template picker. */
+  repoTemplates: RepoTemplatesCache
 }
 
 export interface GhfsCapabilities {
@@ -209,6 +213,10 @@ export interface GhfsServerFunctions {
   'ghfs:hub-settings': () => Promise<HubSettings>
   'ghfs:hub-set-settings': (patch: Partial<HubSettings>) => Promise<HubSettings>
   'ghfs:hub-seen-history': () => Promise<Record<string, SeenEntry>>
+  'ghfs:hub-comment-templates': () => Promise<CommentTemplate[]>
+  'ghfs:set-hub-comment-templates': (templates: CommentTemplate[]) => Promise<CommentTemplate[]>
+  'ghfs:repo-templates': (projectId: string) => Promise<RepoTemplatesCache>
+  'ghfs:set-repo-templates': (projectId: string, templates: RepoTemplate[]) => Promise<RepoTemplatesCache>
 }
 
 export interface GhfsClientFunctions {

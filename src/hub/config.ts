@@ -7,10 +7,16 @@ const ProjectEntrySchema = v.object({
   path: v.string(),
 })
 
+const CommentTemplateSchema = v.object({
+  title: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
+  body: v.pipe(v.string(), v.minLength(1), v.maxLength(10_000)),
+})
+
 const ConfigSchema = v.object({
   roots: v.optional(v.array(v.string())),
   enabledProjects: v.optional(v.array(ProjectEntrySchema)),
   autoSyncIntervalMs: v.optional(v.pipe(v.number(), v.minValue(60_000), v.maxValue(3_600_000))),
+  commentTemplates: v.optional(v.array(CommentTemplateSchema)),
 })
 
 const LegacyEntrySchema = v.object({
@@ -28,6 +34,11 @@ export interface HubProjectEntry {
   path: string
 }
 
+export interface CommentTemplate {
+  title: string
+  body: string
+}
+
 export interface HubConfig {
   /** Directories scanned for git repos. Order is meaningful (insertion order). */
   roots: string[]
@@ -35,6 +46,8 @@ export interface HubConfig {
   enabledProjects: HubProjectEntry[]
   /** Global auto-sync interval applied to every project. */
   autoSyncIntervalMs?: number
+  /** Global comment templates surfaced in the composer's template picker. */
+  commentTemplates?: CommentTemplate[]
 }
 
 export interface ResolveHubConfigPathOptions {
@@ -98,11 +111,14 @@ function parseConfig(raw: unknown): HubConfig {
   // Try the modern flat shape first.
   const flat = v.safeParse(ConfigSchema, raw)
   if (flat.success && (flat.output.roots !== undefined || flat.output.enabledProjects !== undefined)) {
-    return {
+    const config: HubConfig = {
       roots: dedupePaths((flat.output.roots ?? []).map(normalizePath)),
       enabledProjects: dedupeProjects((flat.output.enabledProjects ?? []).map(e => ({ path: normalizePath(e.path) }))),
       autoSyncIntervalMs: flat.output.autoSyncIntervalMs,
     }
+    if (flat.output.commentTemplates !== undefined)
+      config.commentTemplates = flat.output.commentTemplates.map(t => ({ title: t.title, body: t.body }))
+    return config
   }
 
   // Migration: legacy `hubs: Record<path, { enabledProjects, autoSyncIntervalMs }>`.
@@ -144,6 +160,7 @@ export async function saveHubConfig(options: SaveHubConfigOptions): Promise<void
     roots: dedupePaths(options.config.roots.map(normalizePath)),
     enabledProjects: dedupeProjects(options.config.enabledProjects.map(e => ({ path: normalizePath(e.path) }))),
     autoSyncIntervalMs: options.config.autoSyncIntervalMs,
+    commentTemplates: options.config.commentTemplates,
   }
   await mkdir(dirname(path), { recursive: true })
   // Strip undefined fields so the JSON stays tidy.
@@ -153,6 +170,8 @@ export async function saveHubConfig(options: SaveHubConfigOptions): Promise<void
   }
   if (next.autoSyncIntervalMs !== undefined)
     json.autoSyncIntervalMs = next.autoSyncIntervalMs
+  if (next.commentTemplates !== undefined)
+    json.commentTemplates = next.commentTemplates
   await writeFile(path, `${JSON.stringify(json, null, 2)}\n`, 'utf8')
 }
 
@@ -210,9 +229,26 @@ export interface SetHubAutoSyncIntervalOptions extends ResolveHubConfigPathOptio
 export async function setHubAutoSyncInterval(options: SetHubAutoSyncIntervalOptions): Promise<HubConfig> {
   const current = await loadHubConfig(options)
   const next: HubConfig = {
-    roots: current.roots,
-    enabledProjects: current.enabledProjects,
+    ...current,
     autoSyncIntervalMs: options.intervalMs,
+  }
+  await saveHubConfig({ homeDir: options.homeDir, config: next })
+  return next
+}
+
+export interface SetHubCommentTemplatesOptions extends ResolveHubConfigPathOptions {
+  templates: CommentTemplate[]
+}
+
+export async function setHubCommentTemplates(options: SetHubCommentTemplatesOptions): Promise<HubConfig> {
+  const current = await loadHubConfig(options)
+  const sanitized = options.templates
+    .map(t => ({ title: t.title.trim(), body: t.body }))
+    .filter(t => t.title.length > 0 && t.body.length > 0)
+    .slice(0, 200)
+  const next: HubConfig = {
+    ...current,
+    commentTemplates: sanitized,
   }
   await saveHubConfig({ homeDir: options.homeDir, config: next })
   return next

@@ -17,6 +17,10 @@ const settingsOpen = computed({
   get: () => hubUi.settingsOpen.value,
   set: v => (hubUi.settingsOpen.value = v),
 })
+const settingsTab = computed({
+  get: () => hubUi.settingsTab.value,
+  set: v => (hubUi.settingsTab.value = v),
+})
 
 const ready = ref(false)
 const fatalError = ref<string | null>(null)
@@ -43,7 +47,7 @@ onMounted(async () => {
       <p class="text-sm">Connecting…</p>
     </div>
     <NuxtPage v-else />
-    <PanelSettings v-model:open="settingsOpen" />
+    <PanelSettings v-model:open="settingsOpen" v-model:tab="settingsTab" />
     <HubQueueDrawer />
     <PanelCommandPalette />
     <PanelHelp />

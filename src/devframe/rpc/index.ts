@@ -10,6 +10,7 @@ import { getPullPatch } from './get-pull-patch'
 import { getViewerReactions } from './get-viewer-reactions'
 import { hubActivity } from './hub-activity'
 import { hubAddRoot } from './hub-add-root'
+import { hubCommentTemplates, setHubCommentTemplatesRpc } from './hub-comment-templates'
 import { hubDisable } from './hub-disable'
 import { hubEnable } from './hub-enable'
 import { hubExecuteQueue } from './hub-execute-queue'
@@ -30,6 +31,7 @@ import { projectActivity } from './project-activity'
 import { queueState } from './queue-state'
 import { removeQueueOp } from './remove-queue-op'
 import { repoMeta } from './repo-meta'
+import { repoTemplates, setRepoTemplates } from './repo-templates'
 import { saveUiState } from './save-ui-state'
 import { syncState } from './sync-state'
 import { triggerSync } from './trigger-sync'
@@ -74,6 +76,10 @@ export const rpcFunctions = [
   hubSettings,
   hubSetSettings,
   hubSeenHistory,
+  hubCommentTemplates,
+  setHubCommentTemplatesRpc,
+  repoTemplates,
+  setRepoTemplates,
 ] as const
 
 export function registerGhfsRpc(ctx: DevToolsNodeContext): void {

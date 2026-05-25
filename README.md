@@ -76,6 +76,33 @@ Features:
 
 Flags mirror `ghfs ui` (`--port`, `--host`, `--cwd`, `--no-open`).
 
+## Saved replies
+
+Insert canned replies into the comment composer with one click — or press <kbd>⌘</kbd> <kbd>.</kbd> (<kbd>Ctrl</kbd> <kbd>.</kbd> on Linux/Windows) when the composer is focused. Replies come from two scopes, surfaced in a single picker with a per-item indicator:
+
+- **This repo** — `.github/replies.yml` in the repository. ghfs supports the [`refined-saved-replies`](https://github.com/JoshuaKGoldberg/refined-saved-replies) convention, so the same file works in the refined-saved-replies browser extension and any other tool that adopts it. Commit the file so the whole team shares them.
+- **Global** — per-user replies stored in `~/.config/ghfs/hub.json`.
+
+Edit either set from the **Settings** dialog (<kbd>,</kbd>) under the **Saved replies** tab. Bodies support a small set of placeholders, replaced at insertion time against the issue/PR being viewed:
+
+| Placeholder    | Resolves to                          |
+| -------------- | ------------------------------------ |
+| `{{author}}`   | `@<login>` of the item's author      |
+| `{{number}}`   | The issue / PR number                |
+| `{{title}}`    | The item's title                     |
+
+Example `.github/replies.yml`:
+
+```yaml
+- title: Thanks
+  body: |
+    Thanks for the report, {{author}}! We'll take a look at #{{number}}.
+- title: Needs reproduction
+  body: Could you share a minimal reproduction?
+```
+
+> GitHub's own user "saved replies" (at github.com/settings/replies) have no public REST API, so ghfs can't sync them — global templates are managed entirely through ghfs.
+
 ## Execute operations
 
 `ghfs` also allows you to take actions on the issues and pull requests in batch.

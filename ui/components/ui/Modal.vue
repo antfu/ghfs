@@ -1,9 +1,11 @@
 <script setup lang="ts">
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   title?: string
   icon?: string
   description?: string
   width?: string
+  /** Fixed dialog height. Takes precedence over `maxHeight` when set. */
+  height?: string
   maxHeight?: string
   dataTestid?: string
   closeOnBackdrop?: boolean
@@ -15,6 +17,8 @@ withDefaults(defineProps<{
   closeOnBackdrop: true,
   closeOnEscape: true,
 })
+
+const sizeClass = computed(() => props.height ?? props.maxHeight)
 
 const open = defineModel<boolean>('open', { required: true })
 
@@ -43,13 +47,13 @@ function close() {
   <DialogRoot v-model:open="open">
     <DialogPortal>
       <DialogOverlay
-        class="fixed inset-0 bg-black/40 z-modal-backdrop"
+        class="fixed inset-0 bg-black/40 backdrop-blur-sm z-modal-backdrop"
         @click="closeOnBackdrop ? close() : null"
       />
       <DialogContent
         :data-testid="dataTestid"
         class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 panel-card shadow-xl z-modal-content flex flex-col overflow-hidden"
-        :class="[width, maxHeight]"
+        :class="[width, sizeClass]"
         @escape-key-down="closeOnEscape ? null : onEscape($event)"
         @pointer-down-outside="closeOnBackdrop ? null : (event: Event) => event.preventDefault()"
         @interact-outside="onInteractOutside"

@@ -1,23 +1,21 @@
-const pickerOpen = ref(false)
+export type SettingsTab = 'general' | 'projects' | 'templates' | 'ignored'
+
 const settingsOpen = ref(false)
+const settingsTab = ref<SettingsTab>('general')
 const queueDrawerOpen = ref(false)
 const executeAllConfirmOpen = ref(false)
 const syncingAll = ref(false)
 
 export function useHubUiState() {
   return {
-    pickerOpen,
     settingsOpen,
+    settingsTab,
     queueDrawerOpen,
     executeAllConfirmOpen,
     syncingAll,
-    openPicker() {
-      pickerOpen.value = true
-    },
-    closePicker() {
-      pickerOpen.value = false
-    },
-    openSettings() {
+    openSettings(tab?: SettingsTab) {
+      if (tab)
+        settingsTab.value = tab
       settingsOpen.value = true
     },
     closeSettings() {

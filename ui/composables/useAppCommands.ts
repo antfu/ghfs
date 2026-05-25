@@ -231,10 +231,6 @@ export function createAppCommands(): Command[] {
       hubUi.closeSettings()
       return
     }
-    if (hubUi.pickerOpen.value) {
-      hubUi.closePicker()
-      return
-    }
     if (hubUi.queueDrawerOpen.value) {
       hubUi.closeQueueDrawer()
       return
@@ -713,11 +709,10 @@ export function createAppCommands(): Command[] {
       category: 'Hub',
       icon: 'i-ph-folder-duotone',
       keybindings: [{ key: 'm', when: 'hubHome' }],
-      when: 'hubMode && !hubPickerOpen',
+      when: 'hubMode',
       help: 'hubMode',
       run: () => {
-        hubUi.closeSettings()
-        hubUi.openPicker()
+        hubUi.openSettings('projects')
       },
     },
     {
