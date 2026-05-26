@@ -24,7 +24,7 @@ export default defineConfig({
   format: ['esm'],
   dts: true,
   exports: {
-    bin: false,
+    bin: { ghfs: 'src/cli.ts' },
   },
   async onSuccess() {
     const source = resolve(here, 'ui/dist/public')

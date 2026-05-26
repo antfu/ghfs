@@ -24,9 +24,6 @@
     "./package.json": "./package.json"
   },
   "types": "./dist/index.d.mts",
-  "bin": {
-    "ghfs": "./dist/cli.mjs"
-  },
   "files": [
     "dist",
     "skills/ghfs"
