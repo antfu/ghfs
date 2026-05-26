@@ -49,7 +49,7 @@ export interface PendingReviewersOp extends PendingOpBase {
 }
 
 export interface PendingSimpleOp extends PendingOpBase {
-  action: 'close' | 'reopen' | 'clear-milestone' | 'unlock' | 'mark-ready-for-review' | 'convert-to-draft'
+  action: 'close' | 'reopen' | 'clear-milestone' | 'unlock' | 'mark-ready-for-review' | 'convert-to-draft' | 'enqueue-merge'
 }
 
 export interface PendingReactionOp extends PendingOpBase {
@@ -57,6 +57,22 @@ export interface PendingReactionOp extends PendingOpBase {
   reaction: ReactionContent
   /** Omit to react on the issue/PR body itself. */
   target?: ReactionTarget
+}
+
+export interface PendingReviewOp extends PendingOpBase {
+  action: 'approve' | 'request-changes' | 'review-comment'
+  /** Optional for `approve`; required for `request-changes` and `review-comment`. */
+  body?: string
+}
+
+export type MergeMethod = 'squash' | 'merge' | 'rebase'
+
+export interface PendingMergeOp extends PendingOpBase {
+  action: 'merge'
+  /** Defaults to `squash` when omitted. */
+  method?: MergeMethod
+  commitTitle?: string
+  commitMessage?: string
 }
 
 export type PendingOp
@@ -69,6 +85,8 @@ export type PendingOp
     | PendingSetMilestoneOp
     | PendingLockOp
     | PendingReviewersOp
+    | PendingReviewOp
+    | PendingMergeOp
     | PendingReactionOp
 
 export type PendingFile = PendingOp[]
@@ -78,10 +96,17 @@ export const PR_ONLY_ACTIONS: ActionName[] = [
   'remove-reviewers',
   'mark-ready-for-review',
   'convert-to-draft',
+  'approve',
+  'request-changes',
+  'review-comment',
+  'merge',
+  'enqueue-merge',
 ]
 
-export const ACTIONS_WITH_BODY: ActionName[] = ['set-body', 'add-comment', 'close-with-comment']
+export const ACTIONS_WITH_BODY: ActionName[] = ['set-body', 'add-comment', 'close-with-comment', 'approve', 'request-changes', 'review-comment']
 export const ACTIONS_WITH_LABELS: ActionName[] = ['add-labels', 'remove-labels', 'set-labels']
 export const ACTIONS_WITH_ASSIGNEES: ActionName[] = ['add-assignees', 'remove-assignees', 'set-assignees']
 export const ACTIONS_WITH_REVIEWERS: ActionName[] = ['request-reviewers', 'remove-reviewers']
 export const ACTIONS_WITH_REACTION: ActionName[] = ['add-reaction', 'remove-reaction']
+export const ACTIONS_REVIEW: ActionName[] = ['approve', 'request-changes', 'review-comment']
+export const MERGE_METHODS: MergeMethod[] = ['squash', 'merge', 'rebase']

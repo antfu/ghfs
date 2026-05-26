@@ -21,4 +21,13 @@ describe('resolveActionName', () => {
     expect(resolveActionName('')).toBeUndefined()
     expect(resolveActionName('   ')).toBeUndefined()
   })
+
+  it('resolves the reject alias to request-changes', () => {
+    expect(resolveActionName('reject')).toBe('request-changes')
+    expect(resolveActionName('REJECT')).toBe('request-changes')
+  })
+
+  it('resolves the merge-when-ready alias to enqueue-merge', () => {
+    expect(resolveActionName('merge-when-ready')).toBe('enqueue-merge')
+  })
 })

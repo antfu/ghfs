@@ -6,12 +6,18 @@ export function summarizeQueueOp(op: Record<string, unknown>): string {
     details.push((op.labels as string[]).join(', '))
   if ('assignees' in op && Array.isArray(op.assignees))
     details.push((op.assignees as string[]).map(a => `@${a}`).join(', '))
+  if ('reviewers' in op && Array.isArray(op.reviewers))
+    details.push((op.reviewers as string[]).map(r => `@${r}`).join(', '))
   if ('title' in op && typeof op.title === 'string')
     details.push(`"${op.title}"`)
   if ('body' in op && typeof op.body === 'string')
     details.push(`"${op.body.slice(0, 60)}${op.body.length > 60 ? '…' : ''}"`)
   if ('milestone' in op && op.milestone != null)
     details.push(String(op.milestone))
+  if (op.action === 'merge')
+    details.push(`(${(op.method as string) ?? 'squash'})`)
+  if (op.action === 'enqueue-merge')
+    details.push('(when ready)')
   if ('reaction' in op && typeof op.reaction === 'string') {
     const emoji = REACTION_EMOJI[op.reaction as keyof typeof REACTION_EMOJI]
     details.push(emoji ? `${emoji} ${op.reaction}` : op.reaction)

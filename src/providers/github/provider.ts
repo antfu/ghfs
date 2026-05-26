@@ -1,5 +1,6 @@
 import type { Octokit } from 'octokit'
 import type {
+  MergeOptions,
   PaginateItemsOptions,
   ProviderAuthenticatedUser,
   ProviderComment,
@@ -87,6 +88,11 @@ export function createGitHubProvider(options: CreateGitHubProviderOptions): Repo
     actionRemoveReviewers: (number, reviewers) => actionRemoveReviewers(octokit, owner, repo, number, reviewers, bumpRequestCount),
     actionMarkReadyForReview: number => actionMarkReadyForReview(octokit, owner, repo, number, bumpRequestCount),
     actionConvertToDraft: number => actionConvertToDraft(octokit, owner, repo, number, bumpRequestCount),
+    actionApprove: (number, body) => actionSubmitReview(octokit, owner, repo, number, 'APPROVE', body, bumpRequestCount),
+    actionRequestChanges: (number, body) => actionSubmitReview(octokit, owner, repo, number, 'REQUEST_CHANGES', body, bumpRequestCount),
+    actionReviewComment: (number, body) => actionSubmitReview(octokit, owner, repo, number, 'COMMENT', body, bumpRequestCount),
+    actionMerge: (number, mergeOptions) => actionMerge(octokit, owner, repo, number, mergeOptions, bumpRequestCount),
+    actionEnqueueMerge: number => actionEnqueueMerge(octokit, owner, repo, number, bumpRequestCount),
     actionAddReaction: (number, reaction, target) =>
       actionAddReaction(octokit, owner, repo, number, reaction, target, bumpRequestCount),
     actionRemoveReaction: (number, reaction, target) =>
@@ -201,6 +207,8 @@ async function fetchPullMetadata(
     baseRef: pull.base.ref,
     headRef: pull.head.ref,
     requestedReviewers: pull.requested_reviewers.map(reviewer => reviewer.login),
+    mergeable: pull.mergeable ?? null,
+    mergeableState: pull.mergeable_state ?? 'unknown',
   }
 }
 
@@ -357,7 +365,44 @@ async function fetchItemSnapshot(
 async function fetchRepository(octokit: Octokit, owner: string, repo: string, bumpRequestCount: BumpRequestCount): Promise<ProviderRepository> {
   bumpRequestCount()
   const result = await octokit.rest.repos.get({ owner, repo })
-  return result.data as ProviderRepository
+  const data = result.data as ProviderRepository
+  const mergeQueueEnabled = await fetchMergeQueueEnabled(octokit, owner, repo, bumpRequestCount)
+  return {
+    ...data,
+    merge_queue_enabled: mergeQueueEnabled,
+  }
+}
+
+/**
+ * Check whether the default branch's merge queue is set up. Uses GraphQL
+ * because REST doesn't expose this. Returns `null` on errors (insufficient
+ * permission, GraphQL unavailable) so the UI can keep working.
+ */
+async function fetchMergeQueueEnabled(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  bumpRequestCount: BumpRequestCount,
+): Promise<boolean | null> {
+  bumpRequestCount()
+  try {
+    const result = await octokit.graphql<{
+      repository: { mergeQueue: { id: string } | null } | null
+    }>(
+      `query MergeQueueEnabled($owner: String!, $name: String!) {
+        repository(owner: $owner, name: $name) {
+          mergeQueue {
+            id
+          }
+        }
+      }`,
+      { owner, name: repo },
+    )
+    return Boolean(result.repository?.mergeQueue)
+  }
+  catch {
+    return null
+  }
 }
 
 async function fetchRepositoryLabels(octokit: Octokit, owner: string, repo: string, bumpRequestCount: BumpRequestCount): Promise<ProviderLabel[]> {
@@ -703,6 +748,70 @@ async function actionConvertToDraft(
     repo,
     pull_number: number,
   })
+}
+
+async function actionSubmitReview(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  number: number,
+  event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT',
+  body: string | undefined,
+  bumpRequestCount: BumpRequestCount,
+): Promise<void> {
+  bumpRequestCount()
+  await octokit.rest.pulls.createReview({
+    owner,
+    repo,
+    pull_number: number,
+    event,
+    ...(body !== undefined && body.length > 0 ? { body } : {}),
+  })
+}
+
+async function actionMerge(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  number: number,
+  mergeOptions: MergeOptions,
+  bumpRequestCount: BumpRequestCount,
+): Promise<void> {
+  bumpRequestCount()
+  await octokit.rest.pulls.merge({
+    owner,
+    repo,
+    pull_number: number,
+    merge_method: mergeOptions.method ?? 'squash',
+    ...(mergeOptions.commitTitle !== undefined ? { commit_title: mergeOptions.commitTitle } : {}),
+    ...(mergeOptions.commitMessage !== undefined ? { commit_message: mergeOptions.commitMessage } : {}),
+  })
+}
+
+async function actionEnqueueMerge(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  number: number,
+  bumpRequestCount: BumpRequestCount,
+): Promise<void> {
+  bumpRequestCount()
+  const pull = await octokit.rest.pulls.get({ owner, repo, pull_number: number })
+  const pullRequestId = (pull.data as { node_id?: string }).node_id
+  if (!pullRequestId)
+    throw new Error(`Cannot enqueue PR #${number}: missing GraphQL node id`)
+
+  bumpRequestCount()
+  await octokit.graphql(
+    `mutation EnqueuePullRequest($input: EnqueuePullRequestInput!) {
+      enqueuePullRequest(input: $input) {
+        mergeQueueEntry {
+          id
+        }
+      }
+    }`,
+    { input: { pullRequestId } },
+  )
 }
 
 async function resolveMilestone(
@@ -1267,6 +1376,8 @@ interface GitHubPull {
     ref: string
   }
   requested_reviewers: Array<{ login: string }>
+  mergeable?: boolean | null
+  mergeable_state?: string
 }
 
 interface GitHubReactions {

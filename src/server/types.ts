@@ -70,6 +70,19 @@ export interface InitialPayload {
   currentUser: CurrentUser | null
   /** Extra bot logins from the project's `ghfs.config.ts`. */
   bots: string[]
+  /**
+   * Repository-level merge settings, sourced from the last `repo.json`
+   * snapshot. Absent if the snapshot hasn't been written yet.
+   */
+  repoSettings?: RepoSettings
+}
+
+export interface RepoSettings {
+  allowMergeCommit: boolean
+  allowSquashMerge: boolean
+  allowRebaseMerge: boolean
+  /** `null` when the merge queue probe failed (e.g. missing permission). */
+  mergeQueueEnabled: boolean | null
 }
 
 export interface SyncTriggerOptions {

@@ -9,6 +9,7 @@ import { isReactionContent, REACTION_CONTENTS } from '../utils/reactions'
 import { resolveActionName } from './actions'
 
 const LOCK_REASONS = ['resolved', 'off-topic', 'too heated', 'too-heated', 'spam'] as const
+const MERGE_METHOD_VALUES = ['squash', 'merge', 'rebase'] as const
 
 const reactionTargetSchema = v.union([
   v.object({ kind: v.literal('item') }),
@@ -29,6 +30,9 @@ const executeOpSchema = v.looseObject({
   reason: v.optional(v.picklist(LOCK_REASONS)),
   reaction: v.optional(v.picklist(REACTION_CONTENTS)),
   target: v.optional(reactionTargetSchema),
+  method: v.optional(v.picklist(MERGE_METHOD_VALUES)),
+  commitTitle: v.optional(v.string()),
+  commitMessage: v.optional(v.string()),
 })
 
 const executeFileSchema = v.array(executeOpSchema)
@@ -141,6 +145,19 @@ function validateOperationRules(key: string, op: PendingOp): string[] {
       if (!isStringArray(op.reviewers))
         errors.push(`${key}: ${op.action} requires reviewers[]`)
       break
+
+    case 'request-changes':
+    case 'review-comment':
+      if (!isNonEmptyString(op.body))
+        errors.push(`${key}: ${op.action} requires body`)
+      break
+
+    case 'merge': {
+      const method = (op as { method?: unknown }).method
+      if (method !== undefined && !MERGE_METHOD_VALUES.includes(method as typeof MERGE_METHOD_VALUES[number]))
+        errors.push(`${key}: merge method must be one of ${MERGE_METHOD_VALUES.join(', ')}`)
+      break
+    }
 
     case 'add-reaction':
     case 'remove-reaction': {

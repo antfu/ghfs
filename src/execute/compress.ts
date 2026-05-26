@@ -1,6 +1,16 @@
-import type { PendingLockOp, PendingOp, PendingReactionOp } from './types'
+import type { MergeMethod, PendingLockOp, PendingMergeOp, PendingOp, PendingReactionOp, PendingReviewOp } from './types'
 
 type LockReason = PendingLockOp['reason']
+type ReviewKind = PendingReviewOp['action']
+
+interface ReviewChange {
+  action: ReviewKind
+  body?: string
+}
+
+type MergeChange
+  = | { kind: 'merge', method?: MergeMethod, commitTitle?: string, commitMessage?: string }
+    | { kind: 'enqueue' }
 
 interface LabelChanges {
   /** When `mode === 'set'`, `set` is authoritative and add/remove are ignored. */
@@ -35,6 +45,10 @@ interface ItemState {
   milestone: { set: string | number } | 'clear' | null
   lock: { lock: true, reason?: LockReason } | { lock: false } | null
   draft: 'draft' | 'ready' | null
+  /** Last-write-wins review submission for this PR. */
+  review: ReviewChange | null
+  /** Last-write-wins merge submission for this PR. */
+  merge: MergeChange | null
   /** Earliest ifUnchangedSince across all ops in the group (most conservative). */
   ifUnchangedSince: string | undefined
 }
@@ -51,6 +65,8 @@ function createEmptyState(): ItemState {
     milestone: null,
     lock: null,
     draft: null,
+    review: null,
+    merge: null,
     ifUnchangedSince: undefined,
   }
 }
@@ -226,6 +242,25 @@ function applyOp(state: ItemState, op: PendingOp): void {
       }
       break
     }
+    case 'approve':
+    case 'request-changes':
+    case 'review-comment': {
+      state.review = { action: op.action, body: op.body }
+      break
+    }
+    case 'merge': {
+      state.merge = {
+        kind: 'merge',
+        method: op.method,
+        commitTitle: op.commitTitle,
+        commitMessage: op.commitMessage,
+      }
+      break
+    }
+    case 'enqueue-merge': {
+      state.merge = { kind: 'enqueue' }
+      break
+    }
   }
 }
 
@@ -278,6 +313,15 @@ function emit(number: number, state: ItemState): PendingOp[] {
   for (const body of state.extraComments)
     out.push(withBase({ action: 'add-comment', number, body }))
 
+  if (state.review) {
+    const reviewOp: PendingReviewOp = {
+      action: state.review.action,
+      number,
+      ...(state.review.body !== undefined ? { body: state.review.body } : {}),
+    }
+    out.push(withBase(reviewOp))
+  }
+
   if (state.stateChange?.kind === 'close') {
     if (state.stateChange.body != null)
       out.push(withBase({ action: 'close-with-comment', number, body: state.stateChange.body }))
@@ -292,6 +336,22 @@ function emit(number: number, state: ItemState): PendingOp[] {
     out.push(withBase({ action: 'lock', number, ...(state.lock.reason ? { reason: state.lock.reason } : {}) }))
   else if (state.lock?.lock === false)
     out.push(withBase({ action: 'unlock', number }))
+
+  if (state.merge) {
+    if (state.merge.kind === 'enqueue') {
+      out.push(withBase({ action: 'enqueue-merge', number }))
+    }
+    else {
+      const mergeOp: PendingMergeOp = {
+        action: 'merge',
+        number,
+        ...(state.merge.method !== undefined ? { method: state.merge.method } : {}),
+        ...(state.merge.commitTitle !== undefined ? { commitTitle: state.merge.commitTitle } : {}),
+        ...(state.merge.commitMessage !== undefined ? { commitMessage: state.merge.commitMessage } : {}),
+      }
+      out.push(withBase(mergeOp))
+    }
+  }
 
   return out
 }

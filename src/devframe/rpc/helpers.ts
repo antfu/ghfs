@@ -157,6 +157,15 @@ export async function buildInitialPayload(ctx: ProjectContext): Promise<ProjectI
     }
   }
 
+  const repoSettings = snapshot?.repository
+    ? {
+        allowMergeCommit: snapshot.repository.allow_merge_commit ?? true,
+        allowSquashMerge: snapshot.repository.allow_squash_merge ?? true,
+        allowRebaseMerge: snapshot.repository.allow_rebase_merge ?? true,
+        mergeQueueEnabled: snapshot.repository.merge_queue_enabled ?? null,
+      }
+    : undefined
+
   return {
     projectId: ctx.id,
     repo,
@@ -169,6 +178,7 @@ export async function buildInitialPayload(ctx: ProjectContext): Promise<ProjectI
     currentUser,
     bots: ctx.config.bots,
     repoTemplates,
+    ...(repoSettings ? { repoSettings } : {}),
   }
 }
 

@@ -19,6 +19,11 @@ export const ACTIONS_SUPPORTED = [
   'remove-reviewers',
   'mark-ready-for-review',
   'convert-to-draft',
+  'approve',
+  'request-changes',
+  'review-comment',
+  'merge',
+  'enqueue-merge',
   'add-reaction',
   'remove-reaction',
 ] as const
@@ -47,6 +52,8 @@ export const ACTIONS_ALIAS_MAP = {
   'undraft': 'mark-ready-for-review',
   'draft': 'convert-to-draft',
   'comment': 'add-comment',
+  'reject': 'request-changes',
+  'merge-when-ready': 'enqueue-merge',
 } as const satisfies Record<string, ActionName>
 
 export const ACTIONS_COLOR_HEX: Record<ActionName, string> = {
@@ -70,6 +77,11 @@ export const ACTIONS_COLOR_HEX: Record<ActionName, string> = {
   'remove-reviewers': '#e879f9',
   'mark-ready-for-review': '#34d399',
   'convert-to-draft': '#f472b6',
+  'approve': '#16a34a',
+  'request-changes': '#dc2626',
+  'review-comment': '#0891b2',
+  'merge': '#8b5cf6',
+  'enqueue-merge': '#7c3aed',
   'add-reaction': '#fbbf24',
   'remove-reaction': '#fb923c',
 }

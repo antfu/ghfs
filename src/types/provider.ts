@@ -51,6 +51,24 @@ export interface ProviderPullMetadata {
   baseRef: string
   headRef: string
   requestedReviewers: string[]
+  /**
+   * Whether GitHub computed the PR to be mergeable. `null`/omitted when GitHub
+   * hasn't finished computing yet — the UI should treat as unknown.
+   */
+  mergeable?: boolean | null
+  /**
+   * Raw GitHub `mergeable_state` string: typically one of
+   * `clean | dirty | blocked | behind | unstable | draft | unknown`.
+   */
+  mergeableState?: string
+}
+
+export type MergeMethod = 'squash' | 'merge' | 'rebase'
+
+export interface MergeOptions {
+  method?: MergeMethod
+  commitTitle?: string
+  commitMessage?: string
 }
 
 export interface ProviderCommit {
@@ -145,6 +163,18 @@ export interface ProviderRepository {
   owner: {
     login: string
   }
+  /** Whether the repo allows merge commits (`Create a merge commit`). */
+  allow_merge_commit?: boolean
+  /** Whether the repo allows squash-merging (`Squash and merge`). */
+  allow_squash_merge?: boolean
+  /** Whether the repo allows rebase-merging (`Rebase and merge`). */
+  allow_rebase_merge?: boolean
+  /**
+   * Whether the default branch is gated by a merge queue. When true, the UI
+   * shows a "Merge when ready" button that enqueues the PR via GraphQL.
+   * `null`/omitted when the setting hasn't been fetched yet.
+   */
+  merge_queue_enabled?: boolean | null
 }
 
 export interface ProviderLabel {
@@ -238,6 +268,11 @@ export interface RepositoryProvider {
   actionRemoveReviewers: (number: number, reviewers: string[]) => Promise<void>
   actionMarkReadyForReview: (number: number) => Promise<void>
   actionConvertToDraft: (number: number) => Promise<void>
+  actionApprove: (number: number, body?: string) => Promise<void>
+  actionRequestChanges: (number: number, body: string) => Promise<void>
+  actionReviewComment: (number: number, body: string) => Promise<void>
+  actionMerge: (number: number, options: MergeOptions) => Promise<void>
+  actionEnqueueMerge: (number: number) => Promise<void>
   actionAddReaction: (number: number, reaction: ReactionContent, target: ReactionTarget) => Promise<void>
   actionRemoveReaction: (number: number, reaction: ReactionContent, target: ReactionTarget) => Promise<void>
   fetchViewerReactions: (number: number, target: ReactionTarget) => Promise<ReactionContent[]>

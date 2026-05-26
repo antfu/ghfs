@@ -198,4 +198,67 @@ describe('compressOps', () => {
     ]
     expect(compressOps(ops)).toEqual(ops)
   })
+
+  it('keeps only the latest review for a PR (last-write-wins)', () => {
+    const ops: PendingOp[] = [
+      { action: 'approve', number: 7 },
+      { action: 'request-changes', number: 7, body: 'needs work' },
+    ]
+    expect(compressOps(ops)).toEqual([
+      { action: 'request-changes', number: 7, body: 'needs work' },
+    ])
+  })
+
+  it('preserves the body of the winning review', () => {
+    const ops: PendingOp[] = [
+      { action: 'review-comment', number: 7, body: 'first thoughts' },
+      { action: 'approve', number: 7, body: 'all good' },
+    ]
+    expect(compressOps(ops)).toEqual([
+      { action: 'approve', number: 7, body: 'all good' },
+    ])
+  })
+
+  it('keeps only the latest merge for a PR (last-write-wins)', () => {
+    const ops: PendingOp[] = [
+      { action: 'merge', number: 12, method: 'merge' },
+      { action: 'merge', number: 12, method: 'rebase' },
+    ]
+    expect(compressOps(ops)).toEqual([
+      { action: 'merge', number: 12, method: 'rebase' },
+    ])
+  })
+
+  it('keeps review and merge alongside a comment, with merge last', () => {
+    const ops: PendingOp[] = [
+      { action: 'add-comment', number: 8, body: 'one quick note' },
+      { action: 'approve', number: 8 },
+      { action: 'merge', number: 8, method: 'squash' },
+    ]
+    expect(compressOps(ops)).toEqual([
+      { action: 'add-comment', number: 8, body: 'one quick note' },
+      { action: 'approve', number: 8 },
+      { action: 'merge', number: 8, method: 'squash' },
+    ])
+  })
+
+  it('replaces merge with enqueue-merge when both are queued (last wins)', () => {
+    const ops: PendingOp[] = [
+      { action: 'merge', number: 12, method: 'squash' },
+      { action: 'enqueue-merge', number: 12 },
+    ]
+    expect(compressOps(ops)).toEqual([
+      { action: 'enqueue-merge', number: 12 },
+    ])
+  })
+
+  it('replaces enqueue-merge with a later merge (last wins)', () => {
+    const ops: PendingOp[] = [
+      { action: 'enqueue-merge', number: 12 },
+      { action: 'merge', number: 12, method: 'rebase' },
+    ]
+    expect(compressOps(ops)).toEqual([
+      { action: 'merge', number: 12, method: 'rebase' },
+    ])
+  })
 })
