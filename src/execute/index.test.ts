@@ -443,6 +443,12 @@ describe('executePendingChanges', () => {
       { name: 'remove-reviewers', op: { action: 'remove-reviewers', number: 1, reviewers: ['alice'] }, method: 'actionRemoveReviewers', args: [1, ['alice']], kind: 'pull' },
       { name: 'mark-ready-for-review', op: { action: 'mark-ready-for-review', number: 1 }, method: 'actionMarkReadyForReview', args: [1], kind: 'pull' },
       { name: 'convert-to-draft', op: { action: 'convert-to-draft', number: 1 }, method: 'actionConvertToDraft', args: [1], kind: 'pull' },
+      { name: 'approve', op: { action: 'approve', number: 1, body: 'LGTM' }, method: 'actionApprove', args: [1, 'LGTM'], kind: 'pull' },
+      { name: 'approve (no body)', op: { action: 'approve', number: 1 }, method: 'actionApprove', args: [1, undefined], kind: 'pull' },
+      { name: 'request-changes', op: { action: 'request-changes', number: 1, body: 'needs work' }, method: 'actionRequestChanges', args: [1, 'needs work'], kind: 'pull' },
+      { name: 'review-comment', op: { action: 'review-comment', number: 1, body: 'just thinking' }, method: 'actionReviewComment', args: [1, 'just thinking'], kind: 'pull' },
+      { name: 'merge', op: { action: 'merge', number: 1, method: 'squash' }, method: 'actionMerge', args: [1, { method: 'squash', commitTitle: undefined, commitMessage: undefined }], kind: 'pull' },
+      { name: 'enqueue-merge', op: { action: 'enqueue-merge', number: 1 }, method: 'actionEnqueueMerge', args: [1], kind: 'pull' },
     ]
 
     for (const testCase of dispatchCases) {
@@ -621,6 +627,11 @@ function createMockProvider(overrides: Partial<RepositoryProvider> = {}): Reposi
     actionRemoveReviewers: vi.fn(async () => {}),
     actionMarkReadyForReview: vi.fn(async () => {}),
     actionConvertToDraft: vi.fn(async () => {}),
+    actionApprove: vi.fn(async () => {}),
+    actionRequestChanges: vi.fn(async () => {}),
+    actionReviewComment: vi.fn(async () => {}),
+    actionMerge: vi.fn(async () => {}),
+    actionEnqueueMerge: vi.fn(async () => {}),
     actionAddReaction: vi.fn(async () => {}),
     actionRemoveReaction: vi.fn(async () => {}),
     fetchViewerReactions: vi.fn(async () => []),

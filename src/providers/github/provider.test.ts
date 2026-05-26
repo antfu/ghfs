@@ -26,6 +26,8 @@ describe('createGitHubProvider', () => {
         base: { ref: 'main' },
         head: { ref: 'feature' },
         requested_reviewers: [{ login: 'reviewer-1' }],
+        mergeable: true,
+        mergeable_state: 'clean',
       },
     }))
     const paginate = Object.assign(
@@ -223,7 +225,136 @@ describe('createGitHubProvider', () => {
       baseRef: 'main',
       headRef: 'feature',
       requestedReviewers: ['reviewer-1'],
+      mergeable: true,
+      mergeableState: 'clean',
     })
+  })
+
+  it('exposes repo merge settings and probes merge queue via GraphQL', async () => {
+    const reposGet = vi.fn(async () => ({
+      data: {
+        name: 'repo',
+        full_name: 'owner/repo',
+        description: null,
+        private: false,
+        archived: false,
+        default_branch: 'main',
+        html_url: 'https://github.com/owner/repo',
+        fork: false,
+        open_issues_count: 0,
+        has_issues: true,
+        has_projects: true,
+        has_wiki: false,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+        pushed_at: '2026-01-01T00:00:00.000Z',
+        owner: { login: 'owner' },
+        allow_merge_commit: false,
+        allow_squash_merge: true,
+        allow_rebase_merge: true,
+      },
+    }))
+    const graphql = vi.fn(async () => ({
+      repository: { mergeQueue: { id: 'MQ_abc' } },
+    }))
+
+    mockedCreateGitHubClient.mockReturnValue({
+      rest: {
+        repos: { get: reposGet },
+      },
+      graphql,
+    } as unknown as Octokit)
+
+    const provider = createGitHubProvider({
+      token: 'test-token',
+      owner: 'owner',
+      repo: 'repo',
+    })
+
+    const repository = await provider.fetchRepository()
+    expect(repository.allow_merge_commit).toBe(false)
+    expect(repository.allow_squash_merge).toBe(true)
+    expect(repository.allow_rebase_merge).toBe(true)
+    expect(repository.merge_queue_enabled).toBe(true)
+    expect(graphql).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports merge_queue_enabled false when GraphQL returns no merge queue', async () => {
+    const reposGet = vi.fn(async () => ({
+      data: {
+        name: 'repo',
+        full_name: 'owner/repo',
+        description: null,
+        private: false,
+        archived: false,
+        default_branch: 'main',
+        html_url: 'https://github.com/owner/repo',
+        fork: false,
+        open_issues_count: 0,
+        has_issues: true,
+        has_projects: true,
+        has_wiki: false,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+        pushed_at: '2026-01-01T00:00:00.000Z',
+        owner: { login: 'owner' },
+      },
+    }))
+    const graphql = vi.fn(async () => ({ repository: { mergeQueue: null } }))
+
+    mockedCreateGitHubClient.mockReturnValue({
+      rest: { repos: { get: reposGet } },
+      graphql,
+    } as unknown as Octokit)
+
+    const provider = createGitHubProvider({
+      token: 'test-token',
+      owner: 'owner',
+      repo: 'repo',
+    })
+
+    const repository = await provider.fetchRepository()
+    expect(repository.merge_queue_enabled).toBe(false)
+  })
+
+  it('reports merge_queue_enabled null when GraphQL probe throws', async () => {
+    const reposGet = vi.fn(async () => ({
+      data: {
+        name: 'repo',
+        full_name: 'owner/repo',
+        description: null,
+        private: false,
+        archived: false,
+        default_branch: 'main',
+        html_url: 'https://github.com/owner/repo',
+        fork: false,
+        open_issues_count: 0,
+        has_issues: true,
+        has_projects: true,
+        has_wiki: false,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+        pushed_at: '2026-01-01T00:00:00.000Z',
+        owner: { login: 'owner' },
+      },
+    }))
+    const graphql = vi.fn(async () => {
+      throw new Error('insufficient scope')
+    })
+
+    mockedCreateGitHubClient.mockReturnValue({
+      rest: { repos: { get: reposGet } },
+      graphql,
+    } as unknown as Octokit)
+
+    const provider = createGitHubProvider({
+      token: 'test-token',
+      owner: 'owner',
+      repo: 'repo',
+    })
+
+    const repository = await provider.fetchRepository()
+    expect(repository.merge_queue_enabled).toBeNull()
   })
 
   it('supports page-level and item-level iteration helpers', async () => {
@@ -418,5 +549,126 @@ describe('createGitHubProvider', () => {
       issue_number: 10,
       milestone: 2,
     })
+  })
+
+  it('submits PR reviews via pulls.createReview', async () => {
+    const createReview = vi.fn(async () => ({ data: {} }))
+
+    mockedCreateGitHubClient.mockReturnValue({
+      rest: {
+        pulls: {
+          createReview,
+        },
+      },
+    } as unknown as Octokit)
+
+    const provider = createGitHubProvider({
+      token: 'test-token',
+      owner: 'owner',
+      repo: 'repo',
+    })
+
+    await provider.actionApprove(42)
+    expect(createReview).toHaveBeenLastCalledWith({
+      owner: 'owner',
+      repo: 'repo',
+      pull_number: 42,
+      event: 'APPROVE',
+    })
+
+    await provider.actionApprove(42, 'LGTM')
+    expect(createReview).toHaveBeenLastCalledWith({
+      owner: 'owner',
+      repo: 'repo',
+      pull_number: 42,
+      event: 'APPROVE',
+      body: 'LGTM',
+    })
+
+    await provider.actionRequestChanges(42, 'needs work')
+    expect(createReview).toHaveBeenLastCalledWith({
+      owner: 'owner',
+      repo: 'repo',
+      pull_number: 42,
+      event: 'REQUEST_CHANGES',
+      body: 'needs work',
+    })
+
+    await provider.actionReviewComment(42, 'just a thought')
+    expect(createReview).toHaveBeenLastCalledWith({
+      owner: 'owner',
+      repo: 'repo',
+      pull_number: 42,
+      event: 'COMMENT',
+      body: 'just a thought',
+    })
+  })
+
+  it('merges PRs via pulls.merge with the requested method', async () => {
+    const merge = vi.fn(async () => ({ data: {} }))
+
+    mockedCreateGitHubClient.mockReturnValue({
+      rest: {
+        pulls: {
+          merge,
+        },
+      },
+    } as unknown as Octokit)
+
+    const provider = createGitHubProvider({
+      token: 'test-token',
+      owner: 'owner',
+      repo: 'repo',
+    })
+
+    await provider.actionMerge(7, {})
+    expect(merge).toHaveBeenLastCalledWith({
+      owner: 'owner',
+      repo: 'repo',
+      pull_number: 7,
+      merge_method: 'squash',
+    })
+
+    await provider.actionMerge(7, { method: 'rebase' })
+    expect(merge).toHaveBeenLastCalledWith({
+      owner: 'owner',
+      repo: 'repo',
+      pull_number: 7,
+      merge_method: 'rebase',
+    })
+
+    await provider.actionMerge(7, { method: 'merge', commitTitle: 'Title', commitMessage: 'Message' })
+    expect(merge).toHaveBeenLastCalledWith({
+      owner: 'owner',
+      repo: 'repo',
+      pull_number: 7,
+      merge_method: 'merge',
+      commit_title: 'Title',
+      commit_message: 'Message',
+    })
+  })
+
+  it('enqueues PRs via the GraphQL enqueuePullRequest mutation', async () => {
+    const pullsGet = vi.fn(async () => ({ data: { node_id: 'PR_node_42' } }))
+    const graphql = vi.fn(async () => ({
+      enqueuePullRequest: { mergeQueueEntry: { id: 'MQE_xyz' } },
+    }))
+
+    mockedCreateGitHubClient.mockReturnValue({
+      rest: { pulls: { get: pullsGet } },
+      graphql,
+    } as unknown as Octokit)
+
+    const provider = createGitHubProvider({
+      token: 'test-token',
+      owner: 'owner',
+      repo: 'repo',
+    })
+
+    await provider.actionEnqueueMerge(42)
+    expect(pullsGet).toHaveBeenCalledWith({ owner: 'owner', repo: 'repo', pull_number: 42 })
+    expect(graphql).toHaveBeenCalledTimes(1)
+    const call = graphql.mock.calls[0] as unknown as [string, { input: { pullRequestId: string } }]
+    expect(call[1]).toEqual({ input: { pullRequestId: 'PR_node_42' } })
   })
 })

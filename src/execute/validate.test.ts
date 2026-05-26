@@ -103,6 +103,44 @@ describe('validateExecuteRules', () => {
     ] as unknown as PendingFile
     expect(validateExecuteRules(execute)).toContain('[0]: add-reaction target.reviewId must be a non-empty string')
   })
+
+  it('accepts approve without a body', () => {
+    const execute: PendingFile = [{ number: 1, action: 'approve' }]
+    expect(validateExecuteRules(execute)).toEqual([])
+  })
+
+  it('accepts approve with a body', () => {
+    const execute: PendingFile = [{ number: 1, action: 'approve', body: 'LGTM' }]
+    expect(validateExecuteRules(execute)).toEqual([])
+  })
+
+  it('fails when request-changes is missing a body', () => {
+    const execute = [{ number: 1, action: 'request-changes' }] as PendingFile
+    expect(validateExecuteRules(execute)).toContain('[0]: request-changes requires body')
+  })
+
+  it('fails when review-comment is missing a body', () => {
+    const execute = [{ number: 1, action: 'review-comment' }] as PendingFile
+    expect(validateExecuteRules(execute)).toContain('[0]: review-comment requires body')
+  })
+
+  it('accepts merge with default method', () => {
+    const execute: PendingFile = [{ number: 1, action: 'merge' }]
+    expect(validateExecuteRules(execute)).toEqual([])
+  })
+
+  it('accepts merge with an allowed method', () => {
+    for (const method of ['squash', 'merge', 'rebase'] as const) {
+      const execute: PendingFile = [{ number: 1, action: 'merge', method }]
+      expect(validateExecuteRules(execute)).toEqual([])
+    }
+  })
+
+  it('fails when merge method is invalid', () => {
+    const execute = [{ number: 1, action: 'merge', method: 'cherry-pick' }] as unknown as PendingFile
+    const errors = validateExecuteRules(execute)
+    expect(errors.some(e => e.includes('merge method must be one of'))).toBe(true)
+  })
 })
 
 describe('readAndValidateExecuteFile', () => {

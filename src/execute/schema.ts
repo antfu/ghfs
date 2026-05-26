@@ -45,6 +45,12 @@ export const executeSchema = {
         type: 'string',
         enum: [...REACTION_CONTENTS],
       },
+      method: {
+        type: 'string',
+        enum: ['squash', 'merge', 'rebase'],
+      },
+      commitTitle: { type: 'string' },
+      commitMessage: { type: 'string' },
       target: {
         oneOf: [
           {

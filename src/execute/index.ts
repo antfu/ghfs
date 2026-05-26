@@ -337,6 +337,35 @@ async function applyOperation(provider: RepositoryProvider, op: PendingOp): Prom
       await provider.actionConvertToDraft(op.number)
       break
 
+    case 'approve':
+      ensurePullAction(op.action, op.number, isPull)
+      await provider.actionApprove(op.number, op.body)
+      break
+
+    case 'request-changes':
+      ensurePullAction(op.action, op.number, isPull)
+      await provider.actionRequestChanges(op.number, op.body ?? '')
+      break
+
+    case 'review-comment':
+      ensurePullAction(op.action, op.number, isPull)
+      await provider.actionReviewComment(op.number, op.body ?? '')
+      break
+
+    case 'merge':
+      ensurePullAction(op.action, op.number, isPull)
+      await provider.actionMerge(op.number, {
+        method: op.method,
+        commitTitle: op.commitTitle,
+        commitMessage: op.commitMessage,
+      })
+      break
+
+    case 'enqueue-merge':
+      ensurePullAction(op.action, op.number, isPull)
+      await provider.actionEnqueueMerge(op.number)
+      break
+
     case 'add-reaction':
       await provider.actionAddReaction(op.number, op.reaction, op.target ?? { kind: 'item' })
       break

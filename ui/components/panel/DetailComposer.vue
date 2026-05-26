@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
+import { Dropdown as VDropdown } from 'floating-vue'
 import type { QueueEntry } from '#ghfs/server-types'
 import { useActiveProjectId, useAppState } from '../../composables/useAppState'
 import { useDetailScope } from '../../composables/useDetailScope'
@@ -9,6 +10,8 @@ import { useUiState } from '../../composables/useUiState'
 import UiKbd from '../ui/Kbd.vue'
 import UiWithCommand from '../ui/WithCommand.vue'
 import PanelDetailTemplatePicker from './DetailTemplatePicker.vue'
+
+type ReviewKind = 'approve' | 'request-changes' | 'review-comment'
 
 const props = defineProps<{
   /** Issue/PR number this composer is for. */
@@ -215,11 +218,14 @@ const draftHasContent = computed(() => {
   return commentDraft.value.trim().length > 0
 })
 
+const reviewMenuOpen = ref(false)
+
 // Reset editing state when the composer's subject changes (cards mode advances
 // through different items reusing the same composer instance).
 watch(() => props.number, () => {
   editingCommentId.value = null
   editingDraft.value = ''
+  reviewMenuOpen.value = false
 })
 
 async function submitComment() {
@@ -312,6 +318,40 @@ async function reopen() {
       number: props.number,
     })
     const opId = findOpId(queue.entries, props.number, ['reopen'])
+    emit('submitted', opId)
+  }
+  catch (error) {
+    state.setError((error as Error).message)
+  }
+  finally {
+    submitting.value = false
+  }
+}
+
+const reviewOptionDisabled = computed(() => ({
+  'approve': false,
+  'request-changes': !draftHasContent.value && !editingCommentId.value,
+  'review-comment': !draftHasContent.value && !editingCommentId.value,
+} satisfies Record<ReviewKind, boolean>))
+
+async function submitReview(kind: ReviewKind) {
+  if (submitting.value || !item.value)
+    return
+  if (reviewOptionDisabled.value[kind])
+    return
+  reviewMenuOpen.value = false
+  submitting.value = true
+  state.setError(null)
+  try {
+    const body = ui.getDraft(props.number).trim()
+    const payload: { action: ReviewKind, number: number, body?: string }
+      = { action: kind, number: props.number }
+    if (body.length > 0)
+      payload.body = body
+    const queue = await rpc.$call('ghfs:add-queue-op', effectiveProjectId.value ?? '__default__', payload)
+    const opId = findOpId(queue.entries, props.number, [kind])
+    if (body.length > 0)
+      ui.clearDraft(props.number)
     emit('submitted', opId)
   }
   catch (error) {
@@ -449,6 +489,72 @@ defineExpose({ startEditing, focus })
         <span class="i-octicon-issue-opened-16 color-green-500 dark:color-green-400" />
         {{ pending.direction.value === 'close' ? 'Cancel close' : `Reopen ${kindLabel}` }}
       </button>
+      <VDropdown
+        v-if="kind === 'pull' && !editingCommentId"
+        v-model:shown="reviewMenuOpen"
+        placement="top-end"
+        :distance="6"
+        :triggers="['click']"
+        :auto-hide="true"
+      >
+        <button
+          type="button"
+          class="btn-action text-sm"
+          :disabled="submitting"
+          aria-haspopup="menu"
+          :aria-expanded="reviewMenuOpen"
+          title="Submit a review"
+        >
+          <span class="i-octicon-eye-16" />
+          <span>Review changes</span>
+          <span class="i-octicon-triangle-down-16 op60" />
+        </button>
+        <template #popper>
+          <div role="menu" class="min-w-60 p-1 text-sm">
+            <button
+              type="button"
+              role="menuitem"
+              class="w-full flex items-start gap-2 px-2 py-1.5 rounded text-left hover:bg-active focus-visible:bg-active outline-none transition"
+              :disabled="reviewOptionDisabled.approve"
+              @click="submitReview('approve')"
+            >
+              <span class="i-octicon-check-16 color-green-500 dark:color-green-400 mt-0.5 shrink-0" />
+              <span class="flex flex-col">
+                <span class="font-medium">Approve</span>
+                <span class="color-muted text-xs">Submit feedback and approve merging these changes.</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="w-full flex items-start gap-2 px-2 py-1.5 rounded text-left hover:bg-active focus-visible:bg-active outline-none transition disabled:op50 disabled:cursor-not-allowed"
+              :disabled="reviewOptionDisabled['review-comment']"
+              :title="reviewOptionDisabled['review-comment'] ? 'Type a comment first' : ''"
+              @click="submitReview('review-comment')"
+            >
+              <span class="i-octicon-comment-discussion-16 color-cyan-500 dark:color-cyan-400 mt-0.5 shrink-0" />
+              <span class="flex flex-col">
+                <span class="font-medium">Comment</span>
+                <span class="color-muted text-xs">Submit general feedback without explicit approval.</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="w-full flex items-start gap-2 px-2 py-1.5 rounded text-left hover:bg-active focus-visible:bg-active outline-none transition disabled:op50 disabled:cursor-not-allowed"
+              :disabled="reviewOptionDisabled['request-changes']"
+              :title="reviewOptionDisabled['request-changes'] ? 'Type a comment first' : ''"
+              @click="submitReview('request-changes')"
+            >
+              <span class="i-octicon-file-diff-16 color-red-500 dark:color-red-400 mt-0.5 shrink-0" />
+              <span class="flex flex-col">
+                <span class="font-medium">Request changes</span>
+                <span class="color-muted text-xs">Submit feedback that must be addressed before merging.</span>
+              </span>
+            </button>
+          </div>
+        </template>
+      </VDropdown>
       <button
         type="button"
         class="btn-primary text-sm"

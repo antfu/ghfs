@@ -22,6 +22,11 @@ export interface RepoSnapshot {
     created_at: string
     updated_at: string
     pushed_at: string | null
+    allow_merge_commit?: boolean
+    allow_squash_merge?: boolean
+    allow_rebase_merge?: boolean
+    /** `null` when the GraphQL query failed (e.g. insufficient scope). */
+    merge_queue_enabled?: boolean | null
   }
   labels: Array<{
     name: string

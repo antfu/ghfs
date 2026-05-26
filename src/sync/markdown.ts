@@ -37,6 +37,8 @@ export interface MarkdownDocumentInput {
     baseRef: string
     headRef: string
     requestedReviewers: string[]
+    mergeable?: boolean | null
+    mergeableState?: string
   }
 }
 
@@ -77,6 +79,8 @@ export function renderIssueMarkdown(input: MarkdownDocumentInput): string {
     base_ref: input.pr?.baseRef,
     head_ref: input.pr?.headRef,
     reviewers_requested: input.pr?.requestedReviewers,
+    mergeable: input.pr?.mergeable,
+    mergeable_state: input.pr?.mergeableState,
   }
 
   const compactFrontmatter = Object.fromEntries(

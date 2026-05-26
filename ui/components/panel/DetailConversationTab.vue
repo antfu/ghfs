@@ -9,6 +9,7 @@ import type {
 import { renderMarkdown } from '../../composables/useMarkdown'
 import DisplayAuthor from '../display/Author.vue'
 import DisplayDateBadge from '../display/DateBadge.vue'
+import PanelDetailMergeWidget from './DetailMergeWidget.vue'
 import PanelDetailReactions from './DetailReactions.vue'
 import PanelDetailTimeline from './DetailTimeline.vue'
 
@@ -67,5 +68,7 @@ const hasAnyActivity = computed(() =>
         @remove-pending="emit('removePending', $event)"
       />
     </section>
+
+    <PanelDetailMergeWidget v-if="item.kind === 'pull'" :number="item.number" />
   </div>
 </template>
