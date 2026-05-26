@@ -23,7 +23,9 @@ export default defineConfig({
   ],
   format: ['esm'],
   dts: true,
-  exports: true,
+  exports: {
+    bin: false,
+  },
   async onSuccess() {
     const source = resolve(here, 'ui/dist/public')
     const target = resolve(here, 'dist/ui')
