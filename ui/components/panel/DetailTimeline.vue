@@ -5,6 +5,7 @@ import type {
   ProviderComment,
   ProviderItem,
   ProviderReactions,
+  ProviderReviewComment,
   ProviderTimelineEvent,
 } from '../../../src/types/provider'
 import { isBotLogin } from '../../../src/utils/bot'
@@ -21,6 +22,7 @@ import DisplayLabel from '../display/Label.vue'
 import UiAvatar from '../ui/Avatar.vue'
 import UiIconButton from '../ui/IconButton.vue'
 import PanelDetailReactions from './DetailReactions.vue'
+import PanelDetailReviewComments from './DetailReviewComments.vue'
 import PanelDetailTimelineEventRow from './DetailTimelineEventRow.vue'
 import {
   colorFor,
@@ -35,6 +37,7 @@ interface Props {
   item: ProviderItem
   comments: ProviderComment[]
   timeline?: ProviderTimelineEvent[]
+  reviewComments?: ProviderReviewComment[]
   pendingComments?: QueueEntry[]
 }
 
@@ -101,12 +104,25 @@ interface StreamEvent {
   id: string
   createdAt: string
   event: ProviderTimelineEvent
+  /** Inline review comments belonging to this `reviewed` event, grouped here for in-card rendering. */
+  inlineReviewComments?: ProviderReviewComment[]
 }
 
-type StreamEntry = StreamComment | StreamEvent
+interface StreamOrphanReview {
+  kind: 'orphanReview'
+  id: string
+  createdAt: string
+  comments: ProviderReviewComment[]
+  author: string | null
+  authorAvatarUrl?: string
+}
+
+type StreamEntry = StreamComment | StreamEvent | StreamOrphanReview
 
 function isBotEntry(entry: StreamEntry): boolean {
   if (entry.kind === 'comment')
+    return isBotLogin(entry.author, bots.value)
+  if (entry.kind === 'orphanReview')
     return isBotLogin(entry.author, bots.value)
   if (entry.event.kind === 'reviewed')
     return isBotLogin(entry.event.actor, bots.value)
@@ -135,17 +151,71 @@ const entries = computed<StreamEntry[]>(() => {
     })
   }
 
+  // Group review comments by parent review id so we can attach them to the
+  // matching `reviewed` timeline event below.
+  const reviewCommentsByReviewId = new Map<number, ProviderReviewComment[]>()
+  const orphanReviewComments: ProviderReviewComment[] = []
+  for (const rc of props.reviewComments ?? []) {
+    if (rc.pullRequestReviewId == null) {
+      orphanReviewComments.push(rc)
+      continue
+    }
+    const list = reviewCommentsByReviewId.get(rc.pullRequestReviewId) ?? []
+    list.push(rc)
+    reviewCommentsByReviewId.set(rc.pullRequestReviewId, list)
+  }
+  const attachedReviewIds = new Set<number>()
+
   for (const event of props.timeline ?? []) {
     if (isHiddenEvent(event))
       continue
     if (event.kind === 'commented' && event.commentId != null && seenCommentIds.has(event.commentId))
       continue
+    const reviewId = event.kind === 'reviewed' ? event.review?.id : undefined
+    const inlineReviewComments = reviewId != null ? reviewCommentsByReviewId.get(reviewId) : undefined
+    if (reviewId != null && inlineReviewComments)
+      attachedReviewIds.add(reviewId)
     out.push({
       kind: 'event',
       id: `event-${event.id}`,
       createdAt: event.createdAt,
       event,
+      ...(inlineReviewComments ? { inlineReviewComments } : {}),
     })
+  }
+
+  // Surface inline review comments whose parent review didn't make the
+  // timeline (rare — typically a truncated timeline). Group by review id.
+  for (const [reviewId, comments] of reviewCommentsByReviewId) {
+    if (attachedReviewIds.has(reviewId))
+      continue
+    const sorted = [...comments].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    const first = sorted[0]
+    if (!first)
+      continue
+    out.push({
+      kind: 'orphanReview',
+      id: `orphan-review-${reviewId}`,
+      createdAt: first.createdAt,
+      comments,
+      author: first.author,
+      authorAvatarUrl: first.authorAvatarUrl,
+    })
+  }
+  // Review comments without any parent review id at all — emit as a single bucket.
+  if (orphanReviewComments.length) {
+    const sorted = [...orphanReviewComments].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    const first = sorted[0]
+    if (first) {
+      out.push({
+        kind: 'orphanReview',
+        id: `orphan-review-loose`,
+        createdAt: first.createdAt,
+        comments: sorted,
+        author: first.author,
+        authorAvatarUrl: first.authorAvatarUrl,
+      })
+    }
   }
 
   out.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
@@ -237,8 +307,31 @@ function shortSha(sha: string | undefined): string {
           </template>
         </div>
 
-        <!-- Review with body → card -->
-        <template v-else-if="entry.event.kind === 'reviewed' && entry.event.review?.body">
+        <!-- Orphan review comments (parent review missing from timeline) -->
+        <template v-else-if="entry.kind === 'orphanReview'">
+          <div class="relative pl-10" :data-testid="`orphan-review-${entry.id}`">
+            <span
+              class="absolute left-0 top-3 inline-flex items-center justify-center w-8 h-8 rounded-full bg-base border border-base"
+            >
+              <UiAvatar :login="entry.author" :src="entry.authorAvatarUrl" :size="24" />
+            </span>
+            <div class="border-2 rounded-lg bg-base overflow-hidden border-blue-500/40">
+              <div class="flex items-center gap-2 px-4 py-2 border-b border-base bg-#8881 dark:bg-#fff1">
+                <span class="i-octicon-comment-16 color-blue-600 dark:color-blue-500" />
+                <span class="text-sm">
+                  <span class="font-medium">@{{ entry.author || 'ghost' }}</span>
+                  <span class="color-muted inline-flex items-center gap-1"> left {{ entry.comments.length }} review comment{{ entry.comments.length === 1 ? '' : 's' }} <DisplayDateBadge :time="entry.createdAt" /></span>
+                </span>
+              </div>
+              <div class="px-4 py-3">
+                <PanelDetailReviewComments :comments="entry.comments" />
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- Review with body or inline comments → card -->
+        <template v-else-if="entry.event.kind === 'reviewed' && (entry.event.review?.body || entry.inlineReviewComments?.length)">
           <div class="relative pl-10">
             <!-- Collapsed bot review -->
             <button
@@ -283,12 +376,16 @@ function shortSha(sha: string | undefined): string {
                   <span v-if="isBotEntry(entry)" class="i-ph-caret-down-duotone color-faint text-xs ml-auto" />
                 </div>
                 <div class="px-4 py-3">
-                  <div class="markdown-body text-sm" v-html="renderMarkdown(entry.event.review.body)" />
+                  <div v-if="entry.event.review.body" class="markdown-body text-sm" v-html="renderMarkdown(entry.event.review.body)" />
                   <PanelDetailReactions
                     v-if="entry.event.review.nodeId"
                     :item-number="item.number"
                     :target="{ kind: 'review', reviewId: entry.event.review.nodeId }"
                     :reactions="entry.event.review.reactions"
+                  />
+                  <PanelDetailReviewComments
+                    v-if="entry.inlineReviewComments?.length"
+                    :comments="entry.inlineReviewComments"
                   />
                 </div>
               </div>
@@ -296,7 +393,7 @@ function shortSha(sha: string | undefined): string {
           </div>
         </template>
 
-        <!-- Review without body -->
+        <!-- Review without body or inline comments → bare row -->
         <PanelDetailTimelineEventRow
           v-else-if="entry.event.kind === 'reviewed'"
           :icon="reviewStyle(entry.event.review?.state ?? 'commented').icon"

@@ -4,6 +4,7 @@ import type { QueueEntry } from '#ghfs/server-types'
 import type {
   ProviderComment,
   ProviderItem,
+  ProviderReviewComment,
   ProviderTimelineEvent,
 } from '../../../src/types/provider'
 import { renderMarkdown } from '../../composables/useMarkdown'
@@ -17,6 +18,7 @@ interface Props {
   item: ProviderItem
   comments: ProviderComment[]
   timeline?: ProviderTimelineEvent[]
+  reviewComments?: ProviderReviewComment[]
   pendingComments?: QueueEntry[]
 }
 
@@ -31,6 +33,7 @@ const renderedBody = computed(() => renderMarkdown(props.item.body))
 const hasAnyActivity = computed(() =>
   props.comments.length > 0
   || (props.timeline?.length ?? 0) > 0
+  || (props.reviewComments?.length ?? 0) > 0
   || (props.pendingComments?.length ?? 0) > 0,
 )
 </script>
@@ -63,6 +66,7 @@ const hasAnyActivity = computed(() =>
         :item="item"
         :comments="comments"
         :timeline="timeline"
+        :review-comments="reviewComments"
         :pending-comments="pendingComments"
         @edit-pending="emit('editPending', $event)"
         @remove-pending="emit('removePending', $event)"

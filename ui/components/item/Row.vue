@@ -11,6 +11,7 @@ import DisplayDateBadge from '../display/DateBadge.vue'
 import DisplayItemActivitySparkline from '../display/ItemActivitySparkline.vue'
 import DisplayItemStateIcon from '../display/ItemStateIcon.vue'
 import DisplayLabel from '../display/Label.vue'
+import DisplayPrReviewDecision from '../display/PrReviewDecision.vue'
 import DisplayProjectIcon from '../display/ProjectIcon.vue'
 import UiAvatar from '../ui/Avatar.vue'
 import UiBadge from '../ui/Badge.vue'
@@ -44,6 +45,12 @@ const iconPull = computed(() => {
   if (props.item.kind !== 'pull')
     return undefined
   return { isDraft: props.item.pullIsDraft, merged: props.item.pullMerged }
+})
+
+const reviewDecision = computed(() => {
+  if (props.item.kind !== 'pull')
+    return null
+  return rawPull.value?.reviewDecision ?? props.item.pullReviewDecision ?? null
 })
 
 const labels = computed(() => props.item.labels ?? [])
@@ -151,6 +158,11 @@ const bodySnippetHtml = computed(() => {
           <span
             class="font-mono text-xs color-muted tabular-nums"
           >#{{ item.number }}</span>
+          <DisplayPrReviewDecision
+            v-if="reviewDecision"
+            :decision="reviewDecision"
+            compact
+          />
           <UiBadge
             v-if="pending.hasPending.value"
             color="yellow"

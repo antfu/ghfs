@@ -1,5 +1,5 @@
 import type { IssueKind, IssueState } from '../types'
-import type { ProviderReactions } from '../types/provider'
+import type { ProviderReactions, ProviderReviewDecision } from '../types/provider'
 import { stringify } from 'yaml'
 import { normalizeReactions } from '../utils/reactions'
 
@@ -39,6 +39,7 @@ export interface MarkdownDocumentInput {
     requestedReviewers: string[]
     mergeable?: boolean | null
     mergeableState?: string
+    reviewDecision?: ProviderReviewDecision | null
   }
 }
 
@@ -81,6 +82,7 @@ export function renderIssueMarkdown(input: MarkdownDocumentInput): string {
     reviewers_requested: input.pr?.requestedReviewers,
     mergeable: input.pr?.mergeable,
     mergeable_state: input.pr?.mergeableState,
+    review_decision: input.pr?.reviewDecision,
   }
 
   const compactFrontmatter = Object.fromEntries(

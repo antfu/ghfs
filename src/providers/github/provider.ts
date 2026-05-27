@@ -13,6 +13,8 @@ import type {
   ProviderPullMetadata,
   ProviderReactions,
   ProviderRepository,
+  ProviderReviewComment,
+  ProviderReviewDecision,
   ProviderReviewState,
   ProviderTimelineEvent,
   ProviderTimelineSource,
@@ -60,6 +62,7 @@ export function createGitHubProvider(options: CreateGitHubProviderOptions): Repo
     fetchPullMetadata: number => fetchPullMetadata(octokit, owner, repo, number, bumpRequestCount),
     fetchPullPatch: number => fetchPullPatch(octokit, owner, repo, number, bumpRequestCount),
     fetchPullCommits: number => fetchPullCommits(octokit, owner, repo, number, bumpRequestCount),
+    fetchReviewComments: number => fetchReviewComments(octokit, owner, repo, number, bumpRequestCount),
     fetchTimeline: number => fetchTimeline(octokit, owner, repo, number, bumpRequestCount),
     fetchItemSnapshot: number => fetchItemSnapshot(octokit, owner, repo, number, bumpRequestCount),
     fetchRepository: () => fetchRepository(octokit, owner, repo, bumpRequestCount),
@@ -200,15 +203,88 @@ async function fetchPullMetadata(
   })
 
   const pull = result.data as GitHubPull
+  const requestedReviewers = pull.requested_reviewers.map(reviewer => reviewer.login)
+  const reviewDecision = await fetchPullReviewDecision(octokit, owner, repo, number, requestedReviewers.length > 0, bumpRequestCount)
+
   return {
     isDraft: pull.draft,
     merged: pull.merged,
     mergedAt: pull.merged_at,
     baseRef: pull.base.ref,
     headRef: pull.head.ref,
-    requestedReviewers: pull.requested_reviewers.map(reviewer => reviewer.login),
+    requestedReviewers,
     mergeable: pull.mergeable ?? null,
     mergeableState: pull.mergeable_state ?? 'unknown',
+    reviewDecision,
+  }
+}
+
+/**
+ * Resolves the aggregate review decision. Prefers GitHub's own
+ * `reviewDecision` (set only when branch protection requires reviews); when
+ * absent, derives the answer from `latestOpinionatedReviews` (latest
+ * non-dismissed review per reviewer). Returns `null` when neither GraphQL
+ * succeeds nor any signal is present.
+ */
+async function fetchPullReviewDecision(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  number: number,
+  hasRequestedReviewers: boolean,
+  bumpRequestCount: BumpRequestCount,
+): Promise<ProviderReviewDecision | null> {
+  try {
+    bumpRequestCount()
+    const data = await octokit.graphql<{
+      repository: {
+        pullRequest: {
+          reviewDecision: 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED' | null
+          latestOpinionatedReviews: {
+            nodes: Array<{ state: string } | null>
+          } | null
+        } | null
+      } | null
+    }>(
+      `query PullReviewDecision($owner: String!, $repo: String!, $number: Int!) {
+        repository(owner: $owner, name: $repo) {
+          pullRequest(number: $number) {
+            reviewDecision
+            latestOpinionatedReviews(first: 100, writersOnly: false) {
+              nodes { state }
+            }
+          }
+        }
+      }`,
+      { owner, repo, number },
+    )
+
+    const pr = data.repository?.pullRequest
+    if (!pr)
+      return null
+
+    if (pr.reviewDecision === 'APPROVED')
+      return 'approved'
+    if (pr.reviewDecision === 'CHANGES_REQUESTED')
+      return 'changes_requested'
+    if (pr.reviewDecision === 'REVIEW_REQUIRED')
+      return 'review_required'
+
+    const states = (pr.latestOpinionatedReviews?.nodes ?? [])
+      .map(node => node?.state)
+      .filter((s): s is string => Boolean(s))
+
+    if (states.includes('CHANGES_REQUESTED'))
+      return 'changes_requested'
+    if (states.includes('APPROVED'))
+      return 'approved'
+    if (hasRequestedReviewers)
+      return 'review_required'
+
+    return null
+  }
+  catch {
+    return null
   }
 }
 
@@ -253,6 +329,24 @@ async function fetchPullCommits(
   }) as GitHubPullCommit[]
 
   return commits.map(mapPullCommit)
+}
+
+async function fetchReviewComments(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  number: number,
+  bumpRequestCount: BumpRequestCount,
+): Promise<ProviderReviewComment[]> {
+  bumpRequestCount()
+  const comments = await octokit.paginate(octokit.rest.pulls.listReviewComments, {
+    owner,
+    repo,
+    pull_number: number,
+    per_page: 100,
+  }) as GitHubReviewComment[]
+
+  return comments.map(mapReviewComment)
 }
 
 async function fetchTimeline(
@@ -908,6 +1002,26 @@ function mapPullCommit(commit: GitHubPullCommit): ProviderCommit {
   }
 }
 
+function mapReviewComment(comment: GitHubReviewComment): ProviderReviewComment {
+  return {
+    id: comment.id,
+    body: comment.body ?? null,
+    author: comment.user?.login ?? null,
+    ...(comment.user?.avatar_url ? { authorAvatarUrl: comment.user.avatar_url } : {}),
+    createdAt: comment.created_at,
+    updatedAt: comment.updated_at,
+    path: comment.path,
+    line: comment.line ?? comment.original_line ?? null,
+    ...(comment.start_line != null ? { startLine: comment.start_line } : {}),
+    ...(comment.side ? { side: comment.side } : {}),
+    diffHunk: comment.diff_hunk ?? '',
+    ...(comment.commit_id ? { commitId: comment.commit_id } : {}),
+    pullRequestReviewId: comment.pull_request_review_id ?? null,
+    inReplyToId: comment.in_reply_to_id ?? null,
+    reactions: mapReactions(comment.reactions),
+  }
+}
+
 function mapTimelineEvent(event: GitHubTimelineEvent): ProviderTimelineEvent | null {
   const eventName = event.event
   if (!eventName)
@@ -1030,6 +1144,7 @@ function mapTimelineEvent(event: GitHubTimelineEvent): ProviderTimelineEvent | n
         ...base,
         kind: 'reviewed',
         review: {
+          ...(typeof event.id === 'number' ? { id: event.id } : {}),
           state: normalizeReviewState(rawState),
           body: event.body ?? null,
           submittedAt: event.submitted_at ?? createdAt,
@@ -1410,6 +1525,27 @@ interface GitHubPullCommit {
   }
   author?: { login: string } | null
   committer?: { login: string } | null
+}
+
+interface GitHubReviewComment {
+  id: number
+  body: string | null
+  created_at: string
+  updated_at: string
+  path: string
+  line?: number | null
+  original_line?: number | null
+  start_line?: number | null
+  side?: 'LEFT' | 'RIGHT' | null
+  diff_hunk?: string
+  commit_id?: string | null
+  pull_request_review_id?: number | null
+  in_reply_to_id?: number | null
+  user: {
+    login: string
+    avatar_url?: string | null
+  } | null
+  reactions?: GitHubReactions | null
 }
 
 interface GitHubTimelineEvent {

@@ -44,6 +44,8 @@ export interface ProviderComment {
   reactions?: ProviderReactions
 }
 
+export type ProviderReviewDecision = 'approved' | 'changes_requested' | 'review_required'
+
 export interface ProviderPullMetadata {
   isDraft: boolean
   merged: boolean
@@ -61,6 +63,37 @@ export interface ProviderPullMetadata {
    * `clean | dirty | blocked | behind | unstable | draft | unknown`.
    */
   mergeableState?: string
+  /**
+   * Aggregate review state. Prefers GitHub's own `reviewDecision` (set when
+   * branch protection requires reviews); falls back to a derivation from the
+   * latest non-dismissed review per reviewer. `null` when there is no useful
+   * signal (no reviews submitted and no reviewers requested).
+   */
+  reviewDecision?: ProviderReviewDecision | null
+}
+
+export interface ProviderReviewComment {
+  id: number
+  body: string | null
+  author: string | null
+  authorAvatarUrl?: string
+  createdAt: string
+  updatedAt: string
+  /** File path the comment is anchored to. */
+  path: string
+  /** Line in the file (right side for additions); null if the line is no longer present. */
+  line: number | null
+  /** Start line for multi-line comments. */
+  startLine?: number | null
+  side?: 'LEFT' | 'RIGHT'
+  /** Snippet of the diff for context — already includes the leading `@@` hunk header. */
+  diffHunk: string
+  commitId?: string
+  /** REST id of the parent review (groups comments into a single review). */
+  pullRequestReviewId: number | null
+  /** REST id of the comment this is a reply to, when threaded. */
+  inReplyToId: number | null
+  reactions?: ProviderReactions
 }
 
 export type MergeMethod = 'squash' | 'merge' | 'rebase'
@@ -111,6 +144,8 @@ export type ProviderTimelineEvent
     | (ProviderTimelineEventBase & {
       kind: 'reviewed'
       review: {
+        /** REST id — used to attach inline review comments to their parent review. */
+        id?: number
         state: ProviderReviewState
         body: string | null
         submittedAt: string
@@ -240,6 +275,7 @@ export interface RepositoryProvider {
   fetchPullMetadata: (number: number) => Promise<ProviderPullMetadata>
   fetchPullPatch: (number: number) => Promise<string>
   fetchPullCommits: (number: number) => Promise<ProviderCommit[]>
+  fetchReviewComments: (number: number) => Promise<ProviderReviewComment[]>
   fetchTimeline: (number: number) => Promise<ProviderTimelineEvent[]>
   fetchItemSnapshot: (number: number) => Promise<ProviderItemSnapshot>
   fetchRepository: () => Promise<ProviderRepository>

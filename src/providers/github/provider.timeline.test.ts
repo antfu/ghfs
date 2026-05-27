@@ -224,6 +224,29 @@ describe('mapTimelineEvent (via fetchTimeline)', () => {
     })
   })
 
+  it('surfaces the numeric review id on reviewed events', async () => {
+    const provider = mockProviderWithTimelineEvents([
+      {
+        id: 555000,
+        node_id: 'PRR_node_555',
+        event: 'reviewed',
+        submitted_at: '2026-02-01T00:00:00Z',
+        user: { login: 'reviewer' },
+        state: 'approved',
+        body: 'LGTM',
+      },
+    ])
+    const [event] = await provider.fetchTimeline(1)
+    expect(event).toMatchObject({
+      kind: 'reviewed',
+      review: {
+        id: 555000,
+        state: 'approved',
+        nodeId: 'PRR_node_555',
+      },
+    })
+  })
+
   it('surfaces unknown events with rawKind instead of dropping them', async () => {
     const provider = mockProviderWithTimelineEvents([
       {

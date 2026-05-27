@@ -1,6 +1,6 @@
 import type { ExecutionResult } from './execution'
 import type { IssueKind, IssueState } from './issue'
-import type { ProviderComment, ProviderCommit, ProviderItem, ProviderPullMetadata, ProviderTimelineEvent } from './provider'
+import type { ProviderComment, ProviderCommit, ProviderItem, ProviderPullMetadata, ProviderReviewComment, ProviderTimelineEvent } from './provider'
 
 export type SyncRunStage = 'metadata' | 'pagination' | 'fetch' | 'materialize' | 'prune' | 'save'
 
@@ -34,6 +34,7 @@ export interface SyncItemCanonicalData {
   pull?: ProviderPullMetadata
   commits?: ProviderCommit[]
   timeline?: ProviderTimelineEvent[]
+  reviewComments?: ProviderReviewComment[]
 }
 
 export interface SyncItemState {

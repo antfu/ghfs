@@ -117,6 +117,15 @@ describe('createGitHubProvider', () => {
       },
     )
 
+    const graphql = vi.fn(async () => ({
+      repository: {
+        pullRequest: {
+          reviewDecision: 'REVIEW_REQUIRED',
+          latestOpinionatedReviews: { nodes: [] },
+        },
+      },
+    }))
+
     mockedCreateGitHubClient.mockReturnValue({
       rest: {
         issues: {
@@ -128,6 +137,7 @@ describe('createGitHubProvider', () => {
         },
       },
       paginate,
+      graphql,
       request: vi.fn(),
     } as unknown as Octokit)
 
@@ -227,6 +237,7 @@ describe('createGitHubProvider', () => {
       requestedReviewers: ['reviewer-1'],
       mergeable: true,
       mergeableState: 'clean',
+      reviewDecision: 'review_required',
     })
   })
 
@@ -670,5 +681,228 @@ describe('createGitHubProvider', () => {
     expect(graphql).toHaveBeenCalledTimes(1)
     const call = graphql.mock.calls[0] as unknown as [string, { input: { pullRequestId: string } }]
     expect(call[1]).toEqual({ input: { pullRequestId: 'PR_node_42' } })
+  })
+
+  it('derives reviewDecision from latest reviews when GraphQL returns null reviewDecision', async () => {
+    const pullsGet = vi.fn(async () => ({
+      data: {
+        draft: false,
+        merged: false,
+        merged_at: null,
+        base: { ref: 'main' },
+        head: { ref: 'feature' },
+        requested_reviewers: [],
+        mergeable: true,
+        mergeable_state: 'clean',
+      },
+    }))
+    const graphql = vi.fn(async () => ({
+      repository: {
+        pullRequest: {
+          reviewDecision: null,
+          latestOpinionatedReviews: {
+            nodes: [
+              { state: 'APPROVED' },
+              { state: 'CHANGES_REQUESTED' },
+            ],
+          },
+        },
+      },
+    }))
+
+    mockedCreateGitHubClient.mockReturnValue({
+      rest: { pulls: { get: pullsGet } },
+      graphql,
+    } as unknown as Octokit)
+
+    const provider = createGitHubProvider({
+      token: 'test-token',
+      owner: 'owner',
+      repo: 'repo',
+    })
+
+    const meta = await provider.fetchPullMetadata(5)
+    // CHANGES_REQUESTED takes precedence over APPROVED.
+    expect(meta.reviewDecision).toBe('changes_requested')
+  })
+
+  it('falls back to approved when no GitHub reviewDecision and only approvals present', async () => {
+    const pullsGet = vi.fn(async () => ({
+      data: {
+        draft: false,
+        merged: false,
+        merged_at: null,
+        base: { ref: 'main' },
+        head: { ref: 'feature' },
+        requested_reviewers: [],
+        mergeable: true,
+        mergeable_state: 'clean',
+      },
+    }))
+    const graphql = vi.fn(async () => ({
+      repository: {
+        pullRequest: {
+          reviewDecision: null,
+          latestOpinionatedReviews: {
+            nodes: [{ state: 'APPROVED' }],
+          },
+        },
+      },
+    }))
+
+    mockedCreateGitHubClient.mockReturnValue({
+      rest: { pulls: { get: pullsGet } },
+      graphql,
+    } as unknown as Octokit)
+
+    const provider = createGitHubProvider({
+      token: 'test-token',
+      owner: 'owner',
+      repo: 'repo',
+    })
+
+    const meta = await provider.fetchPullMetadata(6)
+    expect(meta.reviewDecision).toBe('approved')
+  })
+
+  it('returns reviewDecision null when GraphQL fails and there are no requested reviewers', async () => {
+    const pullsGet = vi.fn(async () => ({
+      data: {
+        draft: false,
+        merged: false,
+        merged_at: null,
+        base: { ref: 'main' },
+        head: { ref: 'feature' },
+        requested_reviewers: [],
+        mergeable: true,
+        mergeable_state: 'clean',
+      },
+    }))
+    const graphql = vi.fn(async () => {
+      throw new Error('insufficient scope')
+    })
+
+    mockedCreateGitHubClient.mockReturnValue({
+      rest: { pulls: { get: pullsGet } },
+      graphql,
+    } as unknown as Octokit)
+
+    const provider = createGitHubProvider({
+      token: 'test-token',
+      owner: 'owner',
+      repo: 'repo',
+    })
+
+    const meta = await provider.fetchPullMetadata(7)
+    expect(meta.reviewDecision).toBeNull()
+  })
+
+  it('maps inline review comments via listReviewComments', async () => {
+    const listReviewComments = vi.fn()
+    const paginate = vi.fn(async (method: unknown) => {
+      if (method === listReviewComments) {
+        return [
+          {
+            id: 101,
+            body: 'looks fine',
+            created_at: '2026-02-01T00:00:00.000Z',
+            updated_at: '2026-02-01T00:00:00.000Z',
+            path: 'src/foo.ts',
+            line: 42,
+            original_line: 40,
+            start_line: 40,
+            side: 'RIGHT',
+            diff_hunk: '@@ -10,3 +10,3 @@\n-old\n+new',
+            commit_id: 'abc123',
+            pull_request_review_id: 9000,
+            in_reply_to_id: null,
+            user: { login: 'reviewer-1', avatar_url: 'https://example.com/a.png' },
+            reactions: null,
+          },
+          {
+            id: 102,
+            body: null,
+            created_at: '2026-02-01T00:01:00.000Z',
+            updated_at: '2026-02-01T00:01:00.000Z',
+            path: 'src/bar.ts',
+            line: null,
+            user: null,
+            diff_hunk: '',
+            pull_request_review_id: null,
+            in_reply_to_id: 101,
+          },
+        ]
+      }
+      return []
+    })
+
+    mockedCreateGitHubClient.mockReturnValue({
+      rest: {
+        pulls: {
+          listReviewComments,
+        },
+      },
+      paginate,
+    } as unknown as Octokit)
+
+    const provider = createGitHubProvider({
+      token: 'test-token',
+      owner: 'owner',
+      repo: 'repo',
+    })
+
+    const reviewComments = await provider.fetchReviewComments(7)
+    expect(reviewComments).toEqual([
+      {
+        id: 101,
+        body: 'looks fine',
+        createdAt: '2026-02-01T00:00:00.000Z',
+        updatedAt: '2026-02-01T00:00:00.000Z',
+        author: 'reviewer-1',
+        authorAvatarUrl: 'https://example.com/a.png',
+        path: 'src/foo.ts',
+        line: 42,
+        startLine: 40,
+        side: 'RIGHT',
+        diffHunk: '@@ -10,3 +10,3 @@\n-old\n+new',
+        commitId: 'abc123',
+        pullRequestReviewId: 9000,
+        inReplyToId: null,
+        reactions: {
+          totalCount: 0,
+          plusOne: 0,
+          minusOne: 0,
+          laugh: 0,
+          hooray: 0,
+          confused: 0,
+          heart: 0,
+          rocket: 0,
+          eyes: 0,
+        },
+      },
+      {
+        id: 102,
+        body: null,
+        createdAt: '2026-02-01T00:01:00.000Z',
+        updatedAt: '2026-02-01T00:01:00.000Z',
+        author: null,
+        path: 'src/bar.ts',
+        line: null,
+        diffHunk: '',
+        pullRequestReviewId: null,
+        inReplyToId: 101,
+        reactions: {
+          totalCount: 0,
+          plusOne: 0,
+          minusOne: 0,
+          laugh: 0,
+          hooray: 0,
+          confused: 0,
+          heart: 0,
+          rocket: 0,
+          eyes: 0,
+        },
+      },
+    ])
   })
 })

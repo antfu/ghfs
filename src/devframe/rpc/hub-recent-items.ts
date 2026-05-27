@@ -25,7 +25,11 @@ export const hubRecentItems = defineRpcFunction({
               state: item.state,
               stateReason: item.data.item.stateReason ?? null,
               ...(item.kind === 'pull' && item.data.pull
-                ? { pullIsDraft: item.data.pull.isDraft, pullMerged: item.data.pull.merged }
+                ? {
+                    pullIsDraft: item.data.pull.isDraft,
+                    pullMerged: item.data.pull.merged,
+                    ...(item.data.pull.reviewDecision ? { pullReviewDecision: item.data.pull.reviewDecision } : {}),
+                  }
                 : {}),
               updatedAt: getEffectiveUpdatedAt(item, p.config.bots),
               author: item.data.item.author,

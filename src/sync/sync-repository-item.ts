@@ -54,7 +54,7 @@ export async function prepareIssueCandidateSync(context: SyncContext, issue: Pro
   const hasCanonicalData = Boolean(
     tracked?.data
     && (kind !== 'pull' || tracked.data.pull)
-    && (!needsDetails || (tracked.data.timeline && (kind !== 'pull' || tracked.data.commits))),
+    && (!needsDetails || (tracked.data.timeline && (kind !== 'pull' || (tracked.data.commits && tracked.data.reviewComments)))),
   )
   const shouldRefetch = !tracked || tracked.lastUpdatedAt !== issue.updatedAt || !hasCanonicalData
   const data = shouldRefetch
@@ -237,7 +237,7 @@ function resolveSyncAction(shouldRefetch: boolean, paths: PreparedIssueCandidate
 
 async function fetchCanonicalData(context: SyncContext, issue: ProviderItem) {
   const includeDetails = shouldSyncPrDetails(context.config.sync, issue.kind, issue.state)
-  const [comments, pull, commits, timeline] = await Promise.all([
+  const [comments, pull, commits, timeline, reviewComments] = await Promise.all([
     context.provider.fetchComments(issue.number),
     issue.kind === 'pull'
       ? context.provider.fetchPullMetadata(issue.number)
@@ -248,6 +248,9 @@ async function fetchCanonicalData(context: SyncContext, issue: ProviderItem) {
     includeDetails
       ? context.provider.fetchTimeline(issue.number)
       : Promise.resolve(undefined),
+    issue.kind === 'pull' && includeDetails
+      ? context.provider.fetchReviewComments(issue.number)
+      : Promise.resolve(undefined),
   ])
   return {
     item: issue,
@@ -255,6 +258,7 @@ async function fetchCanonicalData(context: SyncContext, issue: ProviderItem) {
     pull,
     commits,
     timeline,
+    reviewComments,
   }
 }
 

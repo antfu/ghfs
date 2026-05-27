@@ -16,6 +16,7 @@ import DisplayAuthor from '../display/Author.vue'
 import DisplayDateBadge from '../display/DateBadge.vue'
 import DisplayItemStateIcon from '../display/ItemStateIcon.vue'
 import DisplayLabel from '../display/Label.vue'
+import DisplayPrReviewDecision from '../display/PrReviewDecision.vue'
 import DisplayProjectIcon from '../display/ProjectIcon.vue'
 import DisplayStatePill from '../display/StatePill.vue'
 import UiBadge from '../ui/Badge.vue'
@@ -70,6 +71,7 @@ const comments = computed(() => selected.value?.data.comments ?? [])
 const pullMeta = computed(() => selected.value?.data.pull)
 const commits = computed(() => selected.value?.data.commits ?? [])
 const timeline = computed(() => selected.value?.data.timeline ?? [])
+const reviewComments = computed(() => selected.value?.data.reviewComments ?? [])
 const hasPatch = computed(() => Boolean(selected.value?.patchPath))
 const labels = computed(() => item.value?.labels ?? [])
 const assignees = computed(() => item.value?.assignees ?? [])
@@ -264,6 +266,10 @@ async function discardThisItem() {
         />
         <span class="font-mono text-sm color-muted tabular-nums">#{{ item.number }}</span>
         <DisplayStatePill :state="(stateLabel as any)" :kind="item.kind" />
+        <DisplayPrReviewDecision
+          v-if="item.kind === 'pull' && pullMeta?.reviewDecision"
+          :decision="pullMeta.reviewDecision"
+        />
         <UiBadge
           v-if="pending.direction.value"
           color="yellow"
@@ -411,6 +417,7 @@ async function discardThisItem() {
             :item="item"
             :comments="comments"
             :timeline="timeline"
+            :review-comments="reviewComments"
             :pending-comments="pending.pendingComments.value"
             @edit-pending="startEditingPendingComment"
             @remove-pending="removePendingComment"

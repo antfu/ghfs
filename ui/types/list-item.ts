@@ -1,5 +1,5 @@
 import type { IssueKind, IssueState } from '../../src/types/issue'
-import type { IssueStateReason } from '../../src/types/provider'
+import type { IssueStateReason, ProviderReviewDecision } from '../../src/types/provider'
 import type { SyncItemState } from '../../src/types/sync-state'
 import type { HubRecentItem } from '#ghfs/rpc-types'
 import { activityBucketIndex, computeItemActivityBuckets } from '../../src/sync/activity'
@@ -21,6 +21,7 @@ export interface ListItem {
   stateReason?: IssueStateReason | null
   pullIsDraft?: boolean
   pullMerged?: boolean
+  pullReviewDecision?: ProviderReviewDecision | null
   body?: string
   assignees?: string[]
   reactionsTotal?: number
@@ -57,6 +58,7 @@ export function fromSyncItem(entry: SyncItemState, projectId: string, repo: stri
     reactionsTotal: item.reactions?.totalCount,
     url: item.url,
     raw: entry,
+    pullReviewDecision: entry.data.pull?.reviewDecision ?? null,
     activityBuckets: computeItemActivityBuckets(entry.data, ACTIVITY_DAYS).buckets,
     activityCreatedIndex: activityBucketIndex(item.createdAt, ACTIVITY_DAYS),
   }
@@ -79,5 +81,6 @@ export function fromHubRecent(item: HubRecentItem, repoLookup?: (id: string) => 
     stateReason: item.stateReason,
     pullIsDraft: item.pullIsDraft,
     pullMerged: item.pullMerged,
+    pullReviewDecision: item.pullReviewDecision ?? null,
   }
 }

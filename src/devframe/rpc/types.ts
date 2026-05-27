@@ -5,7 +5,7 @@ import type { ExecuteTriggerOptions, InitialPayload, QueueState, RemoteStatus, R
 import type { ActivityResult } from '../../sync/activity'
 import type { SyncProgressSnapshot, SyncStage, SyncSummary } from '../../sync/contracts'
 import type { ExecutionResult } from '../../types/execution'
-import type { IssueStateReason, ReactionTarget } from '../../types/provider'
+import type { IssueStateReason, ProviderReviewDecision, ReactionTarget } from '../../types/provider'
 import type { SyncState } from '../../types/sync-state'
 import type { ReactionContent } from '../../utils/reactions'
 
@@ -91,6 +91,7 @@ export interface HubRecentItem {
   stateReason?: IssueStateReason | null
   pullIsDraft?: boolean
   pullMerged?: boolean
+  pullReviewDecision?: ProviderReviewDecision | null
   updatedAt: string
   author: string | null
   authorAvatarUrl?: string
