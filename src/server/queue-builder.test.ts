@@ -114,6 +114,54 @@ describe('buildQueueState', () => {
     expect(perItem).toBeDefined()
     expect(perItem?.op).toMatchObject({ action: 'close', number: 5 })
     expect(perItem?.filePath).toBe(filePath)
+    expect(perItem?.title).toBe('Sample')
+  })
+
+  it('populates entry.title from syncState for yml entries', async () => {
+    const dir = await createTempDir()
+    await writeFile(join(dir, 'execute.yml'), '- action: close\n  number: 7\n', 'utf8')
+
+    await saveSyncState(dir, {
+      version: 2,
+      repo: 'owner/repo',
+      items: {
+        7: {
+          number: 7,
+          kind: 'issue',
+          state: 'open',
+          lastUpdatedAt: '2026-01-01T00:00:00Z',
+          lastSyncedAt: '2026-01-01T00:00:00Z',
+          filePath: 'issues/00007-needs-cleanup.md',
+          data: {
+            item: {
+              number: 7,
+              kind: 'issue',
+              state: 'open',
+              updatedAt: '2026-01-01T00:00:00Z',
+              createdAt: '2026-01-01T00:00:00Z',
+              closedAt: null,
+              title: 'Needs cleanup',
+              body: null,
+              author: 'alice',
+              labels: [],
+              assignees: [],
+              milestone: null,
+            },
+            comments: [],
+          },
+        },
+      },
+      executions: [],
+    })
+
+    const queue = await buildQueueState({
+      storageDirAbsolute: dir,
+      executeFilePath: join(dir, 'execute.yml'),
+    })
+
+    const entry = queue.entries.find(e => e.op.number === 7)
+    expect(entry).toBeDefined()
+    expect(entry?.title).toBe('Needs cleanup')
   })
 
   it('assigns stable ids based on content and source', async () => {

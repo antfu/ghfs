@@ -93,17 +93,16 @@ async function openSource() {
         <span :class="meta.icon" />
         <span>{{ meta.label }}</span>
       </span>
-      <div
-        v-if="showNumber"
-        class="flex items-center gap-1.5 min-w-0 flex-1"
-      >
-        <span class="font-mono text-xs color-muted tabular-nums shrink-0">#{{ op.number }}</span>
+      <div class="flex items-center gap-1.5 min-w-0 flex-1">
+        <span
+          v-if="showNumber"
+          class="font-mono text-xs color-muted tabular-nums shrink-0"
+        >#{{ op.number }}</span>
         <span
           v-if="entry.title"
           class="text-xs color-base truncate"
         >{{ entry.title }}</span>
       </div>
-      <div v-else class="flex-1" />
       <span
         v-if="op.ifUnchangedSince"
         class="inline-flex items-center gap-1 text-xs color-muted shrink-0"
