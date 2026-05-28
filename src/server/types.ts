@@ -23,6 +23,8 @@ export interface QueueEntry {
   op: PendingOp
   /** Relative file path under the storage directory, for per-item entries. */
   filePath?: string
+  /** Title of the target issue/PR, looked up from syncState. Absent if the item isn't synced. */
+  title?: string
 }
 
 export interface QueueState {

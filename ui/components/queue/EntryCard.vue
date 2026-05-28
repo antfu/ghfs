@@ -32,11 +32,6 @@ const op = computed(() => props.entry.op)
 const meta = computed(() => actionMeta(op.value.action))
 const accent = computed(() => (ACTIONS_COLOR_HEX as Record<string, string>)[op.value.action] ?? '#6b7280')
 
-const SOURCE_LABEL: Record<QueueEntry['source'], string> = {
-  'execute.yml': 'execute.yml',
-  'execute.md': 'execute.md',
-  'per-item': 'per-item',
-}
 const SOURCE_ICON: Record<QueueEntry['source'], string> = {
   'execute.yml': 'i-octicon-file-code-16',
   'execute.md': 'i-octicon-markdown-16',
@@ -98,19 +93,34 @@ async function openSource() {
         <span :class="meta.icon" />
         <span>{{ meta.label }}</span>
       </span>
-      <span
+      <div
         v-if="showNumber"
-        class="font-mono text-xs color-muted tabular-nums"
-      >#{{ op.number }}</span>
+        class="flex items-center gap-1.5 min-w-0 flex-1"
+      >
+        <span class="font-mono text-xs color-muted tabular-nums shrink-0">#{{ op.number }}</span>
+        <span
+          v-if="entry.title"
+          class="text-xs color-base truncate"
+        >{{ entry.title }}</span>
+      </div>
+      <div v-else class="flex-1" />
       <span
         v-if="op.ifUnchangedSince"
-        class="inline-flex items-center gap-1 text-xs color-muted"
+        class="inline-flex items-center gap-1 text-xs color-muted shrink-0"
         :title="`Only execute if the item is unchanged since ${op.ifUnchangedSince}`"
       >
         <span class="i-octicon-clock-16" />
         <DisplayDateBadge :time="op.ifUnchangedSince" />
       </span>
-      <div class="flex-1" />
+      <UiIconButton
+        v-if="sourcePath"
+        :icon="SOURCE_ICON[entry.source]"
+        size="sm"
+        :tooltip="`Open ${sourcePath} in editor`"
+        class="hover-fade"
+        data-testid="queue-entry-source-link"
+        @click.stop="openSource"
+      />
       <UiIconButton
         icon="i-ph-trash-duotone"
         size="sm"
@@ -189,19 +199,5 @@ async function openSource() {
       />
     </div>
 
-    <footer class="flex items-center gap-2 px-3 py-1.5 text-xs border-t border-base bg-#8881 dark:bg-#fff1">
-      <span class="badge gap-1 color-muted bg-base">
-        <span :class="SOURCE_ICON[entry.source]" />
-        <span class="font-mono">{{ SOURCE_LABEL[entry.source] }}</span>
-      </span>
-      <button
-        v-if="sourcePath"
-        type="button"
-        class="font-mono color-muted hover:color-active transition truncate min-w-0 text-left"
-        :title="`Open ${sourcePath} in editor`"
-        data-testid="queue-entry-source-link"
-        @click.stop="openSource"
-      >{{ sourcePath }}</button>
-    </footer>
   </article>
 </template>

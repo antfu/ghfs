@@ -25,13 +25,14 @@ export async function buildQueueState(options: BuildQueueStateOptions): Promise<
   ])
 
   const entries: QueueEntry[] = []
+  const titleOf = (op: PendingOp): string | undefined => syncState.items[String(op.number)]?.data.item.title
   for (const [index, op] of yml.ops.entries())
-    entries.push(buildEntry(op, 'execute.yml', index))
+    entries.push(buildEntry(op, 'execute.yml', index, undefined, titleOf(op)))
   for (const [index, op] of md.ops.entries())
-    entries.push(buildEntry(op, 'execute.md', index))
+    entries.push(buildEntry(op, 'execute.md', index, undefined, titleOf(op)))
   for (const [index, op] of perItem.ops.entries()) {
     const filePath = syncState.items[String(op.number)]?.filePath
-    entries.push(buildEntry(op, 'per-item', index, filePath))
+    entries.push(buildEntry(op, 'per-item', index, filePath, titleOf(op)))
   }
 
   return {
@@ -58,12 +59,13 @@ async function readMdOps(path: string): Promise<{ ops: PendingOp[], warnings: st
   return { ops: parsed.ops, warnings: parsed.warnings }
 }
 
-function buildEntry(op: PendingOp, source: QueueSource, index: number, filePath?: string): QueueEntry {
+function buildEntry(op: PendingOp, source: QueueSource, index: number, filePath?: string, title?: string): QueueEntry {
   return {
     id: hash({ source, index, action: op.action, number: op.number }),
     source,
     index,
     op,
     filePath,
+    title,
   }
 }
