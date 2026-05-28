@@ -414,6 +414,7 @@ async function discardThisItem() {
       <div ref="scrollContainer" data-scroll="detail" class="flex-1 overflow-y-auto">
         <TabsContent value="conversation">
           <PanelDetailConversationTab
+            v-if="item"
             :item="item"
             :comments="comments"
             :timeline="timeline"
@@ -427,13 +428,14 @@ async function discardThisItem() {
           <PanelDetailPrCommitsTab :commits="commits" />
         </TabsContent>
         <TabsContent value="changes">
-          <PanelDetailPrChangesTab :number="item.number" :has-patch="hasPatch" />
+          <PanelDetailPrChangesTab v-if="item" :number="item.number" :has-patch="hasPatch" />
         </TabsContent>
       </div>
     </TabsRoot>
 
     <div v-else ref="scrollContainer" data-scroll="detail" class="flex-1 overflow-y-auto">
       <PanelDetailConversationTab
+        v-if="item"
         :item="item"
         :comments="comments"
         :timeline="timeline"
