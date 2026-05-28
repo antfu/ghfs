@@ -181,5 +181,15 @@ export default defineConfig({
     'i-octicon-alert-fill-16',
     'i-octicon-x-16',
     'i-octicon-play-16',
+    // Queue card action icons (ui/utils/actionMeta.ts) + source/meta icons
+    'i-octicon-check-16',
+    'i-octicon-unlock-16',
+    'i-octicon-person-add-16',
+    'i-octicon-git-merge-queue-16',
+    'i-octicon-smiley-16',
+    'i-octicon-file-code-16',
+    'i-octicon-markdown-16',
+    'i-octicon-clock-16',
+    'i-octicon-stack-16',
   ],
 })

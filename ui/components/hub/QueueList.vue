@@ -1,25 +1,19 @@
 <script setup lang="ts">
 import type { QueueEntry } from '#ghfs/server-types'
-import { ACTIONS_COLOR_HEX } from '#ghfs/action-colors'
 import { useRouter } from '#imports'
 import { useAppState } from '../../composables/useAppState'
 import { useHubQueue } from '../../composables/useHubQueue'
 import { useOnlineState } from '../../composables/useOnlineState'
 import { useRpc } from '../../composables/useRpc'
-import { summarizeQueueOp } from '../../utils/queueSummary'
 import DisplayProjectIcon from '../display/ProjectIcon.vue'
+import QueueEntryCard from '../queue/EntryCard.vue'
 import UiEmptyState from '../ui/EmptyState.vue'
-import UiIconButton from '../ui/IconButton.vue'
 
 const hubQueue = useHubQueue()
 const router = useRouter()
 const rpc = useRpc()
 const state = useAppState()
 const { offline } = useOnlineState()
-
-function actionColor(action: string): string {
-  return (ACTIONS_COLOR_HEX as Record<string, string>)[action] ?? '#6b7280'
-}
 
 function openItem(repo: string, number: number) {
   router.push(`/${repo}/${number}`)
@@ -69,28 +63,20 @@ async function remove(projectId: string, entry: QueueEntry) {
           <span>Execute</span>
         </button>
       </header>
-      <ul class="flex flex-col divide-y divide-#8882">
+      <ul class="flex flex-col gap-2 px-4 py-3">
         <li
-          v-for="entry in group.queue.entries.filter((e: QueueEntry) => e.source !== 'per-item')"
+          v-for="entry in group.queue.entries"
           :key="entry.id"
-          class="group flex items-start gap-2 px-4 py-2 hover:bg-active transition cursor-pointer"
+          class="group cursor-pointer"
           data-testid="hub-queue-entry"
           :data-entry-id="entry.id"
           @click="openItem(group.repo, entry.op.number)"
         >
-          <span
-            class="badge font-mono text-xs flex-none"
-            :style="{ backgroundColor: `${actionColor(entry.op.action)}22`, color: actionColor(entry.op.action) }"
-          >{{ entry.op.action }}</span>
-          <span class="font-mono text-xs color-muted tabular-nums flex-none">#{{ entry.op.number }}</span>
-          <span class="text-xs color-muted truncate flex-1">{{ summarizeQueueOp(entry.op as unknown as Record<string, unknown>) }}</span>
-          <UiIconButton
-            icon="i-ph-trash-duotone"
-            size="sm"
-            tooltip="Remove from queue"
-            class="hover-fade"
-            data-testid="hub-queue-entry-remove"
-            @click.stop="remove(group.projectId, entry)"
+          <QueueEntryCard
+            :entry="entry"
+            :project-id="group.projectId"
+            :show-number="true"
+            @remove="remove(group.projectId, $event)"
           />
         </li>
       </ul>

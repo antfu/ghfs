@@ -5,10 +5,7 @@ import { useAppState } from './useAppState'
 export function useQueue() {
   const state = useAppState()
 
-  const entries = computed<QueueEntry[]>(() => {
-    const all = state.payload.value?.queue.entries ?? []
-    return all.filter(e => e.source !== 'per-item')
-  })
+  const entries = computed<QueueEntry[]>(() => state.payload.value?.queue.entries ?? [])
 
   const upCount = computed<number>(() => entries.value.length)
 

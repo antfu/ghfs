@@ -10,7 +10,7 @@ const executing = ref<string | 'all' | null>(null)
 let installed = false
 
 function totalFor(g: HubQueueGroup): number {
-  return g.queue.entries.filter(e => e.source !== 'per-item').length
+  return g.queue.entries.length
 }
 
 export function useHubQueue() {

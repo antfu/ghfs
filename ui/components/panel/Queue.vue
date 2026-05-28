@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ACTIONS_COLOR_HEX } from '#ghfs/action-colors'
 import type { QueueEntry } from '#ghfs/server-types'
 import type { SyncItemState } from '../../../src/types/sync-state'
 import { useActiveProjectId, useAppState } from '../../composables/useAppState'
 import { useOnlineState } from '../../composables/useOnlineState'
 import { useQueue } from '../../composables/useQueue'
 import { useRpc } from '../../composables/useRpc'
-import { summarizeQueueOp } from '../../utils/queueSummary'
 import DisplayItemStateIcon from '../display/ItemStateIcon.vue'
+import QueueEntryCard from '../queue/EntryCard.vue'
 import UiEmptyState from '../ui/EmptyState.vue'
 import UiIconButton from '../ui/IconButton.vue'
 import UiModal from '../ui/Modal.vue'
@@ -57,14 +56,6 @@ const groups = computed<Group[]>(() => {
   }
   return [...byNumber.values()].sort((a, b) => a.number - b.number)
 })
-
-function actionColor(action: string): string {
-  return (ACTIONS_COLOR_HEX as Record<string, string>)[action] ?? '#6b7280'
-}
-
-function summarize(entry: QueueEntry): string {
-  return summarizeQueueOp(entry.op as unknown as Record<string, unknown>)
-}
 
 function selectItem(number: number) {
   state.selectItem(number)
@@ -192,27 +183,15 @@ async function confirmExecute() {
                 </div>
               </div>
             </button>
-            <ul class="flex flex-col">
+            <ul class="flex flex-col gap-2 px-4 py-3 pl-8">
               <li
                 v-for="entry in group.entries"
                 :key="entry.id"
-                class="group flex items-start gap-2 px-4 py-1.5 pl-8 hover:bg-active transition"
+                class="group"
                 data-testid="queue-entry"
                 :data-entry-id="entry.id"
               >
-                <span
-                  class="badge font-mono text-xs flex-none"
-                  :style="{ backgroundColor: `${actionColor(entry.op.action)}22`, color: actionColor(entry.op.action) }"
-                >{{ entry.op.action }}</span>
-                <span v-if="summarize(entry)" class="text-xs color-muted truncate flex-1">{{ summarize(entry) }}</span>
-                <span v-else class="flex-1" />
-                <UiIconButton
-                  icon="i-ph-trash-duotone"
-                  size="sm"
-                  tooltip="Remove from queue"
-                  class="hover-fade"
-                  @click="remove(entry)"
-                />
+                <QueueEntryCard :entry="entry" @remove="remove" />
               </li>
             </ul>
           </section>
