@@ -1,6 +1,6 @@
 import type { GhfsCapabilities, GhfsClientFunctions, GhfsServerFunctions } from '#ghfs/rpc-types'
 import type { SyncStage } from '#ghfs/sync-contracts'
-import type { DevToolsRpcClient } from 'devframe/client'
+import type { DevframeRpcClient } from 'devframe/client'
 import { connectDevframe } from 'devframe/client'
 import { useAppState } from './useAppState'
 import type { ProgressCurrentItem } from './useAppState'
@@ -54,15 +54,15 @@ export interface GhfsRpc {
 }
 
 let rpcShim: GhfsRpc | null = null
-let clientPromise: Promise<DevToolsRpcClient> | null = null
+let clientPromise: Promise<DevframeRpcClient> | null = null
 
-function ensureClient(): Promise<DevToolsRpcClient> {
+function ensureClient(): Promise<DevframeRpcClient> {
   if (clientPromise)
     return clientPromise
   // Fetch our own `/__connection.json` and pass the result explicitly.
   //
   // Why not let devframe fetch it via `baseURL`? Because
-  // `connectDevframe()` first checks `window.__VITE_DEVTOOLS_CONNECTION_META__`,
+  // `connectDevframe()` first checks `window.__DEVFRAME_CONNECTION_META__`,
   // and the newer Vite/Nuxt DevTools sets that global to point at the
   // Nuxt dev server's own WS — which lands devframe on the wrong port
   // (the SPA port, not the paired ghfs server's port). Passing
@@ -123,7 +123,7 @@ export function useRpc(): GhfsRpc {
  * Access the full devframe client — needed for `rpc.sharedState`,
  * `rpc.streaming`, etc. Resolves once the connection handshake completes.
  */
-export function useRpcClient(): Promise<DevToolsRpcClient> {
+export function useRpcClient(): Promise<DevframeRpcClient> {
   if (typeof window === 'undefined')
     return Promise.reject(new Error('devframe RPC not available (SSR)'))
   return ensureClient()

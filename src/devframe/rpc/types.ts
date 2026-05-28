@@ -261,7 +261,7 @@ export interface CardsSharedState {
 }
 
 declare module 'devframe/types' {
-  interface DevToolsRpcSharedStates {
+  interface DevframeRpcSharedStates {
     'ghfs:cards-pile': CardsSharedState
   }
 }

@@ -1,4 +1,4 @@
-import type { DevToolsNodeContext } from 'devframe'
+import type { DevframeNodeContext } from 'devframe'
 import type { GhfsResolvedConfig } from '../types'
 import type { RepositoryProvider } from '../types/provider'
 import type { ProjectBroadcast, ProjectContext } from './project-context'
@@ -26,7 +26,7 @@ export interface BuildProjectOptions {
   onRequestToken?: () => Promise<string>
   /** Poller tick — default 60s. Hub passes a slower tick. */
   pollerIntervalMs?: number
-  devframeCtx: DevToolsNodeContext
+  devframeCtx: DevframeNodeContext
 }
 
 export async function buildProjectContext(options: BuildProjectOptions): Promise<ProjectContext> {

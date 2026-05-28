@@ -1,4 +1,4 @@
-import type { DevToolsNodeContext } from 'devframe'
+import type { DevframeNodeContext } from 'devframe'
 import type { ProjectContext, ProjectRegistry } from './project-context'
 import type { HubInfo } from './rpc/types'
 import { resolve } from 'pathe'
@@ -34,7 +34,7 @@ export interface HubModeHandle {
 }
 
 export async function setupHubMode(
-  devframeCtx: DevToolsNodeContext,
+  devframeCtx: DevframeNodeContext,
   options: HubModeOptions,
 ): Promise<HubModeHandle> {
   const launchCwd = resolve(options.cwd)

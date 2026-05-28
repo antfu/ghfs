@@ -9,7 +9,7 @@ minimumReleaseAgeExclude:
   - vitest@4.1.7
   - '@tanstack/virtual-core@3.15.0'
   - '@tanstack/vue-virtual@3.13.25'
-  - devframe@0.4.1
+  - devframe@0.5.2
   - portless@0.13.1
 shellEmulator: true
 
@@ -41,7 +41,7 @@ catalog:
   bumpp: ^11.1.0
   cac: ^7.0.0
   colorjs.io: ^0.6.1
-  devframe: ^0.4.1
+  devframe: ^0.5.2
   dotenv: ^17.4.2
   eslint: ^10.4.0
   floating-vue: ^5.2.2

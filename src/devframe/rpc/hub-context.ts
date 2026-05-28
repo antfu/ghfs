@@ -1,4 +1,4 @@
-import type { DevToolsNodeContext } from 'devframe'
+import type { DevframeNodeContext } from 'devframe'
 import type { ProjectContext } from '../project-context'
 import type { HubInfo } from './types'
 
@@ -8,7 +8,7 @@ import type { HubInfo } from './types'
  * context with `setHubContext`.
  */
 export interface HubRpcContext {
-  devframeCtx: DevToolsNodeContext
+  devframeCtx: DevframeNodeContext
   homeDir?: string
   launchCwd: string
   roots: Set<string>

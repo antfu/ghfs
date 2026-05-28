@@ -1,4 +1,4 @@
-import type { DevToolsNodeContext } from 'devframe'
+import type { DevframeNodeContext } from 'devframe'
 import type { GhfsResolvedConfig } from '../types'
 import type { ProjectRegistry } from './project-context'
 import { createAutoSyncTimer } from '../hub/auto-sync'
@@ -26,7 +26,7 @@ export interface UiModeHandle {
 }
 
 export async function setupUiMode(
-  devframeCtx: DevToolsNodeContext,
+  devframeCtx: DevframeNodeContext,
   options: UiModeOptions,
 ): Promise<UiModeHandle> {
   const project = await buildProjectContext({

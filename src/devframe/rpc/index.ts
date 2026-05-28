@@ -1,4 +1,4 @@
-import type { DevToolsNodeContext } from 'devframe'
+import type { DevframeNodeContext } from 'devframe'
 import { addQueueOp } from './add-queue-op'
 import { capabilities } from './capabilities'
 import { checkRemote } from './check-remote'
@@ -82,7 +82,7 @@ export const rpcFunctions = [
   setRepoTemplates,
 ] as const
 
-export function registerGhfsRpc(ctx: DevToolsNodeContext): void {
+export function registerGhfsRpc(ctx: DevframeNodeContext): void {
   for (const fn of rpcFunctions)
     ctx.rpc.register(fn as any)
 }
