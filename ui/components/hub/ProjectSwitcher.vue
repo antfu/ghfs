@@ -20,8 +20,10 @@ const triggerRef = ref<HTMLButtonElement | null>(null)
 const menuRef = ref<HTMLElement | null>(null)
 const search = ref('')
 
-const projects = computed<ProjectSummary[]>(() => hub.projects.value)
-const current = computed(() => projects.value.find(p => p.id === props.projectId))
+const projects = computed<ProjectSummary[]>(() => hub.visibleProjects.value)
+// Resolve the active project from the full list so the navbar still labels an
+// excluded-but-open project correctly even though it's hidden from the list.
+const current = computed(() => hub.projects.value.find(p => p.id === props.projectId))
 const filtered = computed<ProjectSummary[]>(() => {
   const q = search.value.trim().toLowerCase()
   if (!q)

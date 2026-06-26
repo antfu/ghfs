@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import type { HubRecentItem } from '#ghfs/rpc-types'
 import { useActiveProjectId, useAppState } from './useAppState'
+import { useHubState } from './useHubState'
 import { useProjectPayload } from './useProjectPayload'
 import { useRpc } from './useRpc'
 
@@ -15,6 +16,14 @@ export function recentItemKey(item: Pick<HubRecentItem, 'projectId' | 'kind' | '
 
 export function useHubRecent() {
   const payload = useProjectPayload()
+  const hub = useHubState()
+  // Hide items belonging to projects the user has excluded from the hub.
+  const visibleItems = computed<HubRecentItem[]>(() => {
+    const hidden = hub.excludedIds.value
+    if (hidden.size === 0)
+      return items.value
+    return items.value.filter(it => !hidden.has(it.projectId))
+  })
 
   async function load(limit = 100) {
     loading.value = true
@@ -39,7 +48,7 @@ export function useHubRecent() {
   }
 
   return {
-    items: computed(() => items.value),
+    items: visibleItems,
     loading: computed(() => loading.value),
     error: computed(() => error.value),
     selectedKey,

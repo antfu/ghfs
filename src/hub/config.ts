@@ -15,6 +15,7 @@ const CommentTemplateSchema = v.object({
 const ConfigSchema = v.object({
   roots: v.optional(v.array(v.string())),
   enabledProjects: v.optional(v.array(ProjectEntrySchema)),
+  excludedProjects: v.optional(v.array(ProjectEntrySchema)),
   autoSyncIntervalMs: v.optional(v.pipe(v.number(), v.minValue(60_000), v.maxValue(3_600_000))),
   commentTemplates: v.optional(v.array(CommentTemplateSchema)),
   swrSyncEnabled: v.optional(v.boolean()),
@@ -46,6 +47,13 @@ export interface HubConfig {
   roots: string[]
   /** Absolute paths of projects the user has enabled. Independent of `roots`. */
   enabledProjects: HubProjectEntry[]
+  /**
+   * Absolute paths of enabled projects the user has hidden from the hub. These
+   * stay loaded and keep syncing — they are merely filtered out of the hub
+   * home, aggregates, and recent/todo/queue views until restored. A subset of
+   * `enabledProjects`.
+   */
+  excludedProjects?: HubProjectEntry[]
   /** Global auto-sync interval applied to every project. */
   autoSyncIntervalMs?: number
   /** Global comment templates surfaced in the composer's template picker. */
@@ -124,6 +132,8 @@ function parseConfig(raw: unknown): HubConfig {
       swrSyncEnabled: flat.output.swrSyncEnabled,
       swrCacheTimeoutMs: flat.output.swrCacheTimeoutMs,
     }
+    if (flat.output.excludedProjects !== undefined)
+      config.excludedProjects = dedupeProjects(flat.output.excludedProjects.map(e => ({ path: normalizePath(e.path) })))
     if (flat.output.commentTemplates !== undefined)
       config.commentTemplates = flat.output.commentTemplates.map(t => ({ title: t.title, body: t.body }))
     return config
@@ -167,6 +177,9 @@ export async function saveHubConfig(options: SaveHubConfigOptions): Promise<void
   const next: HubConfig = {
     roots: dedupePaths(options.config.roots.map(normalizePath)),
     enabledProjects: dedupeProjects(options.config.enabledProjects.map(e => ({ path: normalizePath(e.path) }))),
+    excludedProjects: options.config.excludedProjects === undefined
+      ? undefined
+      : dedupeProjects(options.config.excludedProjects.map(e => ({ path: normalizePath(e.path) }))),
     autoSyncIntervalMs: options.config.autoSyncIntervalMs,
     commentTemplates: options.config.commentTemplates,
     swrSyncEnabled: options.config.swrSyncEnabled,
@@ -178,6 +191,8 @@ export async function saveHubConfig(options: SaveHubConfigOptions): Promise<void
     roots: next.roots,
     enabledProjects: next.enabledProjects,
   }
+  if (next.excludedProjects !== undefined)
+    json.excludedProjects = next.excludedProjects
   if (next.autoSyncIntervalMs !== undefined)
     json.autoSyncIntervalMs = next.autoSyncIntervalMs
   if (next.commentTemplates !== undefined)
@@ -215,6 +230,7 @@ export async function removeHubRoot(options: MutateHubConfigOptions): Promise<Hu
     ...current,
     roots: nextRoots,
     enabledProjects: nextProjects,
+    excludedProjects: current.excludedProjects?.filter(p => !isUnder(p.path, target)),
   }
   await saveHubConfig({ homeDir: options.homeDir, config: next })
   return next
@@ -229,6 +245,25 @@ export async function setEnabledProjects(options: SetEnabledProjectsOptions): Pr
   const next: HubConfig = {
     ...current,
     enabledProjects: dedupeProjects(options.paths.map(p => ({ path: normalizePath(p) }))),
+  }
+  await saveHubConfig({ homeDir: options.homeDir, config: next })
+  return next
+}
+
+export interface SetExcludedProjectsOptions extends ResolveHubConfigPathOptions {
+  paths: string[]
+}
+
+/**
+ * Overwrite the set of projects hidden from the hub. Pass the full list of
+ * excluded paths (deduped + normalized here). An empty array clears the
+ * exclusion (the field is then written as `[]`).
+ */
+export async function setExcludedProjects(options: SetExcludedProjectsOptions): Promise<HubConfig> {
+  const current = await loadHubConfig(options)
+  const next: HubConfig = {
+    ...current,
+    excludedProjects: dedupeProjects(options.paths.map(p => ({ path: normalizePath(p) }))),
   }
   await saveHubConfig({ homeDir: options.homeDir, config: next })
   return next

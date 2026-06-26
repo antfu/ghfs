@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import type { HubQueueGroup } from '#ghfs/rpc-types'
+import { useHubState } from './useHubState'
 import { useOnlineState } from './useOnlineState'
 import { useRpc } from './useRpc'
 
@@ -56,10 +57,14 @@ export function useHubQueue() {
     }
   }
 
-  const groupedEntries = computed(() => groups.value
-    .map(g => ({ ...g, total: totalFor(g) }))
-    .filter(g => g.total > 0),
-  )
+  const hub = useHubState()
+  const groupedEntries = computed(() => {
+    const hidden = hub.excludedIds.value
+    return groups.value
+      .filter(g => !hidden.has(g.projectId))
+      .map(g => ({ ...g, total: totalFor(g) }))
+      .filter(g => g.total > 0)
+  })
 
   const totalCount = computed(() => groupedEntries.value.reduce((sum, g) => sum + g.total, 0))
 

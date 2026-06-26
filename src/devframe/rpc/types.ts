@@ -28,6 +28,13 @@ export interface ProjectSummary {
   /** Most recent `item.updatedAt` across the project's tracked items. */
   lastActivityAt?: string
   /**
+   * True when the user has hidden this project from the hub. Excluded projects
+   * stay enabled and keep syncing; the client filters them out of the hub home,
+   * aggregates, and recent/todo/queue views. Always `false` in single-project
+   * (ui) mode.
+   */
+  excluded?: boolean
+  /**
    * Repository label registry (names, colors, descriptions) from the most
    * recent repo snapshot. Consumed by hub-level views (recent, todos) to
    * color labels correctly for items belonging to non-active projects.
@@ -219,6 +226,7 @@ export interface GhfsServerFunctions {
   'ghfs:hub-scan': () => Promise<HubScannedProject[]>
   'ghfs:hub-enable': (path: string) => Promise<{ id: string }>
   'ghfs:hub-disable': (id: string) => Promise<{ removed: boolean }>
+  'ghfs:hub-set-excluded': (id: string, excluded: boolean) => Promise<{ excluded: boolean }>
   'ghfs:hub-add-root': (path: string) => Promise<HubInfo>
   'ghfs:hub-remove-root': (path: string) => Promise<HubInfo>
   'ghfs:hub-recent-items': (limit?: number) => Promise<HubRecentItem[]>

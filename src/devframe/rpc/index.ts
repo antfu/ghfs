@@ -20,6 +20,7 @@ import { hubRecentItems } from './hub-recent-items'
 import { hubRemoveRoot } from './hub-remove-root'
 import { hubScan } from './hub-scan'
 import { hubSeenHistory } from './hub-seen-history'
+import { hubSetExcluded } from './hub-set-excluded'
 import { hubSetSettings } from './hub-set-settings'
 import { hubSettings } from './hub-settings'
 import { hubTodos } from './hub-todos'
@@ -71,6 +72,7 @@ export const rpcFunctions = [
   hubScan,
   hubEnable,
   hubDisable,
+  hubSetExcluded,
   hubAddRoot,
   hubRemoveRoot,
   hubSettings,

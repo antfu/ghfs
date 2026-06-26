@@ -42,6 +42,7 @@ export interface WhenContext extends Record<string, unknown> {
   hubQueueTotal: number
   hubProjectsCount: number
   hasActiveProjectId: boolean
+  hubHasFocusedProject: boolean
   anyOverlayOpen: boolean
   onCardsPage: boolean
   cardsHasPile: boolean
@@ -111,7 +112,7 @@ export function useWhenContext(): ComputedRef<WhenContext> {
         ? recentSearch.value.trim().length > 0
         : state.value.filters.search.trim().length > 0,
       hasToken: state.value.payload.value?.repo.hasToken ?? false,
-      hasSyncableProjects: hub.projects.value.some(p => p.hasToken),
+      hasSyncableProjects: hub.visibleProjects.value.some(p => p.hasToken),
       syncing: state.value.syncing.value,
       syncingAll: hubUi.syncingAll.value,
       executing: state.value.executing.value,
@@ -127,8 +128,9 @@ export function useWhenContext(): ComputedRef<WhenContext> {
       hubQueueDrawerOpen,
       hubExecuteAllConfirmOpen,
       hubQueueTotal: hubQueueTotal.value,
-      hubProjectsCount: hub.projects.value.length,
+      hubProjectsCount: hub.visibleProjects.value.length,
       hasActiveProjectId: Boolean(activeId.value),
+      hubHasFocusedProject: Boolean(hub.focusedProjectId.value),
       // NB: cardsCommentDialogOpen is deliberately *not* in anyOverlayOpen.
       // The cards comment dialog is a Reka UiModal that handles its own
       // Escape via closeOnEscape, so propagating Escape to panel.close (which

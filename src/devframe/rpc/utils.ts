@@ -26,6 +26,11 @@ export function getHubContext(ctx: DevframeNodeContext): HubRpcContext {
   return hub
 }
 
+/** Like {@link getHubContext} but returns null in single-project (ui) mode. */
+export function tryGetHubContext(ctx: DevframeNodeContext): HubRpcContext | null {
+  return hubMap.get(ctx) ?? null
+}
+
 export function setHubContext(ctx: DevframeNodeContext, hub: HubRpcContext): void {
   hubMap.set(ctx, hub)
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ProjectSummary } from '#ghfs/rpc-types'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { navigateTo } from '#imports'
 import { useHubActivity } from '../../composables/useHubActivity'
 import { useHubState } from '../../composables/useHubState'
@@ -12,11 +12,12 @@ import UiEmptyState from '../ui/EmptyState.vue'
 import UiModal from '../ui/Modal.vue'
 import UiWithCommand from '../ui/WithCommand.vue'
 import HubProjectCard from './ProjectCard.vue'
+import HubProjectContextMenu from './ProjectContextMenu.vue'
 
 const rpc = useRpc()
 const hub = useHubState()
 
-const projects = computed<ProjectSummary[]>(() => hub.projects.value)
+const projects = computed<ProjectSummary[]>(() => hub.visibleProjects.value)
 const focusedIndex = ref(0)
 
 const onboardingOpen = ref(false)
@@ -155,6 +156,22 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
   }
   focusedIndex.value = index
 }
+
+function onCardFocus(index: number, projectId: string) {
+  focusedIndex.value = index
+  hub.setFocusedProjectId(projectId)
+}
+
+function onCardBlur(projectId: string) {
+  // Only clear if this card still owns the focus marker — a card→card move
+  // fires blur(prev) before focus(next), so guarding avoids clobbering.
+  if (hub.focusedProjectId.value === projectId)
+    hub.setFocusedProjectId(null)
+}
+
+onBeforeUnmount(() => {
+  hub.setFocusedProjectId(null)
+})
 </script>
 
 <template>
@@ -219,7 +236,9 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
         <section class="flex flex-col gap-3">
           <div class="flex items-baseline gap-2">
             <h2 class="text-sm font-semibold">Projects</h2>
-            <span class="color-muted text-xs">{{ projects.length }} enabled · sorted by recent activity</span>
+            <span class="color-muted text-xs">
+              {{ projects.length }} shown<template v-if="hub.excludedProjects.value.length > 0"> · {{ hub.excludedProjects.value.length }} hidden</template> · sorted by recent activity
+            </span>
             <div class="flex-1" />
             <UiWithCommand v-if="projects.length > 0" v-slot="{ execute, disabled }" command="hub.manage">
               <button
@@ -259,18 +278,23 @@ function onCardKeydown(event: KeyboardEvent, index: number) {
             class="grid gap-3"
             style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"
           >
-            <HubProjectCard
+            <HubProjectContextMenu
               v-for="(project, index) in projects"
               :key="project.id"
-              :ref="el => setCardRef(el, index)"
               :project="project"
-              data-testid="hub-project-card"
-              :data-project-id="project.id"
-              :data-project-repo="project.repo"
-              @click="openProject(project.repo)"
-              @keydown="onCardKeydown($event, index)"
-              @focus="focusedIndex = index"
-            />
+            >
+              <HubProjectCard
+                :ref="el => setCardRef(el, index)"
+                :project="project"
+                data-testid="hub-project-card"
+                :data-project-id="project.id"
+                :data-project-repo="project.repo"
+                @click="openProject(project.repo)"
+                @keydown="onCardKeydown($event, index)"
+                @focus="onCardFocus(index, project.id)"
+                @blur="onCardBlur(project.id)"
+              />
+            </HubProjectContextMenu>
           </div>
         </section>
       </div>

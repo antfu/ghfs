@@ -59,7 +59,12 @@ export async function buildRepoMeta(ctx: ProjectContext): Promise<RepoMeta> {
   }
 }
 
-export async function summarizeProject(ctx: ProjectContext): Promise<ProjectSummary> {
+export interface SummarizeProjectOptions {
+  /** Whether the user has hidden this project from the hub. */
+  excluded?: boolean
+}
+
+export async function summarizeProject(ctx: ProjectContext, options: SummarizeProjectOptions = {}): Promise<ProjectSummary> {
   const [repo, syncState, snapshot] = await Promise.all([
     buildRepoMeta(ctx),
     loadSyncState(ctx.storageDirAbsolute),
@@ -107,6 +112,7 @@ export async function summarizeProject(ctx: ProjectContext): Promise<ProjectSumm
     lastSyncedAt: syncState.lastSyncedAt,
     lastActivityAt,
     labels,
+    excluded: options.excluded ?? false,
   }
 }
 

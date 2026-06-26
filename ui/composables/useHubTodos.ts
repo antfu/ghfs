@@ -3,6 +3,7 @@ import type { HubTodoItem } from '#ghfs/rpc-types'
 import type { IssueKind } from '../../src/types/issue'
 import type { ListItem } from '../types/list-item'
 import { listItemKey } from '../types/list-item'
+import { useHubState } from './useHubState'
 import { useRpc } from './useRpc'
 
 const items = ref<HubTodoItem[]>([])
@@ -27,6 +28,8 @@ function toListItem(it: HubTodoItem): ListItem {
 }
 
 export function useHubTodos() {
+  const hub = useHubState()
+
   async function load() {
     loading.value = true
     error.value = null
@@ -42,7 +45,14 @@ export function useHubTodos() {
     }
   }
 
-  const listItems = computed<ListItem[]>(() => items.value.map(toListItem))
+  // Hide todos belonging to projects the user has excluded from the hub.
+  const visibleItems = computed<HubTodoItem[]>(() => {
+    const hidden = hub.excludedIds.value
+    if (hidden.size === 0)
+      return items.value
+    return items.value.filter(it => !hidden.has(it.projectId))
+  })
+  const listItems = computed<ListItem[]>(() => visibleItems.value.map(toListItem))
   const filteredListItems = computed<ListItem[]>(() => listItems.value.filter(it => it.kind === kind.value))
 
   const counts = computed(() => {

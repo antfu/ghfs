@@ -10,7 +10,7 @@ import { useHubRecent } from './useHubRecent'
 import { useHubState } from './useHubState'
 import { useHubTodos } from './useHubTodos'
 import { useHubQueue } from './useHubQueue'
-import { useHubUiState, syncAllProjects } from './useHubUiState'
+import { useHubUiState, setProjectExcluded, syncAllProjects, syncProject } from './useHubUiState'
 import { useOnlineState } from './useOnlineState'
 import { useQueue } from './useQueue'
 import { useRecentFiltered } from './useRecentFiltered'
@@ -259,7 +259,7 @@ export function createAppCommands(): Command[] {
   }
 
   function navigateProject(delta: number): void {
-    const projects = hub.projects.value
+    const projects = hub.visibleProjects.value
     if (projects.length === 0)
       return
     const currentIdx = projects.findIndex(p => p.id === activeId.value)
@@ -722,6 +722,35 @@ export function createAppCommands(): Command[] {
       when: 'hubHome && hasSyncableProjects && !syncingAll && online',
       help: 'hubMode',
       run: () => { syncAllProjects() },
+    },
+    {
+      id: 'hub.sync-project',
+      title: 'Hub: Sync focused project',
+      category: 'Hub',
+      icon: 'i-octicon-sync-16',
+      when: 'hubHome && hubHasFocusedProject && online',
+      help: 'hubMode',
+      run: () => {
+        const id = hub.focusedProjectId.value
+        if (id)
+          void syncProject(id)
+      },
+    },
+    {
+      id: 'hub.exclude-project',
+      title: 'Hub: Exclude focused project',
+      category: 'Hub',
+      icon: 'i-ph-eye-slash-duotone',
+      keybindings: ['e'],
+      when: 'hubHome && hubHasFocusedProject',
+      help: 'hubMode',
+      run: () => {
+        const id = hub.focusedProjectId.value
+        if (!id)
+          return
+        hub.setFocusedProjectId(null)
+        void setProjectExcluded(id, true)
+      },
     },
     {
       id: 'hub.manage',

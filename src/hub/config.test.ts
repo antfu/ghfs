@@ -9,6 +9,7 @@ import {
   resolveHubConfigPath,
   saveHubConfig,
   setEnabledProjects,
+  setExcludedProjects,
   setHubAutoSyncInterval,
   setHubCommentTemplates,
   setHubSwrSettings,
@@ -139,6 +140,74 @@ describe('hub config', () => {
       { path: '/a/y' },
     ])
     expect(config.roots).toEqual(['/a'])
+  })
+
+  it('round-trips excludedProjects', async () => {
+    const homeDir = await makeHome()
+    const config = await setExcludedProjects({
+      homeDir,
+      paths: ['/a/hidden-1', '/a/hidden-2', '/a/hidden-1'],
+    })
+    expect(config.excludedProjects).toEqual([
+      { path: '/a/hidden-1' },
+      { path: '/a/hidden-2' },
+    ])
+    const reloaded = await loadHubConfig({ homeDir })
+    expect(reloaded.excludedProjects).toEqual([
+      { path: '/a/hidden-1' },
+      { path: '/a/hidden-2' },
+    ])
+  })
+
+  it('setExcludedProjects preserves enabledProjects and roots', async () => {
+    const homeDir = await makeHome()
+    await saveHubConfig({
+      homeDir,
+      config: { roots: ['/a'], enabledProjects: [{ path: '/a/keep' }, { path: '/a/hide' }] },
+    })
+    const config = await setExcludedProjects({ homeDir, paths: ['/a/hide'] })
+    expect(config.roots).toEqual(['/a'])
+    expect(config.enabledProjects).toEqual([{ path: '/a/keep' }, { path: '/a/hide' }])
+    expect(config.excludedProjects).toEqual([{ path: '/a/hide' }])
+  })
+
+  it('omits excludedProjects from disk when never set', async () => {
+    const homeDir = await makeHome()
+    await saveHubConfig({ homeDir, config: { roots: ['/a'], enabledProjects: [] } })
+    const raw = JSON.parse(await readFile(resolveHubConfigPath({ homeDir }), 'utf8'))
+    expect('excludedProjects' in raw).toBe(false)
+  })
+
+  it('distinguishes never-set from explicitly-empty excludedProjects', async () => {
+    const homeDir = await makeHome()
+    await saveHubConfig({ homeDir, config: { roots: ['/a'], enabledProjects: [] } })
+    expect((await loadHubConfig({ homeDir })).excludedProjects).toBeUndefined()
+    await setExcludedProjects({ homeDir, paths: [] })
+    expect((await loadHubConfig({ homeDir })).excludedProjects).toEqual([])
+  })
+
+  it('removeHubRoot prunes excludedProjects under the removed root', async () => {
+    const homeDir = await makeHome()
+    await saveHubConfig({
+      homeDir,
+      config: {
+        roots: ['/a', '/b'],
+        enabledProjects: [{ path: '/a/repo-1' }, { path: '/b/repo-2' }],
+        excludedProjects: [{ path: '/a/repo-1' }, { path: '/b/repo-2' }],
+      },
+    })
+    const config = await removeHubRoot({ homeDir, path: '/a' })
+    expect(config.enabledProjects).toEqual([{ path: '/b/repo-2' }])
+    expect(config.excludedProjects).toEqual([{ path: '/b/repo-2' }])
+  })
+
+  it('preserves excludedProjects when other fields are mutated', async () => {
+    const homeDir = await makeHome()
+    await setExcludedProjects({ homeDir, paths: ['/a/hide'] })
+    await setHubAutoSyncInterval({ homeDir, intervalMs: 120_000 })
+    const reloaded = await loadHubConfig({ homeDir })
+    expect(reloaded.excludedProjects).toEqual([{ path: '/a/hide' }])
+    expect(reloaded.autoSyncIntervalMs).toBe(120_000)
   })
 
   it('setHubAutoSyncInterval updates the global field', async () => {

@@ -9,6 +9,7 @@ import {
   addHubRoot,
   loadHubConfig,
   setEnabledProjects,
+  setExcludedProjects,
 } from '../hub/config'
 import { slugifyRepoName } from '../server/portless'
 import { buildProjectContext, closeProjectContext } from './project-factory'
@@ -41,6 +42,9 @@ export async function setupHubMode(
   const homeDir = options.homeDir
   const roots = new Set<string>()
   const projects = new Map<string, ProjectContext>()
+  // Absolute paths of enabled projects hidden from the hub. Kept loaded; the
+  // client filters them out of hub surfaces.
+  const excluded = new Set<string>()
 
   // Single in-flight promise serializes config-mutating operations so two
   // concurrent RPCs don't race on the shared hub.json file.
@@ -127,6 +131,8 @@ export async function setupHubMode(
     config = await addHubRoot({ homeDir, path: launchCwd })
   for (const root of config.roots)
     roots.add(root)
+  for (const entry of config.excludedProjects ?? [])
+    excluded.add(entry.path)
   await loadEnabledProjects(config.enabledProjects.map(p => p.path))
 
   const registry: ProjectRegistry = {
@@ -148,6 +154,13 @@ export async function setupHubMode(
     })
   }
 
+  async function persistExcluded(): Promise<void> {
+    await setExcludedProjects({
+      homeDir,
+      paths: Array.from(excluded),
+    })
+  }
+
   setProjectRegistry(devframeCtx, registry)
   setHubContext(devframeCtx, {
     devframeCtx,
@@ -155,12 +168,14 @@ export async function setupHubMode(
     launchCwd,
     roots,
     projects,
+    excluded,
     withLock,
     buildHubInfo,
     broadcastProjectsChange,
     broadcastHubInfoChange,
     loadProjectByPath,
     persistEnabled,
+    persistExcluded,
     autoSync,
   })
   registerGhfsRpc(devframeCtx)

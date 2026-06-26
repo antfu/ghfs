@@ -16,6 +16,9 @@ export const hubDisable = defineRpcFunction({
           hub.projects.delete(id)
           await closeProjectContext(ctx)
           await hub.persistEnabled()
+          // A disabled project should not linger in the excluded set.
+          if (hub.excluded.delete(ctx.path))
+            await hub.persistExcluded()
           hub.broadcastProjectsChange()
           return { removed: true }
         })

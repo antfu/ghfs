@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import type { HubScannedProject } from '#ghfs/rpc-types'
 import { useHubState } from '../../composables/useHubState'
+import { setProjectExcluded } from '../../composables/useHubUiState'
 import { useRpc } from '../../composables/useRpc'
 import DisplayProjectIcon from '../display/ProjectIcon.vue'
 import UiEmptyState from '../ui/EmptyState.vue'
@@ -15,6 +16,22 @@ const props = defineProps<{
 
 const rpc = useRpc()
 const hub = useHubState()
+
+// ── Excluded projects (hidden from the hub) ───────────────────────────
+const excludedProjects = computed(() => hub.excludedProjects.value)
+const restoringId = ref<string | null>(null)
+
+async function restore(id: string) {
+  if (restoringId.value)
+    return
+  restoringId.value = id
+  try {
+    await setProjectExcluded(id, false)
+  }
+  finally {
+    restoringId.value = null
+  }
+}
 
 // ── Hub roots (top section) ───────────────────────────────────────────
 const rootDraft = ref('')
@@ -151,6 +168,43 @@ watch(() => hub.hubRoots.value.join('|'), () => {
 
 <template>
   <div class="flex flex-col gap-6">
+    <!-- Excluded projects -->
+    <section v-if="excludedProjects.length > 0" class="flex flex-col gap-2" data-testid="settings-excluded-projects">
+      <header class="flex items-center gap-1.5">
+        <span class="i-ph-eye-slash-duotone color-active text-sm" />
+        <h3 class="text-sm font-medium">Excluded from hub</h3>
+        <span class="text-xs color-muted">{{ excludedProjects.length }} hidden</span>
+      </header>
+      <p class="text-xs color-muted">These projects stay enabled and keep syncing, but are hidden from the hub home and aggregate views. Restore one to show it again.</p>
+
+      <ul class="flex flex-col border border-base rounded bg-base/40 overflow-hidden">
+        <li
+          v-for="project in excludedProjects"
+          :key="project.id"
+          class="flex items-center gap-3 px-3 py-2 border-b border-base last:border-b-0 hover:bg-active transition"
+          data-testid="settings-excluded-row"
+          :data-project-id="project.id"
+        >
+          <DisplayProjectIcon :project="project" :size="28" fallback-class="color-muted" />
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium font-mono truncate color-muted">{{ project.repo }}</div>
+            <div class="text-[11px] color-faint font-mono truncate" :title="project.path">{{ project.path }}</div>
+          </div>
+          <button
+            type="button"
+            class="btn-action-sm shrink-0"
+            data-testid="settings-excluded-restore"
+            :disabled="restoringId === project.id"
+            :aria-label="`Restore ${project.repo}`"
+            @click="restore(project.id)"
+          >
+            <span :class="restoringId === project.id ? 'i-octicon-sync-16 animate-spin' : 'i-ph-eye-duotone'" />
+            <span>Restore</span>
+          </button>
+        </li>
+      </ul>
+    </section>
+
     <!-- Hub roots -->
     <section class="flex flex-col gap-2">
       <header class="flex items-center gap-1.5">
