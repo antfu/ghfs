@@ -42,6 +42,10 @@ function fireZone(zone: Zone) {
 
 const arena = ref<HTMLElement | null>(null)
 const arenaSize = ref({ w: 0, h: 0 })
+/** Top/bottom labels sit over the card; we hit-test the cursor against their
+    rects (they're pointer-events:none, so closest() can't see them). */
+const topLabel = ref<HTMLElement | null>(null)
+const bottomLabel = ref<HTMLElement | null>(null)
 
 let resizeObserver: ResizeObserver | null = null
 
@@ -80,8 +84,25 @@ function onMove(e: MouseEvent) {
   const rect = arena.value?.getBoundingClientRect()
   if (!rect)
     return
-  // Cursor over the card body — neutral, no zone active.
+  // Cursor over the card body — neutral, no zone active. But the top/bottom
+  // labels now sit *on* the card (above it). The labels are pointer-events:none,
+  // so the cursor's actual target is the card content beneath them — we can't
+  // rely on closest(). Instead, geometrically test the cursor against each
+  // label's rect so hovering the label still resolves to its zone rather than
+  // being swallowed by the passthrough check below.
   const target = e.target as HTMLElement | null
+  for (const zone of ['top', 'bottom'] as const) {
+    const labelRect = (zone === 'top' ? topLabel : bottomLabel).value?.getBoundingClientRect()
+    if (!labelRect)
+      continue
+    if (
+      e.clientX >= labelRect.left && e.clientX <= labelRect.right
+      && e.clientY >= labelRect.top && e.clientY <= labelRect.bottom
+    ) {
+      activeZone.value = commandFor(zone).active.value ? zone : null
+      return
+    }
+  }
   if (target?.closest('[data-cards-passthrough]')) {
     activeZone.value = null
     return
@@ -151,9 +172,16 @@ const cardFilter = computed(() => {
 
 function onClick(e: MouseEvent) {
   const target = e.target as HTMLElement | null
-  if (target?.closest('[data-cards-passthrough]'))
-    return
+  // A click whose target is the card body is normally ignored — but the
+  // top/bottom labels float over the card, so when the cursor is within one of
+  // them (activeZone already resolved by onMove's rect hit-test) honour it.
+  const overEdgeLabel = (zone: Zone) => {
+    const r = (zone === 'top' ? topLabel : bottomLabel).value?.getBoundingClientRect()
+    return !!r && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom
+  }
   const zone = activeZone.value
+  if (target?.closest('[data-cards-passthrough]') && !(zone && (zone === 'top' || zone === 'bottom') && overEdgeLabel(zone)))
+    return
   if (!zone)
     return
   fireZone(zone)
@@ -191,6 +219,7 @@ function onClick(e: MouseEvent) {
          the user can tell the card is already in that state and the click
          will toggle it off / re-open in edit mode. -->
     <div
+      ref="topLabel"
       class="edge-label edge-label-top edge-zone-todo"
       :class="[{ 'edge-label-active': activeZone === 'top' }, !todoCmd.active.value && 'edge-label-disabled']"
       data-testid="card-edge-todo"
@@ -218,6 +247,7 @@ function onClick(e: MouseEvent) {
       <UiKbd command="cards.skip" />
     </div>
     <div
+      ref="bottomLabel"
       class="edge-label edge-label-bottom edge-zone-comment"
       :class="[{ 'edge-label-active': activeZone === 'bottom' }, !commentCmd.active.value && 'edge-label-disabled']"
       data-testid="card-edge-comment"
@@ -406,6 +436,7 @@ function onClick(e: MouseEvent) {
   top: 1.25rem;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 4;
 }
 .edge-label-top.edge-label-active {
   transform: translateX(-50%) translateY(2px);
@@ -415,6 +446,7 @@ function onClick(e: MouseEvent) {
   bottom: 1.25rem;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 4;
 }
 .edge-label-bottom.edge-label-active {
   transform: translateX(-50%) translateY(-2px);
