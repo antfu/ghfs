@@ -61,7 +61,7 @@ export function useCommandHandler(): void {
     for (const kb of bindings) {
       const chords = parseBinding(kb.key)
       const tokens = chords.map(chordToken)
-      const hasMod = chords.some(c => c.modifiers.length > 0)
+      const hasMod = chords.some(c => c.modifiers.some(m => m !== 'shift'))
       matchables.push({ command: kb.command, tokens, whenNode: kb.whenNode, hasModifier: hasMod })
     }
 
