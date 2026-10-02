@@ -15,7 +15,7 @@ import {
   resolveMoveSourcePath,
   updateTrackedItem,
 } from './sync-repository-storage'
-import { relativeToStorage, resolvePatchPlan, shouldSyncPrDetails } from './sync-repository-utils'
+import { relativeToStorage, resolvePatchPlan, shouldDropUntrackedClosedItem, shouldSyncPrDetails } from './sync-repository-utils'
 
 export async function prepareIssueCandidateSync(context: SyncContext, issue: ProviderItem): Promise<PreparedIssueCandidate> {
   const number = issue.number
@@ -38,7 +38,7 @@ export async function prepareIssueCandidateSync(context: SyncContext, issue: Pro
     }
   }
 
-  if (state === 'closed' && context.config.sync.closed === true && !paths.hasLocalFile) {
+  if (shouldDropUntrackedClosedItem(context.config.sync, state, paths.hasLocalFile)) {
     delete context.syncState.items[String(number)]
     return {
       number,

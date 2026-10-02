@@ -201,6 +201,7 @@ function createContext(
       issues: true,
       pulls: true,
       closed: false,
+      backfill: false,
       patches: 'open',
     },
   }

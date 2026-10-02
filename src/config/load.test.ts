@@ -24,6 +24,7 @@ describe('resolveConfig', () => {
     expect(config.sync.issues).toBe(true)
     expect(config.sync.pulls).toBe(true)
     expect(config.sync.closed).toBe(false)
+    expect(config.sync.backfill).toBe(false)
     expect(config.sync.patches).toBe('open')
   })
 
@@ -50,7 +51,8 @@ export default {
   sync: {
     issues: false,
     pulls: true,
-    closed: false,
+    closed: true,
+    backfill: true,
     patches: 'all',
   },
 }
@@ -63,7 +65,8 @@ export default {
     expect(config.auth.token).toBe('test-token')
     expect(config.sync.issues).toBe(false)
     expect(config.sync.pulls).toBe(true)
-    expect(config.sync.closed).toBe(false)
+    expect(config.sync.closed).toBe(true)
+    expect(config.sync.backfill).toBe(true)
     expect(config.sync.patches).toBe('all')
   })
 })
