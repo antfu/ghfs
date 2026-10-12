@@ -86,6 +86,65 @@ describe('syncRepository', () => {
     await rm(cwd, { recursive: true, force: true })
   })
 
+  it('fetches updated items even when the repository updated_at is unchanged', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ghfs-sync-index-test-'))
+    const storageDir = join(cwd, '.ghfs')
+    await mkdir(join(storageDir, 'pulls'), { recursive: true })
+    await writeFile(join(storageDir, 'pulls', '00001-pr-1.md'), '# existing\n', 'utf8')
+    await writeFile(getSyncStatePath(storageDir), JSON.stringify({
+      version: 2,
+      ghfsVersion: GHFS_VERSION,
+      repo: 'owner/repo',
+      lastSyncedAt: '2026-01-05T00:00:00.000Z',
+      // Same as the mocked repository `updated_at`: reviews and comments don't bump it
+      lastRepoUpdatedAt: '2026-01-02T00:00:00.000Z',
+      items: {
+        1: createTrackedItem({
+          number: 1,
+          kind: 'pull',
+          state: 'open',
+          updatedAt: '2026-01-04T00:00:00.000Z',
+          filePath: 'pulls/00001-pr-1.md',
+        }),
+      },
+      executions: [],
+    }, null, 2), 'utf8')
+
+    const paginateItems = vi.fn(async function* () {
+      yield [createIssue({
+        number: 1,
+        kind: 'pull',
+        state: 'open',
+        updatedAt: '2026-01-06T00:00:00.000Z',
+        title: 'PR 1',
+      })]
+    })
+    const fetchComments = vi.fn(async () => [])
+    const provider = createMockProvider({
+      paginateItems,
+      fetchComments,
+    })
+
+    const summary = await syncRepository({
+      config: createConfig(cwd),
+      repo: 'owner/repo',
+      token: 'test-token',
+      provider,
+    })
+
+    expect(paginateItems).toHaveBeenCalledWith(expect.objectContaining({ since: '2026-01-05T00:00:00.000Z' }))
+    expect(fetchComments).toHaveBeenCalled()
+    expect(summary.scanned).toBe(1)
+    expect(summary.updatedPulls).toBe(1)
+
+    const syncState = await loadSyncState(storageDir)
+    expect(syncState.items['1']?.lastUpdatedAt).toBe('2026-01-06T00:00:00.000Z')
+    expect(syncState.lastSyncedAt).toBe(summary.syncedAt)
+    expect(syncState.lastSince).toBe('2026-01-05T00:00:00.000Z')
+
+    await rm(cwd, { recursive: true, force: true })
+  })
+
   it('regenerates markdown from sync state on ghfs version mismatch', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'ghfs-sync-index-test-'))
     const storageDir = join(cwd, '.ghfs')
@@ -158,7 +217,7 @@ describe('syncRepository', () => {
 
     expect(summary.scanned).toBe(0)
     expect(summary.written).toBe(0)
-    expect(paginateItems).not.toHaveBeenCalled()
+    expect(paginateItems).toHaveBeenCalled()
     const markdown = await readFile(join(storageDir, 'issues', '00001-issue-1.md'), 'utf8')
     expect(markdown).toContain('> `👍 2` | `❤️ 1`')
     expect(markdown).toContain('> `😄 1`')
@@ -329,7 +388,7 @@ describe('syncRepository', () => {
       provider,
     })
 
-    expect(paginateItems).not.toHaveBeenCalled()
+    expect(paginateItems).toHaveBeenCalled()
     expect(summary.written).toBe(1)
     expect(summary.moved).toBe(2)
     await expect(stat(join(storageDir, 'issues', '00001-renamed-issue.md'))).resolves.toBeDefined()
