@@ -28,6 +28,24 @@ test.describe('ui mode smoke', () => {
     expect(errors).toEqual([])
   })
 
+  test('clicking an item updates the URL to /N (no double slash)', async ({ page }) => {
+    const errors = captureErrors(page)
+    await page.goto(`${BASE}/`)
+    await expect(page.locator('[data-testid="navbar"]')).toBeVisible({ timeout: 10_000 })
+
+    const row = page.locator('[data-testid="item-row"]').first()
+    await expect(row).toBeVisible({ timeout: 10_000 })
+    const number = await row.getAttribute('data-item-number')
+
+    await row.click()
+    // Regression: UI-mode selection must produce `/N`, never `//N` (which
+    // vue-router can't match — see useSelectedItemSync.buildBase).
+    await expect(page).toHaveURL(`${BASE}/${number}`)
+    // The selected row is still mounted (view not torn down by a bad redirect).
+    await expect(page.locator(`[data-testid="item-row"][data-item-number="${number}"]`)).toBeVisible()
+    expect(errors).toEqual([])
+  })
+
   test('Cmd+K opens the command palette and filters by query', async ({ page }) => {
     const errors = captureErrors(page)
     await page.goto(`${BASE}/`)

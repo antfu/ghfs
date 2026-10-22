@@ -24,9 +24,9 @@ export function useSelectedItemSync(projectId: MaybeRefOrGetter<string>, initial
   function buildBase(id: string): string {
     const mode = hub.capabilities.value?.mode
     if (mode !== 'hub')
-      return '/'
+      return ''
     const project = hub.projects.value.find(p => p.id === id)
-    return project ? `/${project.repo}` : '/'
+    return project ? `/${project.repo}` : ''
   }
 
   // Apply the URL number on mount/route change.
@@ -50,7 +50,7 @@ export function useSelectedItemSync(projectId: MaybeRefOrGetter<string>, initial
       if (!id)
         return
       const base = buildBase(id)
-      const target = number == null ? base : `${base}/${number}`
+      const target = number == null ? (base || '/') : `${base}/${number}`
       if (route.path === target)
         return
       router.replace(target).catch(() => {})
