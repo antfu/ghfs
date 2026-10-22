@@ -28,6 +28,16 @@ test.describe('ui mode smoke', () => {
     expect(errors).toEqual([])
   })
 
+  test('GET /graph renders the cluster canvas and toggles back to the list', async ({ page }) => {
+    const errors = captureErrors(page)
+    await page.goto(`${BASE}/graph`)
+    await expect(page.locator('[data-testid="graph-canvas"]')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[data-testid="graph-page"]')).toContainText('5 items')
+    await page.locator('[data-testid="navbar-graph-toggle"]').click()
+    await expect(page.locator('[data-testid="item-row"]').first()).toBeVisible({ timeout: 10_000 })
+    expect(errors).toEqual([])
+  })
+
   test('Cmd+K opens the command palette and filters by query', async ({ page }) => {
     const errors = captureErrors(page)
     await page.goto(`${BASE}/`)
