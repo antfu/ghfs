@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'pathe'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { resolveAiConfig } from '../config/load'
 import { GHFS_VERSION } from '../meta'
 import { syncRepository } from './index'
 import { getSyncStatePath, loadSyncState } from './state'
@@ -472,6 +473,7 @@ function createConfig(cwd: string, sync: Partial<GhfsResolvedConfig['sync']> = {
       closed: sync.closed ?? false,
       patches: sync.patches ?? 'open',
     },
+    ai: resolveAiConfig(),
   }
 }
 

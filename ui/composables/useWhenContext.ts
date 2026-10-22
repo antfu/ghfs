@@ -9,6 +9,7 @@ import { useHubQueue } from './useHubQueue'
 import { useHubState } from './useHubState'
 import { useHubUiState } from './useHubUiState'
 import { useInputFocus } from './useInputFocus'
+import { useLabelSuggestions } from './useLabelSuggestions'
 import { useOnlineState } from './useOnlineState'
 import { useQueue } from './useQueue'
 import { useRecentFiltered } from './useRecentFiltered'
@@ -24,6 +25,8 @@ export interface WhenContext extends Record<string, unknown> {
   hasEntries: boolean
   searching: boolean
   hasToken: boolean
+  hasAi: boolean
+  suggestingLabels: boolean
   hasSyncableProjects: boolean
   syncing: boolean
   syncingAll: boolean
@@ -73,6 +76,7 @@ export function useWhenContext(): ComputedRef<WhenContext> {
   const palette = useCommandPalette()
   const cards = useCardsMode()
   const { online } = useOnlineState()
+  const { suggesting: suggestingLabels } = useLabelSuggestions()
 
   return computed<WhenContext>(() => {
     const num = state.value.selectedNumber.value
@@ -112,6 +116,8 @@ export function useWhenContext(): ComputedRef<WhenContext> {
         ? recentSearch.value.trim().length > 0
         : state.value.filters.search.trim().length > 0,
       hasToken: state.value.payload.value?.repo.hasToken ?? false,
+      hasAi: state.value.payload.value?.repo.hasAi ?? false,
+      suggestingLabels: suggestingLabels.value,
       hasSyncableProjects: hub.visibleProjects.value.some(p => p.hasToken),
       syncing: state.value.syncing.value,
       syncingAll: hubUi.syncingAll.value,
