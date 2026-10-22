@@ -4,6 +4,7 @@ import { capabilities } from './capabilities'
 import { checkRemote } from './check-remote'
 import { clearQueue } from './clear-queue'
 import { executeQueue } from './execute-queue'
+import { findDuplicates } from './find-duplicates'
 import { forceSync } from './force-sync'
 import { getProjectIcon } from './get-project-icon'
 import { getPullPatch } from './get-pull-patch'
@@ -57,6 +58,7 @@ export const rpcFunctions = [
   removeQueueOp,
   clearQueue,
   suggestLabels,
+  findDuplicates,
   checkRemote,
   openInEditor,
   openFolder,

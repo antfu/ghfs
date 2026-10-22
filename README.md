@@ -205,6 +205,14 @@ export default defineConfig({
 })
 ```
 
+## Graph view
+
+The graph view (`g v`, or the graph icon in the navbar; `/graph` in `ghfs ui`, `/owner/repo/graph` in the hub) draws open issues and pull requests as a force-directed canvas. Every label is an anchor that pulls its items toward it, so the picture clusters by label; edges come from GitHub itself: cross-references, pull requests that close an issue, items marked as duplicates, and issues closed by the same commit.
+
+- Drag an item onto a label anchor to queue `add-labels` for it.
+- "Find duplicates" asks the decision model about title-similar pairs and draws suspected duplicates as orange dashed edges; clicking one queues closing the newer item as a duplicate of the older, attributed to the model with its probability.
+- "Show closed" brings in every closed item; by default only closed items linked to an open one appear.
+
 ## Agent Skill
 
 This repository ships an [agent skill](https://agentskills.io/home) at [`skills/ghfs/SKILL.md`](skills/ghfs/SKILL.md).

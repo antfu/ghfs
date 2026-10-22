@@ -8,6 +8,7 @@ import { useActiveProjectId, useAppState } from '../../composables/useAppState'
 import { useRpc } from '../../composables/useRpc'
 import { actionMeta } from '../../utils/actionMeta'
 import DisplayDateBadge from '../display/DateBadge.vue'
+import UiBadge from '../ui/Badge.vue'
 import UiIconButton from '../ui/IconButton.vue'
 import OpBody from './op/Body.vue'
 import OpLabels from './op/Labels.vue'
@@ -103,6 +104,13 @@ async function openSource() {
           class="text-xs color-base truncate"
         >{{ entry.title }}</span>
       </div>
+      <UiBadge
+        v-if="op.origin"
+        size="xs"
+        icon="i-ph-sparkle-duotone"
+        :title="`Suggested by ${op.origin.model}`"
+        data-testid="queue-op-ai-origin"
+      >AI</UiBadge>
       <span
         v-if="op.ifUnchangedSince"
         class="inline-flex items-center gap-1 text-xs color-muted shrink-0"

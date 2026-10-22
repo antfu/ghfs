@@ -1,6 +1,8 @@
 import type { AgentTool } from '@earendil-works/pi-agent-core'
 import type { SyncItemState } from '../../types/sync-state'
 import { Type } from '@earendil-works/pi-ai'
+import { collectItemReferences } from '../../graph/model'
+import { sharedTokenCount, titleTokens } from '../../utils/tokens'
 
 export const READ_CALL_CHAR_CAP = 30_000
 const EXCERPT_CHARS = 500
@@ -71,18 +73,6 @@ export function createReadPatchTool(source: AgentContextSource, ledger: ContextL
   }
 }
 
-export function linkedItemNumbers(item: SyncItemState): number[] {
-  const numbers = new Set<number>()
-  for (const event of item.data.timeline ?? []) {
-    if ('source' in event && event.source && !event.source.repo)
-      numbers.add(event.source.number)
-  }
-  for (const match of (item.data.item.body ?? '').matchAll(/(?:^|\s)#(\d+)\b/g))
-    numbers.add(Number(match[1]))
-  numbers.delete(item.number)
-  return [...numbers]
-}
-
 export function createReadLinkedItemsTool(source: AgentContextSource, ledger: ContextLedger): AgentTool<typeof NoParams> {
   return {
     name: 'read_linked_items',
@@ -91,7 +81,7 @@ export function createReadLinkedItemsTool(source: AgentContextSource, ledger: Co
     parameters: NoParams,
     execute: async () => {
       const byNumber = new Map(source.items.map(item => [item.number, item]))
-      const linked = linkedItemNumbers(source.item).map(n => byNumber.get(n)).filter(item => item !== undefined)
+      const linked = collectItemReferences(source.item).map(ref => byNumber.get(ref.number)).filter(item => item !== undefined)
       if (linked.length === 0)
         return textResult(ledger, '(no linked items synced locally)')
       return textResult(ledger, linked.map(describeItem).join('\n\n'))
@@ -103,17 +93,13 @@ const FindSimilarParams = Type.Object({
   query: Type.String({ description: 'Keywords to look for in item titles.' }),
 })
 
-function tokens(text: string): Set<string> {
-  return new Set(text.toLowerCase().match(/[a-z0-9]{3,}/g) ?? [])
-}
-
 export function findSimilarItems(items: SyncItemState[], query: string, exclude: number): SyncItemState[] {
-  const wanted = tokens(query)
+  const wanted = titleTokens(query)
   if (wanted.size === 0)
     return []
   return items
     .filter(item => item.number !== exclude)
-    .map(item => ({ item, score: [...tokens(item.data.item.title)].filter(t => wanted.has(t)).length }))
+    .map(item => ({ item, score: sharedTokenCount(titleTokens(item.data.item.title), wanted) }))
     .filter(entry => entry.score > 0)
     .sort((a, b) => b.score - a.score || b.item.data.item.updatedAt.localeCompare(a.item.data.item.updatedAt))
     .slice(0, SIMILAR_LIMIT)

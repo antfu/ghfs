@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { PendingOpAiOrigin } from '#ghfs/execute-types'
 import DisplayLabel from '../../display/Label.vue'
-import UiBadge from '../../ui/Badge.vue'
 
 defineProps<{
   labels: string[]
@@ -33,12 +32,5 @@ function percent(value: number): string {
       >{{ percent(origin.confidence[name]!) }}</span>
     </span>
     <span v-if="labels.length === 0" class="text-xs color-faint italic">(no labels)</span>
-    <UiBadge
-      v-if="origin"
-      size="xs"
-      icon="i-ph-sparkle-duotone"
-      :title="`Suggested by ${origin.model}`"
-      data-testid="queue-op-ai-origin"
-    >AI</UiBadge>
   </div>
 </template>

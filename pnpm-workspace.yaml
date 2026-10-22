@@ -54,6 +54,7 @@ catalog:
   '@octokit/plugin-throttling': ^11.0.5
   '@playwright/test': ^1.64.1
   '@tanstack/vue-virtual': ^3.13.47
+  '@types/d3-force': ^3.0.10
   '@types/node': ^26.6.5
   '@unocss/nuxt': ^66.11.0
   '@unocss/preset-web-fonts': ^66.11.0
@@ -64,6 +65,7 @@ catalog:
   bumpp: ^12.3.0
   cac: ^7.1.0
   colorjs.io: ^0.7.1
+  d3-force: ^3.0.0
   devframe: ^1.2.6
   dotenv: ^18.0.8
   eslint: ^10.13.0

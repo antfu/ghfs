@@ -6,6 +6,7 @@ import { useCardsMode } from './useCardsMode'
 import { useCommandPalette } from './useCommandPalette'
 import type { Command } from './useCommands'
 import { useFilteredItems } from './useFilteredItems'
+import { useGraphView } from './useGraphView'
 import { useHubRecent } from './useHubRecent'
 import { useHubState } from './useHubState'
 import { useHubTodos } from './useHubTodos'
@@ -82,6 +83,7 @@ export function createAppCommands(): Command[] {
   const palette = useCommandPalette()
   const cards = useCardsMode()
   const labelSuggestions = useLabelSuggestions()
+  const graph = useGraphView(() => activeId.value ?? '__default__')
 
   function focusFirstHubCard(): void {
     const first = document.querySelector<HTMLButtonElement>('[data-testid="hub-project-card"]')
@@ -421,6 +423,23 @@ export function createAppCommands(): Command[] {
       keybindings: ['s'],
       when: 'hasToken && !syncing && online',
       run: triggerSync,
+    },
+    {
+      id: 'view.graph',
+      title: 'Toggle graph view',
+      category: 'Navigate',
+      icon: 'i-ph-graph-duotone',
+      keybindings: ['g v'],
+      when: '!hubHome && !onCardsPage',
+      run: () => router.push(route.path.endsWith('/graph') ? graph.listRoute() : (graph.listRoute() === '/' ? '/graph' : `${graph.listRoute()}/graph`)),
+    },
+    {
+      id: 'graph.find-duplicates',
+      title: 'Find duplicates (AI)',
+      category: 'Action',
+      icon: 'i-ph-sparkle-duotone',
+      when: 'hasAi && onGraphPage && !findingDuplicates && online',
+      run: () => graph.findDuplicates(),
     },
     {
       id: 'ai.suggest-all-labels',

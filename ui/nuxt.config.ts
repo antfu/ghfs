@@ -53,6 +53,7 @@ export default defineNuxtConfig({
     '#ghfs/action-colors': resolve(rootDir, '../src/execute/actions.ts'),
     '#ghfs/rpc-types': resolve(rootDir, '../src/devframe/rpc/types.ts'),
     '#ghfs/execute-types': resolve(rootDir, '../src/execute/types.ts'),
+    '#ghfs/graph-model': resolve(rootDir, '../src/graph/model.ts'),
     '#ghfs/execution-types': resolve(rootDir, '../src/types/execution.ts'),
     '#ghfs/sync-contracts': resolve(rootDir, '../src/sync/contracts.ts'),
     '#ghfs/sync-state': resolve(rootDir, '../src/types/sync-state.ts'),

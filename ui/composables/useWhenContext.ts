@@ -5,6 +5,7 @@ import { useActiveProjectId, useAppState } from './useAppState'
 import { useCardsMode } from './useCardsMode'
 import { useCommandPalette } from './useCommandPalette'
 import { useFilteredItems } from './useFilteredItems'
+import { useGraphView } from './useGraphView'
 import { useHubQueue } from './useHubQueue'
 import { useHubState } from './useHubState'
 import { useHubUiState } from './useHubUiState'
@@ -27,6 +28,8 @@ export interface WhenContext extends Record<string, unknown> {
   hasToken: boolean
   hasAi: boolean
   suggestingLabels: boolean
+  onGraphPage: boolean
+  findingDuplicates: boolean
   hasSyncableProjects: boolean
   syncing: boolean
   syncingAll: boolean
@@ -77,6 +80,7 @@ export function useWhenContext(): ComputedRef<WhenContext> {
   const cards = useCardsMode()
   const { online } = useOnlineState()
   const { suggesting: suggestingLabels } = useLabelSuggestions()
+  const { findingDuplicates } = useGraphView(() => activeId.value ?? '__default__')
 
   return computed<WhenContext>(() => {
     const num = state.value.selectedNumber.value
@@ -118,6 +122,8 @@ export function useWhenContext(): ComputedRef<WhenContext> {
       hasToken: state.value.payload.value?.repo.hasToken ?? false,
       hasAi: state.value.payload.value?.repo.hasAi ?? false,
       suggestingLabels: suggestingLabels.value,
+      onGraphPage: route.path === '/graph' || route.path.endsWith('/graph'),
+      findingDuplicates: findingDuplicates.value,
       hasSyncableProjects: hub.visibleProjects.value.some(p => p.hasToken),
       syncing: state.value.syncing.value,
       syncingAll: hubUi.syncingAll.value,
