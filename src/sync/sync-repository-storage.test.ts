@@ -127,6 +127,40 @@ describe('sync-repository-storage', () => {
     await expectPathMissing(patchPath)
   })
 
+  it('keeps a closed item without local markdown when backfill is enabled', async () => {
+    const dir = await createTempDir()
+    const context = createSyncContext(dir, {
+      closed: true,
+      backfill: true,
+      patches: 'open',
+    })
+    const number = 4
+    const patchPath = join(dir, 'pulls', '00004-pr-4.patch')
+    await mkdir(join(dir, 'pulls'), { recursive: true })
+    await writeFile(patchPath, 'diff --git', 'utf8')
+    context.syncState.items[String(number)] = createTrackedItem({
+      number,
+      kind: 'pull',
+      state: 'closed',
+      filePath: 'pulls/closed/00004-pr-4.md',
+    })
+
+    const result = await handleClosedIssueByPolicy({
+      context,
+      number,
+      kind: 'pull',
+      state: 'closed',
+      paths: createIssuePaths({
+        patchPath,
+        hasLocalFile: false,
+      }),
+    })
+
+    expect(result).toBeUndefined()
+    expect(context.syncState.items[String(number)]).toBeDefined()
+    await access(patchPath)
+  })
+
   it('skips sync only when tracked metadata and patch requirements match', async () => {
     const dir = await createTempDir()
     const tracked = createTrackedItem({
@@ -273,6 +307,7 @@ describe('sync-repository-storage', () => {
       issues: true,
       pulls: true,
       closed: false,
+      backfill: false,
       patches: 'open' as const,
     }
 
@@ -346,6 +381,7 @@ function createSyncContext(storageDirAbsolute: string, syncOverrides: Partial<Sy
         issues: syncOverrides.issues ?? true,
         pulls: syncOverrides.pulls ?? true,
         closed: syncOverrides.closed ?? false,
+        backfill: syncOverrides.backfill ?? false,
         patches: syncOverrides.patches ?? 'open',
       },
     },

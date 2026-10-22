@@ -187,6 +187,7 @@ function createConfig(): GhfsResolvedConfig {
       issues: true,
       pulls: true,
       closed: false,
+      backfill: false,
       patches: 'open',
     },
   }

@@ -54,6 +54,21 @@ export interface GhfsUserConfig {
      */
     closed?: boolean
     /**
+     * Whether to also fetch closed issues and pull requests that have no local file yet.
+     *
+     * Only meaningful together with `closed: true`. On its own, `closed: true` *keeps* an
+     * item that was already mirrored while it was open; it does not fetch one that was
+     * never mirrored. An item that opened and closed between two syncs therefore has no
+     * local file, and is dropped rather than fetched.
+     *
+     * Enabling this fetches those items instead of dropping them, which also backfills a
+     * repository's existing closed history on the next full sync. That can be a large
+     * number of requests on a long-lived repository, so it is opt-in.
+     *
+     * @default false
+     */
+    backfill?: boolean
+    /**
      * When to download the pull request patch files.
      *
      * - `'open'`: only download open pull request patch files.
