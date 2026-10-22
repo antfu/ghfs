@@ -11,6 +11,7 @@ import { useHubState } from './useHubState'
 import { useHubTodos } from './useHubTodos'
 import { useHubQueue } from './useHubQueue'
 import { useHubUiState, setProjectExcluded, syncAllProjects, syncProject } from './useHubUiState'
+import { useLabelSuggestions } from './useLabelSuggestions'
 import { useOnlineState } from './useOnlineState'
 import { useQueue } from './useQueue'
 import { useRecentFiltered } from './useRecentFiltered'
@@ -80,6 +81,7 @@ export function createAppCommands(): Command[] {
   const { upCount } = useQueue()
   const palette = useCommandPalette()
   const cards = useCardsMode()
+  const labelSuggestions = useLabelSuggestions()
 
   function focusFirstHubCard(): void {
     const first = document.querySelector<HTMLButtonElement>('[data-testid="hub-project-card"]')
@@ -421,6 +423,14 @@ export function createAppCommands(): Command[] {
       run: triggerSync,
     },
     {
+      id: 'ai.suggest-all-labels',
+      title: 'Suggest labels for unlabeled items (AI)',
+      category: 'Action',
+      icon: 'i-ph-sparkle-duotone',
+      when: 'hasAi && !suggestingLabels && online && !hubHome',
+      run: () => labelSuggestions.suggest({}),
+    },
+    {
       id: 'action.queue',
       title: 'Toggle queue',
       category: 'Action',
@@ -477,6 +487,19 @@ export function createAppCommands(): Command[] {
       keybindings: ['l'],
       when: 'hasActiveItem && !onCardsPage',
       run: () => { ui.labelEditorOpen.value = true },
+    },
+    {
+      id: 'ai.suggest-labels',
+      title: 'Suggest labels (AI)',
+      category: 'Item',
+      icon: 'i-ph-sparkle-duotone',
+      keybindings: ['L'],
+      when: 'hasAi && hasActiveItem && !suggestingLabels && online && !onCardsPage',
+      run: () => {
+        const num = activeItem.value?.number
+        if (num != null)
+          labelSuggestions.suggest({ numbers: [num] })
+      },
     },
     {
       id: 'comment.focus',

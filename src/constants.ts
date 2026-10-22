@@ -18,3 +18,6 @@ export const REPO_SNAPSHOT_FILE_NAME = 'repo.json'
 export const EXECUTE_FILE_NAME = 'execute.yml'
 export const EXECUTE_MD_FILE_NAME = 'execute.md'
 export const EXECUTE_SCHEMA_RELATIVE_PATH = 'schema/execute.schema.json'
+
+export const DEFAULT_AI_MODEL = 'typesafe-ai/jev'
+export const DEFAULT_AI_AGENT_MODEL = 'anthropic/claude-haiku-4.5'

@@ -152,6 +152,7 @@ async function openSource() {
         v-else-if="op.action === 'add-labels' || op.action === 'remove-labels' || op.action === 'set-labels'"
         :labels="labelsValue"
         :project-id="projectId"
+        :origin="op.origin"
       />
 
       <!-- assignees / reviewers -->

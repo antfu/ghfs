@@ -55,6 +55,8 @@
   },
   "dependencies": {
     "@clack/prompts": "catalog:",
+    "@earendil-works/pi-agent-core": "catalog:",
+    "@earendil-works/pi-ai": "catalog:",
     "@octokit/plugin-retry": "catalog:",
     "@octokit/plugin-throttling": "catalog:",
     "ansis": "catalog:",
