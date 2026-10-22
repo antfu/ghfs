@@ -174,6 +174,45 @@ ghfs execute
 ghfs execute --run
 ```
 
+## AI label suggestions
+
+`ghfs label` asks a decision model ([Jev](https://vercel.com/ai-gateway/models/jev) through [Vercel AI Gateway](https://vercel.com/docs/ai-gateway)) which of the repository's labels fit each open, unlabeled item, using the items you already labeled as examples. When the model is unsure, a small tool-using agent reads comments, the patch, linked and similar items, and the model decides again with that context.
+
+Suggestions are drafted into the queue as `add-labels` operations carrying the model's per-label probability. Nothing reaches GitHub until you review and execute them.
+
+```bash
+export AI_GATEWAY_API_KEY=vck_xxx
+ghfs label            # open & unlabeled items
+ghfs label 123 456    # specific items
+ghfs label --all      # also items that already have labels
+ghfs execute          # review, then --run
+```
+
+In the UI the same action is available per item (`⇧L`, "Suggest labels") and for every unlabeled item from the navbar. Tune it in `ghfs.config.ts`:
+
+```ts
+export default defineConfig({
+  ai: {
+    model: 'typesafe-ai/jev', // decision model
+    agentModel: 'anthropic/claude-haiku-4.5', // agent for unsure items
+    labeling: {
+      threshold: 0.7,
+      examplesPerLabel: 3,
+      guidelines: 'Use "bug" only for reproducible defects.',
+      exclude: ['good first issue'],
+    },
+  },
+})
+```
+
+## Graph view
+
+The graph view (`g v`, or the graph icon in the navbar; `/graph` in `ghfs ui`, `/owner/repo/graph` in the hub) draws open issues and pull requests as a force-directed canvas. Every label is an anchor that pulls its items toward it, so the picture clusters by label; edges come from GitHub itself: cross-references, pull requests that close an issue, items marked as duplicates, and issues closed by the same commit.
+
+- Drag an item onto a label anchor to queue `add-labels` for it.
+- "Find duplicates" asks the decision model about title-similar pairs and draws suspected duplicates as orange dashed edges; clicking one queues closing the newer item as a duplicate of the older, attributed to the model with its probability.
+- "Show closed" brings in every closed item; by default only closed items linked to an open one appear.
+
 ## Agent Skill
 
 This repository ships an [agent skill](https://agentskills.io/home) at [`skills/ghfs/SKILL.md`](skills/ghfs/SKILL.md).

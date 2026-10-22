@@ -7,6 +7,7 @@ import { useCardsMode } from '../../composables/useCardsMode'
 import { useHubQueue } from '../../composables/useHubQueue'
 import { useHubState } from '../../composables/useHubState'
 import { useHubUiState } from '../../composables/useHubUiState'
+import { useLabelSuggestions } from '../../composables/useLabelSuggestions'
 import { useOnlineState } from '../../composables/useOnlineState'
 import { useQueue } from '../../composables/useQueue'
 import { useRpc } from '../../composables/useRpc'
@@ -41,6 +42,9 @@ const onCardsPage = computed(() => route.path === '/cards')
 const repoName = computed(() => state.payload.value?.repo.repo ?? 'connecting…')
 const projectPath = computed(() => state.payload.value?.repo.projectPath ?? '')
 const hasToken = computed(() => state.payload.value?.repo.hasToken ?? false)
+const hasAi = computed(() => state.payload.value?.repo.hasAi ?? false)
+const onGraphPage = computed(() => route.path.endsWith('/graph'))
+const { suggesting: suggestingLabels } = useLabelSuggestions()
 const pathCopied = ref(false)
 let copiedTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -237,6 +241,28 @@ const syncing = computed(() => (props.mode === 'hub' ? hubUi.syncingAll.value : 
         :disabled="syncing || offline"
         :spinning="syncing"
         data-testid="navbar-hub-sync-all"
+        @click="execute"
+      />
+    </UiWithCommand>
+
+    <UiWithCommand v-if="mode === 'project'" v-slot="{ execute, disabled }" command="view.graph" placement="badge">
+      <UiIconButton
+        icon="i-ph-graph-duotone"
+        :tooltip="onGraphPage ? 'Back to list' : 'Graph view'"
+        :active="onGraphPage"
+        :disabled="disabled"
+        data-testid="navbar-graph-toggle"
+        @click="execute"
+      />
+    </UiWithCommand>
+
+    <UiWithCommand v-if="mode === 'project' && hasAi" v-slot="{ execute, disabled }" command="ai.suggest-all-labels" placement="badge">
+      <UiIconButton
+        icon="i-ph-sparkle-duotone"
+        tooltip="Suggest labels for unlabeled items"
+        :disabled="disabled"
+        :spinning="suggestingLabels"
+        data-testid="navbar-suggest-labels"
         @click="execute"
       />
     </UiWithCommand>

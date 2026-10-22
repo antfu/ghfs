@@ -1,3 +1,5 @@
+import type { DuplicateDetectionRun } from '../../ai/duplicates/run'
+import type { LabelSuggestionRun, RunLabelSuggestionOptions } from '../../ai/labeling/run'
 import type { PendingOp } from '../../execute/types'
 import type { CommentTemplate } from '../../hub/config'
 import type { RepoTemplate, RepoTemplatesCache } from '../../server/repo-templates'
@@ -9,7 +11,9 @@ import type { IssueStateReason, ProviderReviewDecision, ReactionTarget } from '.
 import type { SyncState } from '../../types/sync-state'
 import type { ReactionContent } from '../../utils/reactions'
 
-export type { ActivityResult, CommentTemplate, RepoTemplate, RepoTemplatesCache }
+export type { ActivityResult, CommentTemplate, DuplicateDetectionRun, LabelSuggestionRun, RepoTemplate, RepoTemplatesCache }
+
+export type SuggestLabelsOptions = Pick<RunLabelSuggestionOptions, 'numbers' | 'all' | 'threshold'>
 
 export interface ProjectSummary {
   id: string
@@ -213,6 +217,8 @@ export interface GhfsServerFunctions {
   'ghfs:update-queue-op': (projectId: string, id: string, op: PendingOp) => Promise<QueueState>
   'ghfs:remove-queue-op': (projectId: string, id: string) => Promise<QueueState>
   'ghfs:clear-queue': (projectId: string) => Promise<QueueState>
+  'ghfs:suggest-labels': (projectId: string, options: SuggestLabelsOptions) => Promise<LabelSuggestionRun>
+  'ghfs:find-duplicates': (projectId: string) => Promise<DuplicateDetectionRun>
   'ghfs:check-remote': (projectId: string) => Promise<RemoteStatus>
   'ghfs:open-in-editor': (projectId: string, filePath: string) => Promise<void>
   'ghfs:open-folder': (projectId: string) => Promise<void>

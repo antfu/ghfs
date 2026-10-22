@@ -76,3 +76,10 @@ Every diagnostic `ghfs` emits has a stable code and a `see:` link that points to
 | --- | --- | --- |
 | [GHFS0400](./ghfs0400.md) | error | Sync context was not initialized |
 | [GHFS0401](./ghfs0401.md) | error | Missing tracked canonical data for issue/PR |
+
+## AI (0500–0549)
+
+| Code | Level | Summary |
+| --- | --- | --- |
+| [GHFS0500](./ghfs0500.md) | error | Missing Vercel AI Gateway API key |
+| [GHFS0501](./ghfs0501.md) | error | No repository labels are known locally |

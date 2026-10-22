@@ -4,6 +4,7 @@ import { capabilities } from './capabilities'
 import { checkRemote } from './check-remote'
 import { clearQueue } from './clear-queue'
 import { executeQueue } from './execute-queue'
+import { findDuplicates } from './find-duplicates'
 import { forceSync } from './force-sync'
 import { getProjectIcon } from './get-project-icon'
 import { getPullPatch } from './get-pull-patch'
@@ -34,6 +35,7 @@ import { removeQueueOp } from './remove-queue-op'
 import { repoMeta } from './repo-meta'
 import { repoTemplates, setRepoTemplates } from './repo-templates'
 import { saveUiState } from './save-ui-state'
+import { suggestLabels } from './suggest-labels'
 import { syncState } from './sync-state'
 import { triggerSync } from './trigger-sync'
 import { updateQueueOp } from './update-queue-op'
@@ -55,6 +57,8 @@ export const rpcFunctions = [
   updateQueueOp,
   removeQueueOp,
   clearQueue,
+  suggestLabels,
+  findDuplicates,
   checkRemote,
   openInEditor,
   openFolder,

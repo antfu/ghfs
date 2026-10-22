@@ -17,10 +17,17 @@ const reactionTargetSchema = v.union([
   v.object({ kind: v.literal('review'), reviewId: v.string() }),
 ])
 
+const aiOriginSchema = v.object({
+  kind: v.literal('ai'),
+  model: v.string(),
+  confidence: v.record(v.string(), v.number()),
+})
+
 const executeOpSchema = v.looseObject({
   number: v.number(),
   action: v.string(),
   ifUnchangedSince: v.optional(v.string()),
+  origin: v.optional(aiOriginSchema),
   title: v.optional(v.string()),
   body: v.optional(v.string()),
   labels: v.optional(v.array(v.string())),
