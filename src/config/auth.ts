@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import process from 'node:process'
 import { promisify } from 'node:util'
+import { loadHubConfig } from '../hub/config'
 import { diagnostics } from '../logger'
 
 const execFileAsync = promisify(execFile)
@@ -15,6 +16,10 @@ export async function resolveAuthToken(options: ResolveTokenOptions): Promise<st
   const configuredToken = options.token?.trim()
   if (configuredToken)
     return configuredToken
+
+  const savedToken = (await loadHubConfig()).credentials?.githubToken
+  if (savedToken)
+    return savedToken
 
   const token = await readTokenFromGhCli()
   if (token)

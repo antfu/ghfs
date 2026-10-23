@@ -38,7 +38,10 @@ export default defineConfig({
       stderr: 'pipe',
       env: {
         ...process.env as Record<string, string>,
+        // Isolated HOME and no gateway key so a developer's credentials don't leak into the settings assertions.
+        HOME: homeDir,
         GH_TOKEN: 'fake-for-tests',
+        AI_GATEWAY_API_KEY: '',
       },
     },
     {

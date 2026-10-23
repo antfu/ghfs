@@ -3,6 +3,8 @@ import type { GhfsResolvedAiConfig } from '../types/config'
 import process from 'node:process'
 import { createModels } from '@earendil-works/pi-ai'
 import { vercelAIGatewayProvider } from '@earendil-works/pi-ai/providers/vercel-ai-gateway'
+import { DEFAULT_AI_AGENT_MODEL, DEFAULT_AI_MODEL } from '../constants'
+import { loadHubConfig } from '../hub/config'
 
 export const GATEWAY_PROVIDER_ID = 'vercel-ai-gateway'
 const GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh'
@@ -11,23 +13,37 @@ export interface AiRuntime {
   models: Models
   classifier: ClassifierModel<ClassifierApi>
   agentModel: Model<Api>
-  /** Explicit key from config; `undefined` lets pi-ai read `AI_GATEWAY_API_KEY`. */
   apiKey: string | undefined
 }
 
-export async function hasAiCredentials(config: GhfsResolvedAiConfig): Promise<boolean> {
-  if (config.apiKey)
-    return true
-  await import('dotenv').then(mod => mod.config({ quiet: true }))
-  return Boolean(process.env.AI_GATEWAY_API_KEY?.trim())
+export interface AiSettings extends Omit<GhfsResolvedAiConfig, 'model' | 'agentModel'> {
+  model: string
+  agentModel: string
+  /** Where the key came from, for the settings UI. `null` means no key anywhere. */
+  apiKeySource: 'config' | 'settings' | 'env' | null
 }
 
-export function createAiRuntime(config: GhfsResolvedAiConfig, models: Models = gatewayModels()): AiRuntime {
+/** Project config wins, then credentials saved from the UI, then the environment, then defaults. */
+export async function resolveAiSettings(config: GhfsResolvedAiConfig): Promise<AiSettings> {
+  const saved = (await loadHubConfig()).credentials ?? {}
+  await import('dotenv').then(mod => mod.config({ quiet: true }))
+  const envKey = process.env.AI_GATEWAY_API_KEY?.trim() ?? ''
+  const apiKey = config.apiKey || saved.aiGatewayApiKey || envKey
+  return {
+    ...config,
+    apiKey,
+    apiKeySource: config.apiKey ? 'config' : saved.aiGatewayApiKey ? 'settings' : envKey ? 'env' : null,
+    model: config.model ?? saved.aiModel ?? DEFAULT_AI_MODEL,
+    agentModel: config.agentModel ?? saved.aiAgentModel ?? DEFAULT_AI_AGENT_MODEL,
+  }
+}
+
+export function createAiRuntime(settings: Pick<AiSettings, 'apiKey' | 'model' | 'agentModel'>, models: Models = gatewayModels()): AiRuntime {
   return {
     models,
-    classifier: models.getModelOfType('classifier', GATEWAY_PROVIDER_ID, config.model) ?? customClassifier(config.model),
-    agentModel: models.getModel(GATEWAY_PROVIDER_ID, config.agentModel) ?? customChatModel(config.agentModel),
-    apiKey: config.apiKey || undefined,
+    classifier: models.getModelOfType('classifier', GATEWAY_PROVIDER_ID, settings.model) ?? customClassifier(settings.model),
+    agentModel: models.getModel(GATEWAY_PROVIDER_ID, settings.agentModel) ?? customChatModel(settings.agentModel),
+    apiKey: settings.apiKey || undefined,
   }
 }
 
