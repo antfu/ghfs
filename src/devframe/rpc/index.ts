@@ -3,6 +3,7 @@ import { addQueueOp } from './add-queue-op'
 import { capabilities } from './capabilities'
 import { checkRemote } from './check-remote'
 import { clearQueue } from './clear-queue'
+import { credentials, setCredentials } from './credentials'
 import { executeQueue } from './execute-queue'
 import { forceSync } from './force-sync'
 import { getProjectIcon } from './get-project-icon'
@@ -34,6 +35,7 @@ import { removeQueueOp } from './remove-queue-op'
 import { repoMeta } from './repo-meta'
 import { repoTemplates, setRepoTemplates } from './repo-templates'
 import { saveUiState } from './save-ui-state'
+import { suggestLabels } from './suggest-labels'
 import { syncState } from './sync-state'
 import { triggerSync } from './trigger-sync'
 import { updateQueueOp } from './update-queue-op'
@@ -55,6 +57,7 @@ export const rpcFunctions = [
   updateQueueOp,
   removeQueueOp,
   clearQueue,
+  suggestLabels,
   checkRemote,
   openInEditor,
   openFolder,
@@ -82,6 +85,8 @@ export const rpcFunctions = [
   setHubCommentTemplatesRpc,
   repoTemplates,
   setRepoTemplates,
+  credentials,
+  setCredentials,
 ] as const
 
 export function registerGhfsRpc(ctx: DevframeNodeContext): void {

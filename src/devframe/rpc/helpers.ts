@@ -7,6 +7,7 @@ import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import process from 'node:process'
 import { isAbsolute, join, resolve } from 'pathe'
+import { resolveAiSettings } from '../../ai/runtime'
 import { executePendingChanges } from '../../execute'
 import { diagnostics } from '../../logger'
 import { GHFS_VERSION } from '../../meta'
@@ -56,6 +57,7 @@ export async function buildRepoMeta(ctx: ProjectContext): Promise<RepoMeta> {
     lastSyncedAt: syncState.lastSyncedAt,
     lastSince: syncState.lastSince,
     hasToken,
+    hasAi: Boolean((await resolveAiSettings(ctx.config.ai)).apiKey),
   }
 }
 

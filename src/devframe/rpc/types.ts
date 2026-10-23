@@ -1,3 +1,4 @@
+import type { LabelSuggestionRun, RunLabelSuggestionOptions } from '../../ai/labeling/run'
 import type { PendingOp } from '../../execute/types'
 import type { CommentTemplate } from '../../hub/config'
 import type { RepoTemplate, RepoTemplatesCache } from '../../server/repo-templates'
@@ -8,8 +9,11 @@ import type { ExecutionResult } from '../../types/execution'
 import type { IssueStateReason, ProviderReviewDecision, ReactionTarget } from '../../types/provider'
 import type { SyncState } from '../../types/sync-state'
 import type { ReactionContent } from '../../utils/reactions'
+import type { CredentialsPatch, CredentialsView } from './credentials'
 
-export type { ActivityResult, CommentTemplate, RepoTemplate, RepoTemplatesCache }
+export type { ActivityResult, CommentTemplate, CredentialsPatch, CredentialsView, LabelSuggestionRun, RepoTemplate, RepoTemplatesCache }
+
+export type SuggestLabelsOptions = Pick<RunLabelSuggestionOptions, 'numbers' | 'all' | 'threshold'>
 
 export interface ProjectSummary {
   id: string
@@ -213,6 +217,7 @@ export interface GhfsServerFunctions {
   'ghfs:update-queue-op': (projectId: string, id: string, op: PendingOp) => Promise<QueueState>
   'ghfs:remove-queue-op': (projectId: string, id: string) => Promise<QueueState>
   'ghfs:clear-queue': (projectId: string) => Promise<QueueState>
+  'ghfs:suggest-labels': (projectId: string, options: SuggestLabelsOptions) => Promise<LabelSuggestionRun>
   'ghfs:check-remote': (projectId: string) => Promise<RemoteStatus>
   'ghfs:open-in-editor': (projectId: string, filePath: string) => Promise<void>
   'ghfs:open-folder': (projectId: string) => Promise<void>
@@ -240,6 +245,8 @@ export interface GhfsServerFunctions {
   'ghfs:set-hub-comment-templates': (templates: CommentTemplate[]) => Promise<CommentTemplate[]>
   'ghfs:repo-templates': (projectId: string) => Promise<RepoTemplatesCache>
   'ghfs:set-repo-templates': (projectId: string, templates: RepoTemplate[]) => Promise<RepoTemplatesCache>
+  'ghfs:credentials': () => Promise<CredentialsView>
+  'ghfs:set-credentials': (patch: CredentialsPatch) => Promise<CredentialsView>
 }
 
 export interface GhfsClientFunctions {

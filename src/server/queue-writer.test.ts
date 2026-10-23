@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'pathe'
 import { afterEach, describe, expect, it } from 'vitest'
 import { buildQueueState } from './queue-builder'
-import { addQueueOp, clearQueue, removeQueueOp, updateQueueOp } from './queue-writer'
+import { addQueueOp, addQueueOps, clearQueue, removeQueueOp, updateQueueOp } from './queue-writer'
 
 const tempDirs: string[] = []
 
@@ -28,6 +28,20 @@ describe('queue-writer', () => {
     const raw = await readFile(executeFilePath, 'utf8')
     expect(raw).toContain('action: close')
     expect(raw).toContain('number: 42')
+  })
+
+  it('addQueueOps appends a batch and round-trips the AI origin', async () => {
+    const { dir, executeFilePath } = await createFixture()
+    const queue = await addQueueOps(
+      { storageDirAbsolute: dir, executeFilePath },
+      [
+        { action: 'add-labels', number: 1, labels: ['bug'], origin: { kind: 'ai', model: 'typesafe-ai/jev', confidence: { bug: 0.91 } } },
+        { action: 'add-labels', number: 2, labels: ['docs'] },
+      ],
+    )
+    expect(queue.upCount).toBe(2)
+    expect(queue.entries[0]!.op).toEqual({ action: 'add-labels', number: 1, labels: ['bug'], origin: { kind: 'ai', model: 'typesafe-ai/jev', confidence: { bug: 0.91 } } })
+    expect(queue.entries[1]!.op).not.toHaveProperty('origin')
   })
 
   it('removeQueueOp removes a yml entry in place', async () => {

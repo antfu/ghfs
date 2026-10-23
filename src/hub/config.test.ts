@@ -12,6 +12,7 @@ import {
   setExcludedProjects,
   setHubAutoSyncInterval,
   setHubCommentTemplates,
+  setHubCredentials,
   setHubSwrSettings,
 } from './config'
 
@@ -275,6 +276,18 @@ describe('hub config', () => {
     await setHubCommentTemplates({ homeDir, templates: [] })
     const cleared = await loadHubConfig({ homeDir })
     expect(cleared.commentTemplates).toEqual([])
+  })
+
+  it('setHubCredentials patches fields, clears with null, and drops the section when empty', async () => {
+    const homeDir = await makeHome()
+    await setHubCredentials({ homeDir, patch: { aiGatewayApiKey: ' vck_1 ', githubToken: 'ghp_1' } })
+    let config = await setHubCredentials({ homeDir, patch: { aiModel: 'typesafe-ai/jev-1.14.0' } })
+    expect(config.credentials).toEqual({ aiGatewayApiKey: 'vck_1', githubToken: 'ghp_1', aiModel: 'typesafe-ai/jev-1.14.0' })
+    expect((await loadHubConfig({ homeDir })).credentials).toEqual(config.credentials)
+
+    config = await setHubCredentials({ homeDir, patch: { aiGatewayApiKey: null, githubToken: '', aiModel: null } })
+    expect(config.credentials).toBeUndefined()
+    expect(await readFile(resolveHubConfigPath({ homeDir }), 'utf8')).not.toContain('credentials')
   })
 
   it('setHubSwrSettings round-trips both fields', async () => {

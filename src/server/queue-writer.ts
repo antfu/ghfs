@@ -13,9 +13,13 @@ import { pathExists } from '../utils/fs'
 import { buildQueueState } from './queue-builder'
 
 export async function addQueueOp(options: BuildQueueStateOptions, op: PendingOp): Promise<QueueState> {
+  return addQueueOps(options, [op])
+}
+
+export async function addQueueOps(options: BuildQueueStateOptions, ops: PendingOp[]): Promise<QueueState> {
   await ensureExecuteArtifacts(options.executeFilePath)
   const current = await readAndValidateExecuteFileWithSource(options.executeFilePath)
-  const next = compressOps([...current.ops, op])
+  const next = compressOps([...current.ops, ...ops])
   await writeExecuteFile(options.executeFilePath, next)
   return buildQueueState(options)
 }

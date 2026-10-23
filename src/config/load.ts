@@ -1,4 +1,4 @@
-import type { GhfsResolvedConfig, GhfsUserConfig } from '../types'
+import type { GhfsResolvedAiConfig, GhfsResolvedConfig, GhfsUserConfig } from '../types'
 import { existsSync } from 'node:fs'
 import process from 'node:process'
 import { createJiti } from 'jiti'
@@ -79,6 +79,21 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
       closed: closedMode,
       patches: patchesMode,
     },
+    ai: resolveAiConfig(merged.ai),
+  }
+}
+
+export function resolveAiConfig(ai: GhfsUserConfig['ai'] = {}): GhfsResolvedAiConfig {
+  return {
+    apiKey: ai.apiKey?.trim() || '',
+    model: ai.model,
+    agentModel: ai.agentModel,
+    labeling: {
+      threshold: ai.labeling?.threshold ?? 0.7,
+      examplesPerLabel: ai.labeling?.examplesPerLabel ?? 3,
+      guidelines: ai.labeling?.guidelines ?? '',
+      exclude: ai.labeling?.exclude ?? [],
+    },
   }
 }
 
@@ -111,6 +126,10 @@ function mergeUserConfig(base: GhfsUserConfig, overrides: Partial<GhfsUserConfig
     sync: {
       ...base.sync,
       ...overrides.sync,
+    },
+    ai: {
+      ...base.ai,
+      ...overrides.ai,
     },
   }
 }

@@ -64,10 +64,67 @@ export interface GhfsUserConfig {
      */
     patches?: 'open' | 'all' | false
   }
+  /**
+   * Model-assisted triage through Vercel AI Gateway. Models only ever
+   * propose queue operations; nothing reaches GitHub until the queue is executed.
+   */
+  ai?: {
+    /**
+     * Vercel AI Gateway API key.
+     *
+     * When not provided, falls back to the `AI_GATEWAY_API_KEY` environment variable.
+     */
+    apiKey?: string
+    /**
+     * Decision model that scores every label; a Gateway classifier id.
+     *
+     * @default 'typesafe-ai/jev'
+     */
+    model?: string
+    /**
+     * Chat model for the tool-using agent that gathers more context when the
+     * decision model is unsure; a Gateway chat model id.
+     *
+     * @default 'anthropic/claude-haiku-4.5'
+     */
+    agentModel?: string
+    labeling?: {
+      /**
+       * Minimum probability for a label to be suggested.
+       *
+       * @default 0.7
+       */
+      threshold?: number
+      /**
+       * How many already-labeled items are shown to the model as examples per label.
+       *
+       * @default 3
+       */
+      examplesPerLabel?: number
+      /** Free-text labeling guidelines appended to every label question. */
+      guidelines?: string
+      /** Labels never suggested (e.g. `good first issue`). */
+      exclude?: string[]
+    }
+  }
 }
 
-export type GhfsResolvedConfig = Required<GhfsUserConfig> & {
+/** Values from `ghfs.config.ts` only; `resolveAiSettings` layers the UI-saved credentials, environment, and defaults on top. */
+export interface GhfsResolvedAiConfig {
+  apiKey: string
+  model?: string
+  agentModel?: string
+  labeling: {
+    threshold: number
+    examplesPerLabel: number
+    guidelines: string
+    exclude: string[]
+  }
+}
+
+export type GhfsResolvedConfig = Required<Omit<GhfsUserConfig, 'ai'>> & {
   cwd: string
   auth: Required<GhfsUserConfig['auth']>
   sync: Required<GhfsUserConfig['sync']>
+  ai: GhfsResolvedAiConfig
 }

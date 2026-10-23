@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 interface LoadAuthModuleOptions {
+  savedToken?: string
   ghToken?: string
   ghError?: Error
   env?: Record<string, string | undefined>
@@ -24,6 +25,13 @@ describe('resolveAuthToken', () => {
 
     expect(execFileAsyncMock).not.toHaveBeenCalled()
     expect(dotenvConfigMock).not.toHaveBeenCalled()
+  })
+
+  it('uses the token saved from the settings UI before gh cli', async () => {
+    const { resolveAuthToken, execFileAsyncMock } = await loadAuthModule({ savedToken: 'saved-token', ghToken: 'gh-cli-token' })
+
+    await expect(resolveAuthToken({ interactive: false })).resolves.toBe('saved-token')
+    expect(execFileAsyncMock).not.toHaveBeenCalled()
   })
 
   it('uses token from gh cli before environment variables', async () => {
@@ -153,6 +161,9 @@ async function loadAuthModule(options: LoadAuthModuleOptions = {}) {
   }))
   vi.doMock('dotenv', () => ({
     config: dotenvConfigMock,
+  }))
+  vi.doMock('../hub/config', () => ({
+    loadHubConfig: async () => ({ credentials: options.savedToken ? { githubToken: options.savedToken } : undefined }),
   }))
 
   const module = await import('./auth')
