@@ -42,7 +42,7 @@ export function selectLabelTargets(syncState: SyncState, options: SelectLabelTar
 
 export interface SuggestLabelsOptions {
   runtime: AiRuntime
-  config: GhfsResolvedAiConfig
+  config: Pick<GhfsResolvedAiConfig, 'labeling'>
   syncState: SyncState
   storageDirAbsolute: string
   repoLabels: LabelCandidate[]

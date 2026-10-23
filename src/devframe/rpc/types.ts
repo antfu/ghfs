@@ -9,8 +9,9 @@ import type { ExecutionResult } from '../../types/execution'
 import type { IssueStateReason, ProviderReviewDecision, ReactionTarget } from '../../types/provider'
 import type { SyncState } from '../../types/sync-state'
 import type { ReactionContent } from '../../utils/reactions'
+import type { CredentialsPatch, CredentialsView } from './credentials'
 
-export type { ActivityResult, CommentTemplate, LabelSuggestionRun, RepoTemplate, RepoTemplatesCache }
+export type { ActivityResult, CommentTemplate, CredentialsPatch, CredentialsView, LabelSuggestionRun, RepoTemplate, RepoTemplatesCache }
 
 export type SuggestLabelsOptions = Pick<RunLabelSuggestionOptions, 'numbers' | 'all' | 'threshold'>
 
@@ -244,6 +245,8 @@ export interface GhfsServerFunctions {
   'ghfs:set-hub-comment-templates': (templates: CommentTemplate[]) => Promise<CommentTemplate[]>
   'ghfs:repo-templates': (projectId: string) => Promise<RepoTemplatesCache>
   'ghfs:set-repo-templates': (projectId: string, templates: RepoTemplate[]) => Promise<RepoTemplatesCache>
+  'ghfs:credentials': () => Promise<CredentialsView>
+  'ghfs:set-credentials': (patch: CredentialsPatch) => Promise<CredentialsView>
 }
 
 export interface GhfsClientFunctions {

@@ -8,6 +8,7 @@ import UiModal from '../ui/Modal.vue'
 import PanelSettingsAccount from './SettingsAccount.vue'
 import PanelSettingsGeneral from './SettingsGeneral.vue'
 import PanelSettingsIgnored from './SettingsIgnored.vue'
+import PanelSettingsKeys from './SettingsKeys.vue'
 import PanelSettingsProjects from './SettingsProjects.vue'
 import PanelSettingsTemplates from './SettingsTemplates.vue'
 
@@ -25,7 +26,7 @@ const ignoredCount = computed(() => (ui.uiState.ignored ?? []).length)
     v-model:open="open"
     title="Settings"
     icon="i-ph-gear-six-duotone"
-    description="Configure ghfs — identity, sync, saved replies, projects, and ignored items."
+    description="Configure ghfs — identity, sync, API keys, saved replies, projects, and ignored items."
     width="w-[min(92vw,42rem)]"
     height="h-[36rem]"
     data-testid="settings-dialog"
@@ -43,6 +44,10 @@ const ignoredCount = computed(() => (ui.uiState.ignored ?? []).length)
         <TabsTrigger v-if="isHubMode" value="projects" class="tab-trigger" data-testid="settings-tab-projects">
           <span class="i-ph-folder-duotone" />
           Projects
+        </TabsTrigger>
+        <TabsTrigger value="keys" class="tab-trigger" data-testid="settings-tab-keys">
+          <span class="i-ph-key-duotone" />
+          API keys
         </TabsTrigger>
         <TabsTrigger value="templates" class="tab-trigger" data-testid="settings-tab-templates">
           <span class="i-ph-chat-circle-text-duotone" />
@@ -64,6 +69,9 @@ const ignoredCount = computed(() => (ui.uiState.ignored ?? []).length)
         </TabsContent>
         <TabsContent v-if="isHubMode" value="projects">
           <PanelSettingsProjects :active="open && tab === 'projects'" />
+        </TabsContent>
+        <TabsContent value="keys">
+          <PanelSettingsKeys :active="open && tab === 'keys'" />
         </TabsContent>
         <TabsContent value="templates">
           <PanelSettingsTemplates />

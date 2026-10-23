@@ -109,10 +109,11 @@ export interface GhfsUserConfig {
   }
 }
 
+/** Values from `ghfs.config.ts` only; `resolveAiSettings` layers the UI-saved credentials, environment, and defaults on top. */
 export interface GhfsResolvedAiConfig {
   apiKey: string
-  model: string
-  agentModel: string
+  model?: string
+  agentModel?: string
   labeling: {
     threshold: number
     examplesPerLabel: number

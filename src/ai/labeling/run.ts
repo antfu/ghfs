@@ -5,7 +5,7 @@ import { diagnostics } from '../../logger'
 import { addQueueOps } from '../../server/queue-writer'
 import { loadRepoSnapshot } from '../../sync/repo-snapshot'
 import { loadSyncState } from '../../sync/state'
-import { createAiRuntime, hasAiCredentials } from '../runtime'
+import { createAiRuntime, resolveAiSettings } from '../runtime'
 import { selectLabelTargets, suggestLabels, toLabelOps } from './index'
 
 export interface RunLabelSuggestionOptions extends SelectLabelTargetsOptions {
@@ -27,7 +27,8 @@ export interface LabelSuggestionRun {
 /** Scores the selected items, then drafts the accepted labels into the queue for review. */
 export async function runLabelSuggestion(options: RunLabelSuggestionOptions): Promise<LabelSuggestionRun> {
   const { config, storageDirAbsolute, executeFilePath } = options
-  if (!await hasAiCredentials(config.ai))
+  const settings = await resolveAiSettings(config.ai)
+  if (!settings.apiKey)
     throw diagnostics.GHFS0500()
 
   const [syncState, snapshot] = await Promise.all([
@@ -39,8 +40,8 @@ export async function runLabelSuggestion(options: RunLabelSuggestionOptions): Pr
     throw diagnostics.GHFS0501()
 
   const aiConfig = options.threshold === undefined
-    ? config.ai
-    : { ...config.ai, labeling: { ...config.ai.labeling, threshold: options.threshold } }
+    ? settings
+    : { ...settings, labeling: { ...settings.labeling, threshold: options.threshold } }
 
   const targets = selectLabelTargets(syncState, options)
   const suggestions = await suggestLabels({

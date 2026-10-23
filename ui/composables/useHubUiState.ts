@@ -4,7 +4,7 @@ import { useHubState } from './useHubState'
 import { useOnlineState } from './useOnlineState'
 import { useRpc } from './useRpc'
 
-export type SettingsTab = 'general' | 'account' | 'projects' | 'templates' | 'ignored'
+export type SettingsTab = 'general' | 'account' | 'projects' | 'keys' | 'templates' | 'ignored'
 
 const settingsOpen = ref(false)
 const settingsTab = ref<SettingsTab>('general')

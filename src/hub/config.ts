@@ -12,6 +12,13 @@ const CommentTemplateSchema = v.object({
   body: v.pipe(v.string(), v.minLength(1), v.maxLength(10_000)),
 })
 
+const CredentialsSchema = v.object({
+  githubToken: v.optional(v.string()),
+  aiGatewayApiKey: v.optional(v.string()),
+  aiModel: v.optional(v.string()),
+  aiAgentModel: v.optional(v.string()),
+})
+
 const ConfigSchema = v.object({
   roots: v.optional(v.array(v.string())),
   enabledProjects: v.optional(v.array(ProjectEntrySchema)),
@@ -20,6 +27,7 @@ const ConfigSchema = v.object({
   commentTemplates: v.optional(v.array(CommentTemplateSchema)),
   swrSyncEnabled: v.optional(v.boolean()),
   swrCacheTimeoutMs: v.optional(v.pipe(v.number(), v.minValue(30_000), v.maxValue(3_600_000))),
+  credentials: v.optional(CredentialsSchema),
 })
 
 const LegacyEntrySchema = v.object({
@@ -42,6 +50,14 @@ export interface CommentTemplate {
   body: string
 }
 
+/** Secrets and model ids entered from the UI; a project's `ghfs.config.ts` wins, then these, then the environment. */
+export interface HubCredentials {
+  githubToken?: string
+  aiGatewayApiKey?: string
+  aiModel?: string
+  aiAgentModel?: string
+}
+
 export interface HubConfig {
   /** Directories scanned for git repos. Order is meaningful (insertion order). */
   roots: string[]
@@ -62,6 +78,7 @@ export interface HubConfig {
   swrSyncEnabled?: boolean
   /** Cache TTL for SWR background refreshes, in ms. Defaults to 5 min when undefined. */
   swrCacheTimeoutMs?: number
+  credentials?: HubCredentials
 }
 
 export interface ResolveHubConfigPathOptions {
@@ -131,6 +148,7 @@ function parseConfig(raw: unknown): HubConfig {
       autoSyncIntervalMs: flat.output.autoSyncIntervalMs,
       swrSyncEnabled: flat.output.swrSyncEnabled,
       swrCacheTimeoutMs: flat.output.swrCacheTimeoutMs,
+      credentials: flat.output.credentials,
     }
     if (flat.output.excludedProjects !== undefined)
       config.excludedProjects = dedupeProjects(flat.output.excludedProjects.map(e => ({ path: normalizePath(e.path) })))
@@ -184,6 +202,7 @@ export async function saveHubConfig(options: SaveHubConfigOptions): Promise<void
     commentTemplates: options.config.commentTemplates,
     swrSyncEnabled: options.config.swrSyncEnabled,
     swrCacheTimeoutMs: options.config.swrCacheTimeoutMs,
+    credentials: options.config.credentials,
   }
   await mkdir(dirname(path), { recursive: true })
   // Strip undefined fields so the JSON stays tidy.
@@ -201,6 +220,8 @@ export async function saveHubConfig(options: SaveHubConfigOptions): Promise<void
     json.swrSyncEnabled = next.swrSyncEnabled
   if (next.swrCacheTimeoutMs !== undefined)
     json.swrCacheTimeoutMs = next.swrCacheTimeoutMs
+  if (next.credentials !== undefined)
+    json.credentials = next.credentials
   await writeFile(path, `${JSON.stringify(json, null, 2)}\n`, 'utf8')
 }
 
@@ -312,6 +333,32 @@ export async function setHubSwrSettings(options: SetHubSwrSettingsOptions): Prom
     ...current,
     swrSyncEnabled: options.swrSyncEnabled,
     swrCacheTimeoutMs: options.swrCacheTimeoutMs,
+  }
+  await saveHubConfig({ homeDir: options.homeDir, config: next })
+  return next
+}
+
+export interface SetHubCredentialsOptions extends ResolveHubConfigPathOptions {
+  /** `null` clears a field; omitted fields are kept. */
+  patch: { [K in keyof HubCredentials]?: string | null }
+}
+
+export async function setHubCredentials(options: SetHubCredentialsOptions): Promise<HubConfig> {
+  const current = await loadHubConfig(options)
+  const credentials: HubCredentials = { ...current.credentials }
+  for (const key of ['githubToken', 'aiGatewayApiKey', 'aiModel', 'aiAgentModel'] as const) {
+    const value = options.patch[key]
+    if (value === undefined)
+      continue
+    const trimmed = value?.trim()
+    if (trimmed)
+      credentials[key] = trimmed
+    else
+      delete credentials[key]
+  }
+  const next: HubConfig = {
+    ...current,
+    credentials: Object.keys(credentials).length ? credentials : undefined,
   }
   await saveHubConfig({ homeDir: options.homeDir, config: next })
   return next

@@ -160,7 +160,7 @@ export const diagnostics = defineDiagnostics({
     // AI (0500–0549)
     GHFS0500: {
       why: 'Missing Vercel AI Gateway API key.',
-      fix: 'Set AI_GATEWAY_API_KEY, or `ai.apiKey` in ghfs.config.ts.',
+      fix: 'Add a key under Settings → API keys in the UI, set AI_GATEWAY_API_KEY, or `ai.apiKey` in ghfs.config.ts.',
     },
     GHFS0501: {
       why: 'No repository labels are known locally.',

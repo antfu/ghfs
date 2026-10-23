@@ -28,6 +28,19 @@ test.describe('ui mode smoke', () => {
     expect(errors).toEqual([])
   })
 
+  test('Settings → API keys shows where each key comes from', async ({ page }) => {
+    const errors = captureErrors(page)
+    await page.goto(`${BASE}/`)
+    await expect(page.locator('[data-testid="navbar"]')).toBeVisible({ timeout: 10_000 })
+    await page.locator('[data-testid="navbar-settings"]').click()
+    await page.locator('[data-testid="settings-tab-keys"]').click()
+    // The e2e server runs with GH_TOKEN=fake-for-tests and no gateway key.
+    await expect(page.locator('[data-testid="settings-github-token-status"]')).toHaveText('Using GH_TOKEN from the environment.')
+    await expect(page.locator('[data-testid="settings-ai-key-status"]')).toHaveText('Not set.')
+    await expect(page.locator('[data-testid="settings-keys-save"]')).toBeDisabled()
+    expect(errors).toEqual([])
+  })
+
   test('Cmd+K opens the command palette and filters by query', async ({ page }) => {
     const errors = captureErrors(page)
     await page.goto(`${BASE}/`)

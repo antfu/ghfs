@@ -84,7 +84,7 @@ function createFakeGateway(answers: Array<Record<string, number>>) {
       },
     },
   }))
-  const config = resolveAiConfig({ model: CLASSIFIER_ID, agentModel: AGENT_ID })
+  const config = { ...resolveAiConfig({ model: CLASSIFIER_ID, agentModel: AGENT_ID }), model: CLASSIFIER_ID, agentModel: AGENT_ID }
   return { runtime: createAiRuntime(config, models), config, chat, requests }
 }
 

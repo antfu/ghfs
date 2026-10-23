@@ -3,6 +3,7 @@ import { addQueueOp } from './add-queue-op'
 import { capabilities } from './capabilities'
 import { checkRemote } from './check-remote'
 import { clearQueue } from './clear-queue'
+import { credentials, setCredentials } from './credentials'
 import { executeQueue } from './execute-queue'
 import { forceSync } from './force-sync'
 import { getProjectIcon } from './get-project-icon'
@@ -84,6 +85,8 @@ export const rpcFunctions = [
   setHubCommentTemplatesRpc,
   repoTemplates,
   setRepoTemplates,
+  credentials,
+  setCredentials,
 ] as const
 
 export function registerGhfsRpc(ctx: DevframeNodeContext): void {

@@ -5,8 +5,6 @@ import { createJiti } from 'jiti'
 import { join, resolve } from 'pathe'
 import {
   CONFIG_FILE_CANDIDATES,
-  DEFAULT_AI_AGENT_MODEL,
-  DEFAULT_AI_MODEL,
   DEFAULT_STORAGE_DIR,
   EXECUTE_FILE_NAME,
 } from '../constants'
@@ -88,8 +86,8 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
 export function resolveAiConfig(ai: GhfsUserConfig['ai'] = {}): GhfsResolvedAiConfig {
   return {
     apiKey: ai.apiKey?.trim() || '',
-    model: ai.model ?? DEFAULT_AI_MODEL,
-    agentModel: ai.agentModel ?? DEFAULT_AI_AGENT_MODEL,
+    model: ai.model,
+    agentModel: ai.agentModel,
     labeling: {
       threshold: ai.labeling?.threshold ?? 0.7,
       examplesPerLabel: ai.labeling?.examplesPerLabel ?? 3,
