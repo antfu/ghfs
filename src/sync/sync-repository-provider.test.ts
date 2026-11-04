@@ -3,6 +3,7 @@ import type { SyncContext } from './sync-repository-types'
 import process from 'node:process'
 import { join } from 'pathe'
 import { describe, expect, it, vi } from 'vitest'
+import { resolveAiConfig } from '../config/load'
 import { fetchIssueCandidatesByNumbers, fetchIssueCandidatesByPagination } from './sync-repository-provider'
 
 describe('sync-repository-provider', () => {
@@ -184,6 +185,7 @@ function createContext(overrides: {
         closed: overrides.closed ?? false,
         patches: 'open',
       },
+      ai: resolveAiConfig(),
     },
     syncState: {
       version: 2,

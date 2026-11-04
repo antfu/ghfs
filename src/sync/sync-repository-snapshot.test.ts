@@ -5,6 +5,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'pathe'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { resolveAiConfig } from '../config/load'
 import { writeRepositoryIndexes, writeRepoSnapshot } from './sync-repository-snapshot'
 
 describe('snapshot writers', () => {
@@ -203,6 +204,7 @@ function createContext(
       closed: false,
       patches: 'open',
     },
+    ai: resolveAiConfig(),
   }
 
   return {

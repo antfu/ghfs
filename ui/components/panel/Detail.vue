@@ -6,6 +6,7 @@ import type { SyncItemState } from '../../../src/types/sync-state'
 import { useActiveProjectId, useAppState } from '../../composables/useAppState'
 import { provideDetailScope } from '../../composables/useDetailScope'
 import { renderMarkdownInline } from '../../composables/useMarkdown'
+import { useLabelSuggestions } from '../../composables/useLabelSuggestions'
 import { useOnlineState } from '../../composables/useOnlineState'
 import { usePendingOps } from '../../composables/usePendingOps'
 import { useRpc } from '../../composables/useRpc'
@@ -74,6 +75,8 @@ const timeline = computed(() => selected.value?.data.timeline ?? [])
 const reviewComments = computed(() => selected.value?.data.reviewComments ?? [])
 const hasPatch = computed(() => Boolean(selected.value?.patchPath))
 const labels = computed(() => item.value?.labels ?? [])
+const hasAi = computed(() => state.payload.value?.repo.hasAi ?? false)
+const { suggesting: suggestingLabels } = useLabelSuggestions()
 const assignees = computed(() => item.value?.assignees ?? [])
 
 type PrTab = 'conversation' | 'commits' | 'changes'
@@ -323,6 +326,18 @@ async function discardThisItem() {
           <span class="i-octicon-tag-16 color-muted" />
           <DisplayLabel v-for="label in labels" :key="label" :name="label" />
           <span v-if="!labels.length" class="color-faint italic">no labels</span>
+        </button>
+      </UiWithCommand>
+      <UiWithCommand v-if="hasAi" v-slot="{ execute, disabled }" command="ai.suggest-labels" tone="muted" class="!flex w-full pr-4">
+        <button
+          type="button"
+          class="flex-1 min-w-0 px-6 py-1.5 flex items-center gap-1.5 text-left color-muted hover:bg-active transition outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40 disabled:op-mute"
+          data-testid="detail-suggest-labels"
+          :disabled="disabled"
+          @click="execute"
+        >
+          <span :class="suggestingLabels ? 'i-ph-circle-notch-duotone animate-spin' : 'i-ph-sparkle-duotone'" />
+          <span>{{ suggestingLabels ? 'Scoring labels…' : 'Suggest labels' }}</span>
         </button>
       </UiWithCommand>
       <div

@@ -156,5 +156,15 @@ export const diagnostics = defineDiagnostics({
     GHFS0401: {
       why: (p: { issue: string }) => `Missing tracked canonical data for ${p.issue}.`,
     },
+
+    // AI (0500–0549)
+    GHFS0500: {
+      why: 'Missing Vercel AI Gateway API key.',
+      fix: 'Set AI_GATEWAY_API_KEY, or `ai.apiKey` in ghfs.config.ts.',
+    },
+    GHFS0501: {
+      why: 'No repository labels are known locally.',
+      fix: 'Run `ghfs sync` first so the label registry is mirrored to repo.json.',
+    },
   },
 })

@@ -174,6 +174,37 @@ ghfs execute
 ghfs execute --run
 ```
 
+## AI label suggestions
+
+`ghfs label` asks a decision model ([Jev](https://vercel.com/ai-gateway/models/jev) through [Vercel AI Gateway](https://vercel.com/docs/ai-gateway)) which of the repository's labels fit each open, unlabeled item, using the items you already labeled as examples. When the model is unsure, a small tool-using agent reads comments, the patch, linked and similar items, and the model decides again with that context.
+
+Suggestions are drafted into the queue as `add-labels` operations carrying the model's per-label probability. Nothing reaches GitHub until you review and execute them.
+
+```bash
+export AI_GATEWAY_API_KEY=vck_xxx
+ghfs label            # open & unlabeled items
+ghfs label 123 456    # specific items
+ghfs label --all      # also items that already have labels
+ghfs execute          # review, then --run
+```
+
+In the UI the same action is available per item (`⇧L`, "Suggest labels") and for every unlabeled item from the navbar. Tune it in `ghfs.config.ts`:
+
+```ts
+export default defineConfig({
+  ai: {
+    model: 'typesafe-ai/jev', // decision model
+    agentModel: 'anthropic/claude-haiku-4.5', // agent for unsure items
+    labeling: {
+      threshold: 0.7,
+      examplesPerLabel: 3,
+      guidelines: 'Use "bug" only for reproducible defects.',
+      exclude: ['good first issue'],
+    },
+  },
+})
+```
+
 ## Agent Skill
 
 This repository ships an [agent skill](https://agentskills.io/home) at [`skills/ghfs/SKILL.md`](skills/ghfs/SKILL.md).

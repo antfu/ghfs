@@ -1,4 +1,4 @@
-import type { MergeMethod, PendingLockOp, PendingMergeOp, PendingOp, PendingReactionOp, PendingReviewOp } from './types'
+import type { MergeMethod, PendingLabelsOp, PendingLockOp, PendingMergeOp, PendingOp, PendingOpAiOrigin, PendingReactionOp, PendingReviewOp } from './types'
 
 type LockReason = PendingLockOp['reason']
 type ReviewKind = PendingReviewOp['action']
@@ -18,6 +18,8 @@ interface LabelChanges {
   set: string[]
   add: string[]
   remove: string[]
+  /** Model attribution for the labels that were suggested by AI; human edits keep it for the labels they didn't touch. */
+  origin: PendingOpAiOrigin | null
 }
 
 interface AssigneeChanges {
@@ -59,7 +61,7 @@ function createEmptyState(): ItemState {
     body: null,
     stateChange: null,
     extraComments: [],
-    labels: { mode: 'delta', set: [], add: [], remove: [] },
+    labels: { mode: 'delta', set: [], add: [], remove: [], origin: null },
     assignees: { mode: 'delta', set: [], add: [], remove: [] },
     reviewers: { add: [], remove: [] },
     milestone: null,
@@ -80,6 +82,12 @@ function removeFromList(list: string[], value: string): void {
   const idx = list.indexOf(value)
   if (idx >= 0)
     list.splice(idx, 1)
+}
+
+function mergeAiOrigin(current: PendingOpAiOrigin | null, next: PendingOpAiOrigin | undefined): PendingOpAiOrigin | null {
+  if (!next)
+    return current
+  return { kind: 'ai', model: next.model, confidence: { ...current?.confidence, ...next.confidence } }
 }
 
 function mergeIfUnchangedSince(current: string | undefined, next: string | undefined): string | undefined {
@@ -143,6 +151,7 @@ function applyOp(state: ItemState, op: PendingOp): void {
       break
     }
     case 'add-labels': {
+      state.labels.origin = mergeAiOrigin(state.labels.origin, op.origin)
       if (state.labels.mode === 'set') {
         for (const l of op.labels)
           addUnique(state.labels.set, l)
@@ -172,7 +181,7 @@ function applyOp(state: ItemState, op: PendingOp): void {
       break
     }
     case 'set-labels':
-      state.labels = { mode: 'set', set: [...op.labels], add: [], remove: [] }
+      state.labels = { mode: 'set', set: [...op.labels], add: [], remove: [], origin: op.origin ?? null }
       break
     case 'add-assignees': {
       if (state.assignees.mode === 'set') {
@@ -264,6 +273,16 @@ function applyOp(state: ItemState, op: PendingOp): void {
   }
 }
 
+/** Keeps only the confidence entries for labels still present on the op; drops the origin when none remain. */
+function withLabelOrigin(op: PendingLabelsOp, origin: PendingOpAiOrigin | null): PendingLabelsOp {
+  if (!origin)
+    return op
+  const confidence = Object.fromEntries(Object.entries(origin.confidence).filter(([label]) => op.labels.includes(label)))
+  if (Object.keys(confidence).length === 0)
+    return op
+  return { ...op, origin: { kind: 'ai', model: origin.model, confidence } }
+}
+
 function emit(number: number, state: ItemState): PendingOp[] {
   const ifUnchangedSince = state.ifUnchangedSince
   const withBase = <T extends PendingOp>(op: T): T => (ifUnchangedSince ? { ...op, ifUnchangedSince } : op)
@@ -276,11 +295,11 @@ function emit(number: number, state: ItemState): PendingOp[] {
     out.push(withBase({ action: 'set-body', number, body: state.body }))
 
   if (state.labels.mode === 'set') {
-    out.push(withBase({ action: 'set-labels', number, labels: [...state.labels.set] }))
+    out.push(withBase(withLabelOrigin({ action: 'set-labels', number, labels: [...state.labels.set] }, state.labels.origin)))
   }
   else {
     if (state.labels.add.length)
-      out.push(withBase({ action: 'add-labels', number, labels: [...state.labels.add] }))
+      out.push(withBase(withLabelOrigin({ action: 'add-labels', number, labels: [...state.labels.add] }, state.labels.origin)))
     if (state.labels.remove.length)
       out.push(withBase({ action: 'remove-labels', number, labels: [...state.labels.remove] }))
   }

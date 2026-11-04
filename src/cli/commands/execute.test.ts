@@ -4,6 +4,7 @@ import type { SyncSummary } from '../../sync'
 import type { ExecutionResult, GhfsResolvedConfig } from '../../types'
 import type { ExecuteCommandDependencies } from './execute'
 import { describe, expect, it, vi } from 'vitest'
+import { resolveAiConfig } from '../../config/load'
 import { createCancelledError } from '../../execute'
 import { runExecuteCommand } from './execute'
 
@@ -189,6 +190,7 @@ function createConfig(): GhfsResolvedConfig {
       closed: false,
       patches: 'open',
     },
+    ai: resolveAiConfig(),
   }
 }
 

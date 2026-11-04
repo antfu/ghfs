@@ -63,6 +63,27 @@ describe('compressOps', () => {
     ])
   })
 
+  it('keeps AI origin confidence only for labels that survive the merge', () => {
+    const ops: PendingOp[] = [
+      { action: 'add-labels', number: 1, labels: ['bug', 'docs'], origin: { kind: 'ai', model: 'jev', confidence: { bug: 0.9, docs: 0.75 } } },
+      { action: 'add-labels', number: 1, labels: ['triage'] },
+      { action: 'remove-labels', number: 1, labels: ['docs'] },
+    ]
+    expect(compressOps(ops)).toEqual([
+      { action: 'add-labels', number: 1, labels: ['bug', 'triage'], origin: { kind: 'ai', model: 'jev', confidence: { bug: 0.9 } } },
+    ])
+  })
+
+  it('drops AI origin when a human set-labels takes over', () => {
+    const ops: PendingOp[] = [
+      { action: 'add-labels', number: 1, labels: ['bug'], origin: { kind: 'ai', model: 'jev', confidence: { bug: 0.9 } } },
+      { action: 'set-labels', number: 1, labels: ['bug', 'docs'] },
+    ]
+    expect(compressOps(ops)).toEqual([
+      { action: 'set-labels', number: 1, labels: ['bug', 'docs'] },
+    ])
+  })
+
   it('eliminates the entire label change when add/remove overlap exactly', () => {
     const ops: PendingOp[] = [
       { action: 'add-labels', number: 1, labels: ['bug'] },

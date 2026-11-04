@@ -152,3 +152,16 @@ Useful flags:
 - `--repo owner/name` when repo cannot be auto-resolved.
 - `--non-interactive` for scripted runs.
 - `--continue-on-error` to keep applying later ops after a failure.
+
+## Draft Label Suggestions with `ghfs label`
+
+When the user wants labels triaged in bulk and `AI_GATEWAY_API_KEY` is available, run `ghfs label` instead of guessing labels yourself. It scores every repository label per item with a decision model and drafts `add-labels` ops into `execute.yml` with an `origin` field recording the model and per-label probability.
+
+```bash
+ghfs label             # open, unlabeled items
+ghfs label 123 456     # specific items
+ghfs label --all       # include items that already have labels
+ghfs label --threshold 0.8
+```
+
+Review the drafted ops with `ghfs execute` before applying; drop entries you disagree with by editing `execute.yml`.

@@ -2,10 +2,19 @@ import type { ReactionTarget } from '../types/provider'
 import type { ReactionContent } from '../utils/reactions'
 import type { ActionName } from './actions'
 
+/** Set on ops proposed by a model; the queue shows it so humans can judge before executing. */
+export interface PendingOpAiOrigin {
+  kind: 'ai'
+  model: string
+  /** Probability per suggested label, 0-1. */
+  confidence: Record<string, number>
+}
+
 export interface PendingOpBase {
   number: number
   action: ActionName
   ifUnchangedSince?: string
+  origin?: PendingOpAiOrigin
 }
 
 export interface PendingTitleOp extends PendingOpBase {

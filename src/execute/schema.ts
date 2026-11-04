@@ -22,6 +22,19 @@ export const executeSchema = {
         type: 'string',
         format: 'date-time',
       },
+      origin: {
+        type: 'object',
+        required: ['kind', 'model', 'confidence'],
+        properties: {
+          kind: { const: 'ai' },
+          model: { type: 'string' },
+          confidence: {
+            type: 'object',
+            additionalProperties: { type: 'number' },
+          },
+        },
+        additionalProperties: false,
+      },
       title: { type: 'string' },
       body: { type: 'string' },
       labels: {

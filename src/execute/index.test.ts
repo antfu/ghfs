@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import process from 'node:process'
 import { join } from 'pathe'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { resolveAiConfig } from '../config/load'
 import { executePendingChanges, isExecuteCancelledError } from './index'
 import { readAndValidateExecuteFile, writeExecuteFile } from './validate'
 
@@ -655,6 +656,7 @@ function createConfig(): GhfsResolvedConfig {
       closed: false,
       patches: 'open',
     },
+    ai: resolveAiConfig(),
   }
 }
 

@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import process from 'node:process'
 import { join } from 'pathe'
 import { afterEach, describe, expect, it } from 'vitest'
+import { resolveAiConfig } from '../config/load'
 import { getItemMarkdownPath, getPrPatchPath } from './paths'
 import {
   getExistingMarkdownPaths,
@@ -348,6 +349,7 @@ function createSyncContext(storageDirAbsolute: string, syncOverrides: Partial<Sy
         closed: syncOverrides.closed ?? false,
         patches: syncOverrides.patches ?? 'open',
       },
+      ai: resolveAiConfig(),
     },
     syncState: {
       version: 2,

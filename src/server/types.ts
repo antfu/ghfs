@@ -53,6 +53,8 @@ export interface RepoMeta {
   lastSyncedAt?: string
   lastSince?: string
   hasToken: boolean
+  /** A Vercel AI Gateway key is available, so label suggestions can run. */
+  hasAi: boolean
 }
 
 export interface RepoLabel {

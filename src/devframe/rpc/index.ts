@@ -34,6 +34,7 @@ import { removeQueueOp } from './remove-queue-op'
 import { repoMeta } from './repo-meta'
 import { repoTemplates, setRepoTemplates } from './repo-templates'
 import { saveUiState } from './save-ui-state'
+import { suggestLabels } from './suggest-labels'
 import { syncState } from './sync-state'
 import { triggerSync } from './trigger-sync'
 import { updateQueueOp } from './update-queue-op'
@@ -55,6 +56,7 @@ export const rpcFunctions = [
   updateQueueOp,
   removeQueueOp,
   clearQueue,
+  suggestLabels,
   checkRemote,
   openInEditor,
   openFolder,
