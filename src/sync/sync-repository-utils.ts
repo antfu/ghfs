@@ -57,6 +57,23 @@ export function shouldSyncPrDetails(
   return sync.patches === 'all' || (sync.patches === 'open' && state === 'open')
 }
 
+/**
+ * Whether a closed item with no local file should be dropped rather than fetched.
+ *
+ * `closed: true` keeps items that were mirrored while open, but an item that opened and
+ * closed between two syncs has no local file to keep, so it is dropped. `backfill` opts
+ * into fetching those instead.
+ */
+export function shouldDropUntrackedClosedItem(
+  sync: GhfsResolvedConfig['sync'],
+  state: IssueState,
+  hasLocalFile: boolean,
+): boolean {
+  if (state !== 'closed' || sync.closed !== true)
+    return false
+  return !hasLocalFile && !sync.backfill
+}
+
 export function relativeToStorage(storageDirAbsolute: string, absolutePath: string): string {
   if (absolutePath.startsWith(storageDirAbsolute))
     return absolutePath.slice(storageDirAbsolute.length + 1)

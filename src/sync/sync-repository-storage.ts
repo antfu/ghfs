@@ -8,7 +8,7 @@ import {
   getItemMarkdownPath,
   getPrPatchPath,
 } from './paths'
-import { relativeToStorage, shouldSyncKind } from './sync-repository-utils'
+import { relativeToStorage, shouldDropUntrackedClosedItem, shouldSyncKind } from './sync-repository-utils'
 
 export async function resolveIssuePaths(
   storageDirAbsolute: string,
@@ -72,7 +72,7 @@ export async function handleClosedIssueByPolicy(input: ClosedIssuePolicyInput): 
     }
   }
 
-  if (context.config.sync.closed === true && !paths.hasLocalFile) {
+  if (shouldDropUntrackedClosedItem(context.config.sync, state, paths.hasLocalFile)) {
     let patchesDeleted = 0
     if (kind === 'pull' && context.config.sync.patches !== 'all')
       patchesDeleted += await removePatchIfExists(context.storageDirAbsolute, number)

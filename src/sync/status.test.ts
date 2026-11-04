@@ -97,6 +97,7 @@ function createConfig(cwd: string): GhfsResolvedConfig {
       issues: true,
       pulls: true,
       closed: false,
+      backfill: false,
       patches: 'open',
     },
     ai: resolveAiConfig(),

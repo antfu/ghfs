@@ -183,6 +183,7 @@ function createContext(overrides: {
         issues: overrides.issues ?? true,
         pulls: overrides.pulls ?? true,
         closed: overrides.closed ?? false,
+        backfill: false,
         patches: 'open',
       },
       ai: resolveAiConfig(),
