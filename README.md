@@ -180,6 +180,8 @@ ghfs execute --run
 
 Suggestions are drafted into the queue as `add-labels` operations carrying the model's per-label probability. Nothing reaches GitHub until you review and execute them.
 
+Paste a Gateway key under Settings (`,`) → API keys in the UI, or set `AI_GATEWAY_API_KEY`:
+
 ```bash
 export AI_GATEWAY_API_KEY=vck_xxx
 ghfs label            # open & unlabeled items
