@@ -46,8 +46,33 @@ function mockExecFileErr(stderr: string): ReturnType<typeof vi.fn> {
   })
 }
 
-async function loadPortlessModule(execFileMock: ReturnType<typeof vi.fn>) {
+async function loadPortlessModule(
+  execFileMock: ReturnType<typeof vi.fn>,
+  isProxyRunning: () => boolean = () => true,
+) {
   vi.doMock('node:child_process', () => ({ execFile: execFileMock }))
+  const requestMock = vi.fn((_opts, cb) => {
+    const req = {
+      on: vi.fn(),
+      end: vi.fn(() => {
+        if (!isProxyRunning())
+          return
+        cb({
+          headers: { 'x-portless': '1' },
+          resume: vi.fn(),
+        })
+      }),
+      destroy: vi.fn(),
+    }
+    queueMicrotask(() => {
+      if (isProxyRunning())
+        return
+      const errorHandler = req.on.mock.calls.find(([event]) => event === 'error')?.[1] as (() => void) | undefined
+      errorHandler?.()
+    })
+    return req
+  })
+  vi.doMock('node:http', () => ({ request: requestMock }))
   return await import('./portless')
 }
 
@@ -121,5 +146,75 @@ describe('registerPortlessRoute', () => {
     expect(execFileMock).toHaveBeenCalledTimes(3)
     const removeArgs = execFileMock.mock.calls[2][1] as string[]
     expect(removeArgs.slice(1)).toEqual(['alias', '--remove', 'ghfs.ghfs'])
+  })
+
+  it('does not start the proxy when plain HTTP probe succeeds on an https URL', async () => {
+    const execFileMock = mockExecFileOk({
+      'get ghfs.ghfs': 'https://ghfs.ghfs.localhost:1355\n',
+    })
+    const { registerPortlessRoute } = await loadPortlessModule(execFileMock)
+
+    const route = await registerPortlessRoute({ subdomain: 'ghfs', port: 7710 })
+
+    expect(route.url).toBe('https://ghfs.ghfs.localhost:1355')
+    const startCall = execFileMock.mock.calls.find(
+      call => (call[1] as string[]).slice(1, 3).join(' ') === 'proxy start',
+    )
+    expect(startCall).toBeUndefined()
+  })
+
+  it('starts the proxy daemon when the advertised port is not listening', async () => {
+    let proxyUp = false
+    const execFileMock = vi.fn((_file, args: string[], _opts, cb) => {
+      const sub = args.slice(1).join(' ')
+      if (sub.startsWith('proxy start'))
+        proxyUp = true
+      const stdout = sub === 'get ghfs.ghfs' ? 'http://ghfs.ghfs.localhost:1355\n' : ''
+      cb(null, { stdout, stderr: '' })
+    })
+    const { registerPortlessRoute } = await loadPortlessModule(
+      execFileMock,
+      () => proxyUp,
+    )
+
+    const route = await registerPortlessRoute({ subdomain: 'ghfs', port: 7710 })
+
+    expect(route.url).toBe('http://ghfs.ghfs.localhost:1355')
+    const startCall = execFileMock.mock.calls.find(
+      call => (call[1] as string[]).slice(1, 3).join(' ') === 'proxy start',
+    )
+    expect((startCall?.[1] as string[]).slice(1)).toEqual([
+      'proxy',
+      'start',
+      '--port',
+      '1355',
+      '--no-tls',
+    ])
+  })
+
+  it('rejects with GHFS0206 and removes the alias when proxy start fails', async () => {
+    const execFileMock = vi.fn((_file, args: string[], _opts, cb) => {
+      const sub = args.slice(1).join(' ')
+      if (sub.startsWith('proxy start')) {
+        const err = new Error('exit 1') as NodeJS.ErrnoException & { stderr?: string, stdout?: string }
+        err.stderr = 'proxy start failed'
+        cb(err, { stdout: '', stderr: 'proxy start failed' })
+        return
+      }
+      const stdout = sub === 'get ghfs.ghfs' ? 'http://ghfs.ghfs.localhost:1355\n' : ''
+      cb(null, { stdout, stderr: '' })
+    })
+    const { registerPortlessRoute, isPortlessUnavailableError } = await loadPortlessModule(
+      execFileMock,
+      () => false,
+    )
+
+    await expect(registerPortlessRoute({ subdomain: 'ghfs', port: 7710 })).rejects.toSatisfy(isPortlessUnavailableError)
+    await expect(registerPortlessRoute({ subdomain: 'ghfs', port: 7710 })).rejects.toThrow(/proxy start failed/)
+
+    const removeCall = execFileMock.mock.calls.find(
+      call => (call[1] as string[]).slice(1).join(' ') === 'alias --remove ghfs.ghfs',
+    )
+    expect(removeCall).toBeDefined()
   })
 })

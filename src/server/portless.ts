@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { request as httpRequest } from 'node:http'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
@@ -66,6 +67,59 @@ async function runPortless(args: string[]): Promise<string> {
   }
 }
 
+interface ProxyEndpoint {
+  port: number
+  tls: boolean
+}
+
+function parseProxyEndpoint(url: string): ProxyEndpoint | undefined {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  }
+  catch {
+    return undefined
+  }
+  const tls = parsed.protocol === 'https:'
+  const port = parsed.port ? Number(parsed.port) : (tls ? 443 : 80)
+  return { port, tls }
+}
+
+function probeProxy(endpoint: ProxyEndpoint): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = httpRequest(
+      {
+        hostname: '127.0.0.1',
+        port: endpoint.port,
+        path: '/',
+        method: 'HEAD',
+        timeout: 1000,
+      },
+      (res) => {
+        res.resume()
+        resolve(res.headers['x-portless'] === '1')
+      },
+    )
+    req.on('error', () => resolve(false))
+    req.on('timeout', () => {
+      req.destroy()
+      resolve(false)
+    })
+    req.end()
+  })
+}
+
+async function ensureProxyRunning(url: string): Promise<void> {
+  const endpoint = parseProxyEndpoint(url)
+  if (!endpoint || await probeProxy(endpoint))
+    return
+
+  const args = ['proxy', 'start', '--port', String(endpoint.port)]
+  if (!endpoint.tls)
+    args.push('--no-tls')
+  await runPortless(args)
+}
+
 export async function registerPortlessRoute(
   options: RegisterPortlessRouteOptions,
 ): Promise<PortlessRoute> {
@@ -85,6 +139,19 @@ export async function registerPortlessRoute(
   }
   catch {
     // If `portless get` fails we still return the best-effort fallback URL.
+  }
+
+  try {
+    await ensureProxyRunning(url)
+  }
+  catch (error) {
+    try {
+      await runPortless(['alias', '--remove', hostname])
+    }
+    catch {
+      // shutdown should not block on portless
+    }
+    throw error
   }
 
   let unregistered = false
