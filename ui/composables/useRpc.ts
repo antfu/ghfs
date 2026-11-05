@@ -33,7 +33,7 @@ function parseFetchMessage(message: string | undefined): ProgressCurrentItem | u
   return {
     number: Number(match[1]),
     kind: match[2] as 'issue' | 'pull',
-    action: match[3],
+    action: match[3] as string,
   }
 }
 
@@ -82,6 +82,13 @@ function ensureClient(): Promise<DevframeRpcClient> {
       if (typeof path === 'string' && !path.startsWith('/') && !/^\w+:/.test(path))
         meta[key].path = `/${path}`
     }
+    // In dev the ghfs server lives on a different port than the SPA (see
+    // scripts/dev.ts). The advertised meta has no host/port, so the client
+    // would default to the SPA origin and the WS handshake dies on Nuxt's
+    // catch-all. `VITE_GHFS_WS_PORT` is injected only in dev by dev.ts.
+    const ghfsPort = import.meta.env?.VITE_GHFS_WS_PORT
+    if (ghfsPort && meta.websocket && meta.websocket.port == null && meta.websocket.host == null)
+      meta.websocket.port = Number(ghfsPort)
     const client = await connectDevframe({ connectionMeta: meta })
     // `connectDevframe` builds an empty client RPC host; re-register the
     // ghfs:on* broadcast handlers that the old `createRpcClient` accepted
