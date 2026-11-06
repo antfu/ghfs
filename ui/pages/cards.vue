@@ -7,6 +7,7 @@ import CardsCommentDialog from '../components/cards/CommentDialog.vue'
 import CardsDone from '../components/cards/Done.vue'
 import CardsStack from '../components/cards/Stack.vue'
 import DisplayProjectIcon from '../components/display/ProjectIcon.vue'
+import PanelQueue from '../components/panel/Queue.vue'
 import UiIconButton from '../components/ui/IconButton.vue'
 import UiWithCommand from '../components/ui/WithCommand.vue'
 import { useAppState } from '../composables/useAppState'
@@ -307,6 +308,8 @@ async function doDismiss() {
         </div>
       </template>
     </main>
+
+    <PanelQueue v-if="!isHubMode" />
 
     <CardsCommentDialog
       v-if="currentCard"
