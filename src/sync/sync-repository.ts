@@ -7,6 +7,7 @@ import { GHFS_VERSION } from '../meta'
 import { createRepositoryProvider } from '../providers/factory'
 import { formatIssueNumber } from '../utils/format'
 import { normalizeIssueNumbers, resolveSince } from '../utils/sync'
+import { materializePullChecks, refreshPullChecks } from './checks'
 import { loadSyncState, saveSyncState } from './state'
 import {
   materializePreparedIssue,
@@ -156,6 +157,7 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
           message: `${formatIssueNumber(issue.number, { repo: options.repo, kind: issue.kind })} ${prepared.kind} ${prepared.action}`,
         })
       }
+      await refreshPullChecks(syncContext, new Set(candidates.issues.map(issue => issue.number)), Boolean(targetNumbers))
     })
 
     syncContext.syncState.repo = options.repo
@@ -169,6 +171,7 @@ export async function syncRepository(options: SyncOptions): Promise<SyncSummary>
     await runStage('materialize', 'Materialize local files', async () => {
       for (const prepared of preparedCandidates)
         addItemStats(counters, await materializePreparedIssue(syncContext, prepared))
+      await materializePullChecks(syncContext)
     })
 
     await runStage('prune', 'Prune stale local artifacts', async () => {

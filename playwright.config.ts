@@ -30,6 +30,19 @@ export default defineConfig({
   ],
   webServer: [
     {
+      command: `node ./dist/cli.mjs ui --port 7914 --no-open --no-portless --cwd ${JSON.stringify(resolve(fixtures, 'checks'))}`,
+      port: 7914,
+      timeout: 60_000,
+      reuseExistingServer: false,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: {
+        ...process.env as Record<string, string>,
+        GH_TOKEN: 'fake-for-tests',
+        AI_GATEWAY_API_KEY: '',
+      },
+    },
+    {
       command: `node ./dist/cli.mjs ui --port 7910 --no-open --no-portless --cwd ${JSON.stringify(resolve(fixtures, 'single'))}`,
       port: 7910,
       timeout: 60_000,

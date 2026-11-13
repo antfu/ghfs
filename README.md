@@ -30,11 +30,15 @@ It will sync the open issues and pull requests to the local filesystem under `.g
   pulls/
     00042-add-cache.md
     00042-add-cache.patch
+    00042-add-cache/
+      checks.json
     closed/
       00043-release-cleanup.md
 ```
 
 Then you can view them offline, or ask your local agent to summarize them for you.
+
+The **Checks** tab (`h`) shows synced check runs and commit statuses. Open PR checks refresh on each sync.
 
 ## Web UI
 
