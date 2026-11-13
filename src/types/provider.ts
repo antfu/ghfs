@@ -46,6 +46,29 @@ export interface ProviderComment {
 
 export type ProviderReviewDecision = 'approved' | 'changes_requested' | 'review_required'
 
+export interface ProviderPullChecks {
+  headSha: string
+  fetchedAt: string
+  checkRuns: Array<{
+    id: number
+    name: string
+    status: string
+    conclusion: string | null
+    detailsUrl: string | null
+    startedAt: string | null
+    completedAt: string | null
+  }>
+  statuses: Array<{
+    id: number
+    context: string
+    state: string
+    description: string | null
+    targetUrl: string | null
+    createdAt: string
+    updatedAt: string
+  }>
+}
+
 export interface ProviderPullMetadata {
   isDraft: boolean
   merged: boolean
@@ -274,6 +297,7 @@ export interface RepositoryProvider {
   fetchComments: (number: number) => Promise<ProviderComment[]>
   fetchPullMetadata: (number: number) => Promise<ProviderPullMetadata>
   fetchPullPatch: (number: number) => Promise<string>
+  fetchPullChecks: (number: number) => Promise<ProviderPullChecks>
   fetchPullCommits: (number: number) => Promise<ProviderCommit[]>
   fetchReviewComments: (number: number) => Promise<ProviderReviewComment[]>
   fetchTimeline: (number: number) => Promise<ProviderTimelineEvent[]>

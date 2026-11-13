@@ -651,6 +651,15 @@ export function createAppCommands(): Command[] {
       run: () => ui.setLastPrTab('changes'),
     },
 
+    {
+      id: 'pr.tab.checks',
+      title: 'PR: Checks tab',
+      category: 'PR detail',
+      keybindings: ['h'],
+      when: 'activeItemKind == "pull"',
+      run: () => ui.setLastPrTab('checks'),
+    },
+
     // ─── Overlays ───────────────────────────────────────────────────────
     {
       id: 'panel.close',

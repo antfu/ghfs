@@ -2,6 +2,7 @@ import { mkdir, rm } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'pathe'
 import { buildRepoFixture } from './build-fixture'
+import { setupChecksFixture } from './checks-fixture'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const FIXTURES_ROOT = join(here, '..', 'fixtures')
@@ -124,5 +125,6 @@ async function setupHubFixtures(): Promise<void> {
 export default async function globalSetup(): Promise<void> {
   await mkdir(FIXTURES_ROOT, { recursive: true })
   await setupSingleFixture()
+  await setupChecksFixture()
   await setupHubFixtures()
 }

@@ -4,6 +4,7 @@ import { readdir, rm } from 'node:fs/promises'
 import { isAbsolute, join } from 'pathe'
 import { CLOSED_DIR_NAME, ISSUE_DIR_NAME, PULL_DIR_NAME } from '../constants'
 import { movePath, pathExists, removePatchIfExists, removePath } from '../utils/fs'
+import { removePullChecks } from './checks'
 import {
   getItemMarkdownPath,
   getPrPatchPath,
@@ -57,8 +58,10 @@ export async function handleClosedIssueByPolicy(input: ClosedIssuePolicyInput): 
       await removePath(markdownPath)
 
     let patchesDeleted = 0
-    if (kind === 'pull')
+    if (kind === 'pull') {
       patchesDeleted += await removePatchIfExists(context.storageDirAbsolute, number)
+      await removePullChecks(context.storageDirAbsolute, number)
+    }
 
     delete context.syncState.items[String(number)]
     return {
@@ -249,8 +252,10 @@ export async function pruneTrackedClosedItems(storageDirAbsolute: string, syncSt
     if (!shouldSyncKind(sync, item.kind))
       continue
     await removePath(resolveTrackedPathOrJoin(storageDirAbsolute, item.filePath))
-    if (item.kind === 'pull')
+    if (item.kind === 'pull') {
       patchesDeleted += await removePatchIfExists(storageDirAbsolute, item.number)
+      await removePullChecks(storageDirAbsolute, item.number)
+    }
     delete syncState.items[String(item.number)]
   }
 
@@ -269,8 +274,10 @@ export async function pruneMissingOpenTrackedItems(storageDirAbsolute: string, s
       continue
 
     await removePath(resolveTrackedPathOrJoin(storageDirAbsolute, item.filePath))
-    if (item.kind === 'pull')
+    if (item.kind === 'pull') {
       patchesDeleted += await removePatchIfExists(storageDirAbsolute, item.number)
+      await removePullChecks(storageDirAbsolute, item.number)
+    }
     delete syncState.items[String(item.number)]
   }
 

@@ -28,6 +28,7 @@ import { randomHexColor } from '../../utils/color'
 import { formatIssueNumber } from '../../utils/format'
 import { createEmptyReactions, isReactionContent, normalizeReactions, reactionKeyFromContent } from '../../utils/reactions'
 import { collectPages, iteratePages } from '../helpers'
+import { fetchPullChecks } from './checks'
 import { createGitHubClient } from './client'
 
 type BumpRequestCount = () => void
@@ -61,6 +62,7 @@ export function createGitHubProvider(options: CreateGitHubProviderOptions): Repo
     fetchComments: number => fetchComments(octokit, owner, repo, number, bumpRequestCount),
     fetchPullMetadata: number => fetchPullMetadata(octokit, owner, repo, number, bumpRequestCount),
     fetchPullPatch: number => fetchPullPatch(octokit, owner, repo, number, bumpRequestCount),
+    fetchPullChecks: number => fetchPullChecks(octokit, owner, repo, number, bumpRequestCount),
     fetchPullCommits: number => fetchPullCommits(octokit, owner, repo, number, bumpRequestCount),
     fetchReviewComments: number => fetchReviewComments(octokit, owner, repo, number, bumpRequestCount),
     fetchTimeline: number => fetchTimeline(octokit, owner, repo, number, bumpRequestCount),

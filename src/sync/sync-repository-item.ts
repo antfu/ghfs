@@ -7,6 +7,7 @@ import { diagnostics } from '../logger'
 import { formatIssueNumber } from '../utils/format'
 import { movePath, pathExists, removePatchIfExists, removePath, writeFileEnsured } from '../utils/fs'
 import { normalizeReactions } from '../utils/reactions'
+import { removePullChecks } from './checks'
 import { renderIssueMarkdown } from './markdown'
 import {
   getExistingMarkdownPaths,
@@ -90,8 +91,10 @@ export async function materializePreparedIssue(context: SyncContext, candidate: 
       await removePath(markdownPath)
 
     let patchesDeleted = 0
-    if (kind === 'pull')
+    if (kind === 'pull') {
       patchesDeleted += await removePatchIfExists(context.storageDirAbsolute, number)
+      await removePullChecks(context.storageDirAbsolute, number)
+    }
 
     return {
       kind,

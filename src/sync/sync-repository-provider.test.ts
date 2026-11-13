@@ -118,6 +118,7 @@ function createContext(overrides: {
         requestedReviewers: [],
       })),
       fetchPullPatch: vi.fn(async () => ''),
+      fetchPullChecks: vi.fn(async () => ({ headSha: 'head-sha', fetchedAt: '2026-01-01T00:00:00.000Z', checkRuns: [], statuses: [] })),
       fetchPullCommits: vi.fn(async () => []),
       fetchTimeline: vi.fn(async () => []),
       fetchItemSnapshot: vi.fn(async number => ({

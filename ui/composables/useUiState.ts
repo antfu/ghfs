@@ -4,7 +4,7 @@ import { useDebounceFn } from '@vueuse/core'
 import { diagnostics } from '../utils/logger'
 import { useRpc } from './useRpc'
 
-type PrTabId = 'conversation' | 'commits' | 'changes'
+type PrTabId = 'conversation' | 'commits' | 'changes' | 'checks'
 
 const uiState = reactive<UiState>({ drafts: {} })
 const helpOpen = ref(false)
@@ -40,7 +40,7 @@ function ensureSaver(): () => void {
 }
 
 function normalizePrTab(value: unknown): PrTabId | undefined {
-  if (value === 'conversation' || value === 'commits' || value === 'changes')
+  if (value === 'conversation' || value === 'commits' || value === 'changes' || value === 'checks')
     return value
   return undefined
 }

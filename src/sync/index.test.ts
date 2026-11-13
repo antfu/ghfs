@@ -10,6 +10,106 @@ import { syncRepository } from './index'
 import { getSyncStatePath, loadSyncState } from './state'
 
 describe('syncRepository', () => {
+  it('refreshes CI-only changes during incremental sync without refetching comments or patches', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ghfs-checks-test-'))
+    try {
+      const item = createIssue({ number: 42, kind: 'pull', state: 'open', title: 'Add cache', updatedAt: '2026-01-01T00:00:00.000Z' })
+      const fetchPullChecks = vi.fn()
+        .mockResolvedValueOnce({ headSha: 'first', fetchedAt: '2026-01-01T00:00:00Z', checkRuns: [{ status: 'in_progress', conclusion: null }], statuses: [] })
+        .mockResolvedValueOnce({ headSha: 'second', fetchedAt: '2026-01-01T00:01:00Z', checkRuns: [{ status: 'completed', conclusion: 'success' }], statuses: [] })
+      const provider = createMockProvider({
+        paginateItems: vi.fn().mockImplementationOnce(async function* () {
+          yield [item]
+        }).mockImplementation(async function* () { yield [] }),
+        fetchPullChecks,
+      })
+      const options = { config: createConfig(cwd), repo: 'owner/repo', token: 'test-token', provider }
+      await syncRepository(options)
+      vi.mocked(provider.fetchComments).mockClear()
+      vi.mocked(provider.fetchPullPatch).mockClear()
+      await syncRepository(options)
+      const path = join(cwd, '.ghfs/pulls/00042-add-cache/checks.json')
+      expect(JSON.parse(await readFile(path, 'utf8'))).toMatchObject({ headSha: 'second', checkRuns: [{ conclusion: 'success' }] })
+      expect((await loadSyncState(join(cwd, '.ghfs'))).items['42'].data.checks?.headSha).toBe('second')
+      expect(fetchPullChecks).toHaveBeenCalledTimes(2)
+      expect(provider.fetchComments).not.toHaveBeenCalled()
+      expect(provider.fetchPullPatch).not.toHaveBeenCalled()
+    }
+    finally {
+      await rm(cwd, { recursive: true, force: true })
+    }
+  })
+
+  it('limits check refresh to targeted numbers and respects disabled pull sync', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ghfs-checks-test-'))
+    try {
+      const items = [1, 2].map(number => createIssue({ number, kind: 'pull', state: 'open', title: `PR ${number}`, updatedAt: '2026-01-01T00:00:00.000Z' }))
+      const provider = createMockProvider({
+        async* paginateItems() { yield items },
+        fetchItemsByNumbers: vi.fn(async numbers => items.filter(item => numbers.includes(item.number))),
+      })
+      const options = { config: createConfig(cwd), repo: 'owner/repo', token: 'test-token', provider }
+      await syncRepository(options)
+      vi.mocked(provider.fetchPullChecks).mockClear()
+      await syncRepository({ ...options, numbers: [1] })
+      expect(provider.fetchPullChecks).toHaveBeenCalledExactlyOnceWith(1)
+      vi.mocked(provider.fetchPullChecks).mockClear()
+      await syncRepository({ ...options, config: createConfig(cwd, { pulls: false }) })
+      expect(provider.fetchPullChecks).not.toHaveBeenCalled()
+    }
+    finally {
+      await rm(cwd, { recursive: true, force: true })
+    }
+  })
+
+  it('moves checks after title/state changes and removes checks when closed pulls are pruned', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ghfs-checks-test-'))
+    try {
+      let item = createIssue({ number: 42, kind: 'pull', state: 'open', title: 'Old title', updatedAt: '2026-01-01T00:00:00.000Z' })
+      const provider = createMockProvider({ async* paginateItems() {
+        yield [item]
+      } })
+      const options = { config: createConfig(cwd, { closed: true }), repo: 'owner/repo', token: 'test-token', provider }
+      await syncRepository(options)
+      item = { ...item, title: 'New title', updatedAt: '2026-01-02T00:00:00.000Z' }
+      await syncRepository(options)
+      await expect(stat(join(cwd, '.ghfs/pulls/00042-old-title/checks.json'))).rejects.toMatchObject({ code: 'ENOENT' })
+      await expect(stat(join(cwd, '.ghfs/pulls/00042-new-title/checks.json'))).resolves.toBeDefined()
+      item = { ...item, state: 'closed', updatedAt: '2026-01-03T00:00:00.000Z' }
+      await syncRepository(options)
+      await expect(stat(join(cwd, '.ghfs/pulls/00042-new-title/checks.json'))).rejects.toMatchObject({ code: 'ENOENT' })
+      await expect(stat(join(cwd, '.ghfs/pulls/closed/00042-new-title/checks.json'))).resolves.toBeDefined()
+      await syncRepository({ ...options, config: createConfig(cwd, { closed: false }) })
+      await expect(stat(join(cwd, '.ghfs/pulls/closed/00042-new-title/checks.json'))).rejects.toMatchObject({ code: 'ENOENT' })
+      expect((await loadSyncState(join(cwd, '.ghfs'))).items['42']).toBeUndefined()
+    }
+    finally {
+      await rm(cwd, { recursive: true, force: true })
+    }
+  })
+
+  it('leaves the saved snapshot intact when fetching checks fails', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ghfs-checks-test-'))
+    try {
+      const item = createIssue({ number: 42, kind: 'pull', state: 'open', title: 'PR', updatedAt: '2026-01-01T00:00:00.000Z' })
+      const provider = createMockProvider({ async* paginateItems() {
+        yield [item]
+      } })
+      const options = { config: createConfig(cwd), repo: 'owner/repo', token: 'test-token', provider }
+      await syncRepository(options)
+      const path = join(cwd, '.ghfs/pulls/00042-pr/checks.json')
+      const before = await readFile(path, 'utf8')
+      const beforeState = await readFile(getSyncStatePath(join(cwd, '.ghfs')), 'utf8')
+      vi.mocked(provider.fetchPullChecks).mockRejectedValueOnce(new Error('permission denied'))
+      await expect(syncRepository(options)).rejects.toThrow('permission denied')
+      expect(await readFile(path, 'utf8')).toBe(before)
+      expect(await readFile(getSyncStatePath(join(cwd, '.ghfs')), 'utf8')).toBe(beforeState)
+    }
+    finally {
+      await rm(cwd, { recursive: true, force: true })
+    }
+  })
+
   afterEach(() => {
     vi.clearAllMocks()
   })
@@ -472,6 +572,7 @@ function createMockProvider(overrides: Partial<RepositoryProvider> = {}): Reposi
       requestedReviewers: [],
     })),
     fetchPullPatch: vi.fn(async () => ''),
+    fetchPullChecks: vi.fn(async () => ({ headSha: 'head-sha', fetchedAt: '2026-01-01T00:00:00.000Z', checkRuns: [], statuses: [] })),
     fetchPullCommits: vi.fn(async () => []),
     fetchReviewComments: vi.fn(async () => []),
     fetchTimeline: vi.fn(async () => []),

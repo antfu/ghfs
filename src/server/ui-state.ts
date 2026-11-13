@@ -3,7 +3,7 @@ import { join } from 'pathe'
 
 export const UI_STATE_FILE = '.ui.json'
 
-export type PrTabId = 'conversation' | 'commits' | 'changes'
+export type PrTabId = 'conversation' | 'commits' | 'changes' | 'checks'
 
 export interface UserOverride {
   login?: string
@@ -74,7 +74,7 @@ function normalizeNumberArray(value: unknown): number[] | undefined {
 }
 
 function normalizePrTab(value: unknown): PrTabId | undefined {
-  if (value === 'conversation' || value === 'commits' || value === 'changes')
+  if (value === 'conversation' || value === 'commits' || value === 'changes' || value === 'checks')
     return value
   return undefined
 }

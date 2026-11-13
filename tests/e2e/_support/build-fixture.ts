@@ -1,4 +1,5 @@
 import type { SyncItemState, SyncState } from '../../../src/types'
+import type { ProviderPullChecks } from '../../../src/types/provider'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { GHFS_VERSION } from '../../../src/meta'
@@ -13,6 +14,7 @@ export interface FixtureItemInput {
   author?: string
   labels?: string[]
   assignees?: string[]
+  checks?: ProviderPullChecks
   comments?: Array<{ id: number, author: string, body: string }>
 }
 
@@ -103,6 +105,7 @@ function buildItemState(
     lastSyncedAt: syncedAt,
     filePath: relativePath,
     data: {
+      checks: input.checks,
       item: {
         number: input.number,
         kind,

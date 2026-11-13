@@ -28,6 +28,7 @@ import PanelDetailComposer from './DetailComposer.vue'
 import PanelDetailConversationTab from './DetailConversationTab.vue'
 import PanelDetailLabelEditor from './DetailLabelEditor.vue'
 import PanelDetailPrChangesTab from './DetailPrChangesTab.vue'
+import PanelDetailPrChecksTab from './DetailPrChecksTab.vue'
 import PanelDetailPrCommitsTab from './DetailPrCommitsTab.vue'
 
 const props = withDefaults(defineProps<{
@@ -79,7 +80,7 @@ const hasAi = computed(() => state.payload.value?.repo.hasAi ?? false)
 const { suggesting: suggestingLabels } = useLabelSuggestions()
 const assignees = computed(() => item.value?.assignees ?? [])
 
-type PrTab = 'conversation' | 'commits' | 'changes'
+type PrTab = 'conversation' | 'commits' | 'changes' | 'checks'
 const prTab = computed<PrTab>({
   get() {
     return ui.uiState.lastPrTab ?? 'conversation'
@@ -398,7 +399,7 @@ async function discardThisItem() {
       v-model="prTab"
       class="flex-1 flex flex-col min-h-0"
     >
-      <TabsList class="flex items-stretch gap-1 px-4 pt-3 border-b border-base">
+      <TabsList class="flex items-stretch gap-1 px-4 pt-3 border-b border-base overflow-x-auto shrink-0">
         <TabsTrigger
           value="conversation"
           class="tab-trigger"
@@ -425,6 +426,12 @@ async function discardThisItem() {
           Changes
           <UiWithCommand command="pr.tab.changes" tone="muted" />
         </TabsTrigger>
+        <TabsTrigger value="checks" class="tab-trigger" data-testid="pr-checks-tab">
+          <span class="i-octicon-checklist-16" />
+          Checks
+          <span v-if="selected?.data.checks" class="tab-count">{{ selected.data.checks.checkRuns.length + selected.data.checks.statuses.length }}</span>
+          <UiWithCommand command="pr.tab.checks" tone="muted" />
+        </TabsTrigger>
       </TabsList>
       <div ref="scrollContainer" data-scroll="detail" class="flex-1 overflow-y-auto">
         <TabsContent value="conversation">
@@ -444,6 +451,9 @@ async function discardThisItem() {
         </TabsContent>
         <TabsContent value="changes">
           <PanelDetailPrChangesTab v-if="item" :number="item.number" :has-patch="hasPatch" />
+        </TabsContent>
+        <TabsContent value="checks">
+          <PanelDetailPrChecksTab :checks="selected?.data.checks" />
         </TabsContent>
       </div>
     </TabsRoot>
