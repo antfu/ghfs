@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, toRaw } from 'vue'
 import { useRoute, useRouter } from '#imports'
 import type {
   CardRef,
@@ -79,18 +79,18 @@ let saveFn: (() => void) | null = null
  * reply to the initial `get`). Falls back to a timeout so a server that
  * has nothing saved still releases the hydrate spinner.
  */
-function waitForFirstUpdate<T>(state: SharedState<T>, timeoutMs = 1500): Promise<void> {
-  return new Promise<void>((resolve) => {
+function waitForFirstUpdate<T>(state: SharedState<T>, timeoutMs = 1500): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
     let settled = false
-    const finish = () => {
+    const finish = (updated: boolean) => {
       if (settled)
         return
       settled = true
       off()
-      resolve()
+      resolve(updated)
     }
-    const off = state.on('updated', finish)
-    setTimeout(finish, timeoutMs)
+    const off = state.on('updated', () => finish(true))
+    setTimeout(() => finish(false), timeoutMs)
   })
 }
 
@@ -104,12 +104,17 @@ async function ensureShared(): Promise<SharedState<CardsSharedState>> {
     const state = await client.sharedState.get('ghfs:cards-pile', {
       initialValue: { pile: null },
     })
-    // The client returns the local initialValue immediately; the server
-    // reply arrives asynchronously and fires `updated`. Block hydrate
-    // on it so the page doesn't flash empty → loaded for a saved pile.
-    await waitForFirstUpdate(state)
-    applyServerState(state.value().pile ?? null)
+    // Subscribe before the first read. `sharedState.get` applies the server
+    // reply through a second `mutate`, which fires `updated` again, and that
+    // reply can land after `start()` has already written a fresh pile.
+    // Missing it lets the empty initial value overwrite the pile the user
+    // just created.
     state.on('updated', (next) => applyServerState(next.pile ?? null))
+    // Only read back when the server actually replied. On timeout the value
+    // is still the empty initialValue, and applying it would wipe a pile
+    // `start()` wrote while this promise was in flight.
+    if (await waitForFirstUpdate(state))
+      applyServerState(state.value().pile ?? null)
     sharedHandle = state
     return state
   })()
@@ -291,16 +296,25 @@ function pickFromCandidates(
 }
 
 function snapshot(): CardsPileState {
+  // `source` and `options` live in reactive() proxies. immer freezes the
+  // draft and then reads these back; a Vue proxy refuses that read, so hand
+  // immer plain objects.
   return {
-    pile: pile.value,
+    pile: pile.value.map(card => ({ ...card })),
     index: index.value,
-    processedOps: processedOps.value,
-    source: source.value,
-    options: options.value,
+    processedOps: processedOps.value.map(op => ({ ...op })),
+    source: { ...toRaw(source.value) },
+    options: { ...toRaw(options.value) },
   }
 }
 
 function applyServerState(next: CardsPileState | null): void {
+  // A server echo can arrive after `start()` has already built a pile locally
+  // but before that pile is persisted. Applying the stale empty value here
+  // wipes it, and the following persist then saves the empty pile.
+  const incoming = next?.pile.length ?? 0
+  if (incoming === 0 && pile.value.length > 0)
+    return
   if (!next) {
     pile.value = []
     index.value = 0
