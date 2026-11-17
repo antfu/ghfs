@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useActiveProjectId, useAppState } from '../../composables/useAppState'
 import { useFilteredItems } from '../../composables/useFilteredItems'
 import { useHubState } from '../../composables/useHubState'
@@ -24,7 +24,7 @@ activeId.value = props.projectId
 const state = useAppState(props.projectId)
 useSelectedItemSync(() => props.projectId, () => props.initialNumber ?? null)
 
-const { filteredItems, counts } = useFilteredItems()
+const { allItems, filteredItems, counts } = useFilteredItems()
 const payload = useProjectPayload()
 const hub = useHubState()
 
@@ -53,11 +53,36 @@ watch(() => props.projectId, (id) => {
   payload.loadInitial(id)
 }, { immediate: true })
 
+// Number that was selected while the current tab did not list it, e.g. a pull
+// request restored from `/:number` on top of the default issue tab. Kept until
+// the list catches up, so the tab can follow instead of closing the details.
+const pendingNumber = ref<number | null>(null)
+watch(
+  () => state.selectedNumber.value,
+  (number) => {
+    pendingNumber.value = number != null && !filteredItems.value.some(it => it.number === number)
+      ? number
+      : null
+  },
+  { immediate: true },
+)
+
 watch(filteredItems, (entries) => {
-  if (state.selectedNumber.value == null)
+  const number = state.selectedNumber.value
+  if (number == null)
     return
-  if (!entries.some(e => e.number === state.selectedNumber.value))
-    state.selectItem(null)
+  if (entries.some(e => e.number === number)) {
+    pendingNumber.value = null
+    return
+  }
+  const item = allItems.value.find(it => it.number === number)
+  const pending = pendingNumber.value === number
+  pendingNumber.value = null
+  if (pending && item?.state === 'open' && state.filters.kind !== item.kind) {
+    state.filters.kind = item.kind
+    return
+  }
+  state.selectItem(null)
 }, { flush: 'post' })
 
 function onSelect(item: ListItem) {
