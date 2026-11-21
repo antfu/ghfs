@@ -6,6 +6,7 @@ import { createDevServer, resolveDevServerPort } from 'devframe/adapters/dev'
 import { resolve } from 'pathe'
 import { resolveAuthToken } from '../../config/auth'
 import { ghfsDevframe } from '../../devframe/define'
+import { loadHubConfig } from '../../hub/config'
 import {
   clearDaemonState,
   DaemonStartupError,
@@ -16,6 +17,7 @@ import {
   writeDaemonState,
 } from '../../hub/daemon'
 import { withErrorHandling } from '../errors'
+import { reportUnresolvedProjects } from '../hub-scan-report'
 import { createCliPrinter } from '../printer'
 import { promptForToken } from '../prompts'
 
@@ -122,6 +124,9 @@ async function runHubServer(options: HubCommandOptions, runOpts: RunHubServerOpt
   printer.info(`ghfs hub running at ${directUrl}`)
   if (!initialToken)
     printer.info('No GitHub token yet; sync/execute will prompt or fail until one is available.')
+
+  const hubConfig = await loadHubConfig()
+  await reportUnresolvedProjects(printer, hubConfig.roots.length > 0 ? hubConfig.roots : [hubCwd])
 
   if (daemonStatePath) {
     await writeDaemonState({
