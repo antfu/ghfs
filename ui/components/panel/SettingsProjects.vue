@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { Tooltip as VTooltip } from 'floating-vue'
 import type { HubScannedProject } from '#ghfs/rpc-types'
 import { useHubState } from '../../composables/useHubState'
 import { setProjectExcluded } from '../../composables/useHubUiState'
@@ -337,16 +338,27 @@ watch(() => hub.hubRoots.value.join('|'), () => {
           :data-path="entry.path"
         >
           <DisplayProjectIcon
-            :project="{ id: entry.path, repo: entry.repo }"
+            :project="{ id: entry.path, repo: entry.repo ?? '' }"
             :icon-data-url="entry.iconDataUrl"
             :size="28"
             :class="entry.enabled ? 'ring-1 ring-primary-500/30' : ''"
           />
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium font-mono truncate" :class="entry.enabled ? '' : 'color-muted'">{{ entry.repo }}</div>
+            <div class="text-sm font-medium font-mono truncate" :class="entry.enabled ? '' : 'color-muted'">{{ entry.repo ?? entry.name }}</div>
             <div class="text-[11px] color-faint font-mono truncate" :title="entry.path">{{ entry.path }}</div>
           </div>
+          <VTooltip v-if="entry.error" placement="top" :distance="10" class="inline-flex shrink-0">
+            <span class="btn-toggle-pill btn-toggle-pill-warn cursor-not-allowed" tabindex="0">
+              <span class="i-ph-warning-duotone" />
+              <span>Unresolved</span>
+              <span class="sr-only">{{ entry.error }}</span>
+            </span>
+            <template #popper>
+              <span data-testid="hub-picker-error">{{ entry.error }}</span>
+            </template>
+          </VTooltip>
           <button
+            v-else
             type="button"
             class="btn-toggle-pill shrink-0"
             :class="entry.enabled ? 'btn-toggle-pill-on' : 'btn-toggle-pill-off'"

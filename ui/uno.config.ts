@@ -83,6 +83,7 @@ export default defineConfig({
       'btn-toggle-pill': 'inline-flex items-center gap-1.5 px-2.5 h-7 text-xs font-medium rounded-full border transition outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:op50 disabled:pointer-events-none',
       'btn-toggle-pill-on': 'border-primary-500/40 bg-primary-500/12 color-active hover:bg-primary-500/20',
       'btn-toggle-pill-off': 'border-base bg-base color-muted hover:color-base hover:border-active hover:bg-active',
+      'btn-toggle-pill-warn': 'border-yellow-600/20 bg-yellow-500/6 color-yellow-700 dark:border-yellow-300/20 dark:bg-yellow-400/8 dark:color-yellow-300',
 
       'badge': 'inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium leading-none',
       'kbd': 'inline-flex items-center justify-center h-4 min-w-4 px-1.5 rounded border border-base bg-secondary font-mono text-[10px] color-muted leading-none shadow-[inset_0_-1px_0_0_#8882]',

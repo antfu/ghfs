@@ -86,8 +86,16 @@ export interface HubSettingsPatch {
 export interface HubScannedProject {
   path: string
   name: string
-  /** Resolved `owner/repo` from git remotes / package.json. Scans drop repos that can't be resolved. */
-  repo: string
+  /**
+   * Resolved `owner/repo` from ghfs.config.ts, git remotes or package.json.
+   *
+   * Null when the directory could not be resolved, in which case `error`
+   * explains why. Such a directory stays in the scan so the picker can show
+   * the reason instead of hiding the project.
+   */
+  repo: string | null
+  /** Why repository resolution failed, set only when `repo` is null. */
+  error?: string
   enabled: boolean
   /** Data URL of a logo found in the project directory, or null. */
   iconDataUrl: string | null
